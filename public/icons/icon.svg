@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
+  <!-- The Calc mark: a bold equals sign in an amber gradient on the app's
+       dark surface — the single-glyph family style of the sibling apps, in
+       this app's own hue. scripts/generate-icons.mjs rasterises the same
+       geometry; keep the two in lockstep. -->
+  <defs>
+    <linearGradient id="g" x1="0" y1="30" x2="0" y2="70" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#fde047" />
+      <stop offset="1" stop-color="#f59e0b" />
+    </linearGradient>
+  </defs>
+  <rect width="100" height="100" rx="20" fill="#0b0d10" />
+  <rect x="24" y="31.5" width="52" height="14" rx="5.5" fill="url(#g)" />
+  <rect x="24" y="54.5" width="52" height="14" rx="5.5" fill="url(#g)" />
+</svg>
