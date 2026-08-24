@@ -1,0 +1,34 @@
+name: seo
+
+# §11.3.10 — structural SEO assertions. The PWA is the website (pages.yml
+# deploys the app build), so this builds the app and runs check-seo.mjs
+# against dist/ so the discoverability failure modes the spec calls out
+# (missing canonical, JSON-LD drift, missing llms.txt, critical-path JS
+# budget breach) cannot ship silently.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+  # npm ci resolves @niclaslindstedt/oss-framework from GitHub Packages.
+  packages: read
+
+jobs:
+  check-seo:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v6
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+          registry-url: "https://npm.pkg.github.com"
+          scope: "@niclaslindstedt"
+      - run: npm ci
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - run: make check-seo

@@ -1,0 +1,31 @@
+# Calc
+
+> A local-first calculator PWA built on @niclaslindstedt/oss-framework.
+> Calculations run in named sessions: every operation that ends with = lands
+> on a commentable tape, sessions save as markdown files (YAML front matter +
+> a readable bullet list) to a local folder, Dropbox, or Google Drive, and
+> the keypad layouts — basic, scientific, programmer, or your own custom
+> modes — are per-session and customizable.
+
+- App: https://calc.niclaslindstedt.se/
+- Source: https://github.com/niclaslindstedt/calc
+- Framework: https://github.com/niclaslindstedt/oss-framework
+
+## Features
+
+- Sessions: scratch by default, saved with the disk icon, named like notes
+- Tape: swipe down to reveal; tap an entry to copy its value, long-press to
+  copy the expression, left-swipe to attach a note
+- Modes: basic / scientific / programmer, per-session, plus user-defined
+  modes derived from a base layout; buttons can be hidden per mode
+- Sidebar: folders and namespaces for organizing sessions
+- Storage: markdown files in a local folder or the cloud; localStorage holds
+  settings only
+- Themes, installable offline PWA
+
+## Storage format
+
+One markdown file per session under `calculations/`, YAML front matter with
+`type: calculation`, `id`, `created`, `updated`, and optional `mode`,
+`folder`, `archived`; the body is `# Title` plus one `- \`expr\` = \`result\``
+bullet per tape entry with indented note lines.

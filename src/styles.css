@@ -1,0 +1,20 @@
+/* SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0 */
+@import "tailwindcss";
+@import "@niclaslindstedt/oss-framework/styles.css";
+@source "../node_modules/@niclaslindstedt/oss-framework/dist";
+
+/* App shell: the calculator is an app, not a document — no page scroll, no
+   overscroll glow, theme tokens painted edge to edge. */
+html,
+body {
+  height: 100%;
+  overflow: hidden;
+  overscroll-behavior: none;
+}
+
+body {
+  margin: 0;
+  background: var(--color-page-bg);
+  color: var(--color-fg);
+  font-family: var(--app-font-family, "JetBrains Mono", monospace);
+}
