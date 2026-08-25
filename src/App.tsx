@@ -112,9 +112,14 @@ export function App() {
     { side: "left", y: 0.2 },
   );
   useSidebarInset(pinned, menuPosition.side);
+  // "Open sidebar with" (Settings → General): on phones the drawer opens
+  // either from the floating button or from an inward edge swipe — one or the
+  // other, never both, so the gesture and the button can't fight each other.
+  // A docked (pinned) sidebar has neither.
+  const swipeToOpen = !pinned && settings.menuMode === "swipe";
   useEdgeSwipeOpen({
     side: menuPosition.side,
-    enabled: !pinned && !drawerOpen,
+    enabled: swipeToOpen && !drawerOpen,
     onOpen: () => setDrawerOpen(true),
   });
 
@@ -196,6 +201,7 @@ export function App() {
         onClose={() => setDrawerOpen(false)}
         position={menuPosition}
         onPositionChange={setMenuPosition}
+        showButton={!pinned && !swipeToOpen}
         swipeToClose
         panelScroll={false}
         labels={{
@@ -327,6 +333,7 @@ export function App() {
             onHistoryOpenChange={setHistoryOpen}
             swipeDownHistory={settings.swipeDownHistory}
             keyFeedback={settings.keyFeedback}
+            keyTextSize={settings.keyTextSize}
             onLogEntry={sessions.logEntry}
             onNoteEntry={sessions.noteEntry}
             onStarEntry={sessions.starEntry}
@@ -367,10 +374,10 @@ export function App() {
         backend={sessions.backend}
         connected={sessions.connected}
         folderReconnectNeeded={sessions.folderReconnectNeeded}
-        onConnectFolder={() => void sessions.connectFolder()}
-        onConnectDropbox={() => void sessions.connectDropbox()}
-        onConnectGdrive={() => void sessions.connectGdrive()}
-        onReconnectFolder={() => void sessions.reconnectFolder()}
+        onConnectFolder={sessions.connectFolder}
+        onConnectDropbox={sessions.connectDropbox}
+        onConnectGdrive={sessions.connectGdrive}
+        onReconnectFolder={sessions.reconnectFolder}
         onDisconnect={sessions.disconnect}
         initialTab={settingsTab}
       />

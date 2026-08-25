@@ -21,6 +21,7 @@ import { HistoryEntryRow } from "./HistoryEntryRow.tsx";
 import { Keypad } from "./Keypad.tsx";
 import type { KeyDef, Mode } from "./modes.ts";
 import type { Session } from "./session.ts";
+import type { KeyTextSize } from "./useAppSettings.ts";
 
 type Props = {
   session: Session;
@@ -30,6 +31,7 @@ type Props = {
   onHistoryOpenChange: (open: boolean) => void;
   swipeDownHistory: boolean;
   keyFeedback: boolean;
+  keyTextSize: KeyTextSize;
   onLogEntry: (expression: string, result: string, chained: boolean) => void;
   onNoteEntry: (entryId: string, note: string) => void;
   onStarEntry: (entryId: string) => void;
@@ -60,6 +62,7 @@ export function CalculatorScreen({
   onHistoryOpenChange,
   swipeDownHistory,
   keyFeedback,
+  keyTextSize,
   onLogEntry,
   onNoteEntry,
   onStarEntry,
@@ -310,6 +313,7 @@ export function CalculatorScreen({
         mode={mode}
         hidden={hiddenKeys}
         keyFeedback={keyFeedback}
+        textSize={keyTextSize}
         clearIsBackspace={expression.length > 0}
         onKey={onKey}
         onKeyLongPress={onKeyLongPress}
