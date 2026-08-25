@@ -334,6 +334,7 @@ export function App() {
             swipeDownHistory={settings.swipeDownHistory}
             keyFeedback={settings.keyFeedback}
             keyTextSize={settings.keyTextSize}
+            displayTextSize={settings.displayTextSize}
             onLogEntry={sessions.logEntry}
             onNoteEntry={sessions.noteEntry}
             onStarEntry={sessions.starEntry}

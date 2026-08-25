@@ -27,10 +27,11 @@ preferences, never documents:
   inward edge swipe — one or the other, never both).
 - **Layouts** — which modes the top bar offers, per-mode hidden buttons,
   and user-defined custom modes (a named copy of a base layout).
-- **Appearance** — keypad button text size (Small / Medium / Large / Huge,
-  with a live preview of the pad) plus the framework theme picker (presets,
-  fonts, UI style), shared look-and-feel with the sibling
-  notes/checklist/contacts apps.
+- **Appearance** — display text size (the result and the expression under
+  it, Small / Medium / Large / Huge, with a live preview of the readout),
+  keypad button text size (the same four steps, with a live preview of the
+  pad) plus the framework theme picker (presets, fonts, UI style), shared
+  look-and-feel with the sibling notes/checklist/contacts apps.
 - **Storage** — pick and connect/disconnect the session storage backend.
 
 ## Storage backends

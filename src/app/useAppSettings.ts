@@ -15,20 +15,32 @@ import {
  *  sibling offers, so the two apps feel the same in the hand. */
 export type MenuMode = "button" | "swipe";
 
-/** Keypad button text size (Settings → Appearance). `m` is the size the pad
- *  has always used; the rest step the cap label up or down. */
-export type KeyTextSize = "s" | "m" | "l" | "xl";
+/** One text-size step. `m` is what the app has always drawn; the rest step
+ *  the text up or down around it. Both Appearance pickers — the keypad's cap
+ *  labels and the display's expression/result — run on this scale, so the two
+ *  read as the same knob applied to different surfaces. */
+export type TextSize = "s" | "m" | "l" | "xl";
 
 /** The size steps, in picker order — the labels the Appearance tab shows. */
-export const KEY_TEXT_SIZES: { id: KeyTextSize; label: string }[] = [
+export const TEXT_SIZES: { id: TextSize; label: string }[] = [
   { id: "s", label: "Small" },
   { id: "m", label: "Medium" },
   { id: "l", label: "Large" },
   { id: "xl", label: "Huge" },
 ];
 
-function isKeyTextSize(raw: unknown): raw is KeyTextSize {
-  return KEY_TEXT_SIZES.some((size) => size.id === raw);
+/** Keypad button text size (Settings → Appearance → Keypad). */
+export type KeyTextSize = TextSize;
+export const KEY_TEXT_SIZES = TEXT_SIZES;
+
+/** Display text size (Settings → Appearance → Display): how large the result
+ *  and the expression under it are drawn. The two scale together — the result
+ *  stays the headline, the expression its subtitle. */
+export type DisplayTextSize = TextSize;
+export const DISPLAY_TEXT_SIZES = TEXT_SIZES;
+
+function isTextSize(raw: unknown): raw is TextSize {
+  return TEXT_SIZES.some((size) => size.id === raw);
 }
 
 // App settings live in localStorage (the app's rule: localStorage for
@@ -39,6 +51,8 @@ export type AppSettings = {
   menuMode: MenuMode;
   // How large the keypad's button labels are drawn.
   keyTextSize: KeyTextSize;
+  // How large the display's result and expression are drawn.
+  displayTextSize: DisplayTextSize;
   // Reveal the tape by swiping down on the display (in addition to the
   // history toggle button).
   swipeDownHistory: boolean;
@@ -59,6 +73,7 @@ const STORAGE_KEY = "calc:settings";
 export const DEFAULT_SETTINGS: AppSettings = {
   menuMode: "button",
   keyTextSize: "m",
+  displayTextSize: "m",
   swipeDownHistory: true,
   keyFeedback: true,
   enabledModes: [...BUILTIN_MODE_IDS],
@@ -92,9 +107,12 @@ function parseSettings(raw: string): AppSettings {
       : DEFAULT_SETTINGS.enabledModes;
     return {
       menuMode: parsed.menuMode === "swipe" ? "swipe" : "button",
-      keyTextSize: isKeyTextSize(parsed.keyTextSize)
+      keyTextSize: isTextSize(parsed.keyTextSize)
         ? parsed.keyTextSize
         : DEFAULT_SETTINGS.keyTextSize,
+      displayTextSize: isTextSize(parsed.displayTextSize)
+        ? parsed.displayTextSize
+        : DEFAULT_SETTINGS.displayTextSize,
       swipeDownHistory:
         typeof parsed.swipeDownHistory === "boolean"
           ? parsed.swipeDownHistory

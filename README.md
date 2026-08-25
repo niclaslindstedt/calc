@@ -69,6 +69,12 @@ and keep the session.
 
 ## Usage
 
+- **Display** — the result leads, big, with the expression it came from
+  underneath it. Characters reveal one at a time as they are typed, sliding
+  in from the right while the line settles left of them. An expression
+  mid-thought (`12+`) keeps the last real answer up, dimmed, rather than
+  blanking the headline; the hex spelling and any error read on a thin line
+  below.
 - **Sessions** — the left sidebar lists saved sessions. A new tape is
   scratch: it lives in memory until you press the disk icon, which names it
   (notes-style: the title field is selected, ready to be overwritten) and
@@ -108,12 +114,14 @@ and keep the session.
   Settings → General: the draggable floating button (drag it to either edge,
   at any height), or an inward swipe from the edge the button rests against.
   A wide screen docks the sidebar and uses neither.
-- **Button text size** — Settings → Appearance sizes the keypad's labels
-  (Small / Medium / Large / Huge) with a live preview of the pad. The keys
-  keep their size; only the text grows.
+- **Text sizes** — Settings → Appearance sizes both surfaces (Small /
+  Medium / Large / Huge, each with a live preview): the display's result and
+  expression, which step together so the result stays the headline, and the
+  keypad's button labels, where the keys keep their size and only the text
+  grows.
 - **Settings** — the sidebar footer opens it: General (gestures, sidebar),
-  Layouts, Appearance (button text size + theme), and Storage, which is
-  where a backend is connected. Changes are staged and applied with Save;
+  Layouts, Appearance (display and button text sizes + theme), and Storage,
+  which is where a backend is connected. Changes are staged and applied with Save;
   Cancel puts everything back. The footer also carries an About entry with
   the build identifier.
 - **Storage** — Settings → Storage picks between _Device_ (tapes stay in

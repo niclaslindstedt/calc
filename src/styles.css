@@ -59,3 +59,32 @@ body {
 [data-density="spacious"] .settings-body .mt-3:not(:first-child) {
   margin-top: 1rem;
 }
+
+/* The display's per-character reveal (RevealText.tsx). Each glyph is its own
+   inline-block so it can slide in from the right as the line settles left of
+   it; `backwards` holds it invisible through its stagger delay, and `pre`
+   keeps a leading/trailing space (a formatted result, a pasted expression)
+   from collapsing. Short and eased-out — the readout should keep up with the
+   keypad, never queue behind it. */
+@keyframes calc-char-in {
+  from {
+    opacity: 0;
+    transform: translateX(0.45em) scale(0.86);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0) scale(1);
+  }
+}
+
+.calc-char {
+  display: inline-block;
+  white-space: pre;
+  animation: calc-char-in 130ms cubic-bezier(0.22, 1, 0.36, 1) backwards;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .calc-char {
+    animation: none;
+  }
+}

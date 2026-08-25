@@ -1,14 +1,16 @@
 // SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0
 //
 // The calculator surface, Calcbot-style: the session tape rests above a tall
-// display that shows the expression being typed with a live result preview,
-// and the active mode's keypad sits below. The tape always keeps a slice of
-// the screen — the last few entries stay in view — and expands to half the
-// screen (scrolling either way) via the handle or a swipe down on the
-// display. Pressing `=` logs an entry to the tape. Programmer-flavoured modes
-// add a hex spelling of the preview. A long press on the display raises the
-// clipboard bar — copy what is on it, or paste what the clipboard has to
-// offer (ClipboardPill.tsx, paste.ts).
+// display, and the active mode's keypad sits below. The display leads with
+// the running result, big, and carries the expression being typed underneath
+// it — characters reveal there one at a time as they arrive (RevealText.tsx),
+// and both lines take their scale from Settings → Appearance → Display. The
+// tape always keeps a slice of the screen — the last few entries stay in view
+// — and expands to half the screen (scrolling either way) via the handle or a
+// swipe down on the display. Pressing `=` logs an entry to the tape.
+// Programmer-flavoured modes add a hex spelling of the result. A long press
+// on the display raises the clipboard bar — copy what is on it, or paste what
+// the clipboard has to offer (ClipboardPill.tsx, paste.ts).
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
@@ -23,13 +25,14 @@ import {
 
 import { chainExpression } from "./chain.ts";
 import { ClipboardPill } from "./ClipboardPill.tsx";
+import { DISPLAY_MIN_HEIGHT, DisplayReadout } from "./DisplayReadout.tsx";
 import { evaluate, EvalError, formatHex, formatResult } from "./evaluator.ts";
 import { HistoryEntryRow } from "./HistoryEntryRow.tsx";
 import { Keypad } from "./Keypad.tsx";
 import type { KeyDef, Mode } from "./modes.ts";
 import { clipLabel, pasteCandidate, type PasteCandidate } from "./paste.ts";
 import type { Session } from "./session.ts";
-import type { KeyTextSize } from "./useAppSettings.ts";
+import type { DisplayTextSize, KeyTextSize } from "./useAppSettings.ts";
 
 type Props = {
   session: Session;
@@ -40,6 +43,7 @@ type Props = {
   swipeDownHistory: boolean;
   keyFeedback: boolean;
   keyTextSize: KeyTextSize;
+  displayTextSize: DisplayTextSize;
   onLogEntry: (expression: string, result: string, chained: boolean) => void;
   onNoteEntry: (entryId: string, note: string) => void;
   onStarEntry: (entryId: string) => void;
@@ -87,6 +91,7 @@ export function CalculatorScreen({
   swipeDownHistory,
   keyFeedback,
   keyTextSize,
+  displayTextSize,
   onLogEntry,
   onNoteEntry,
   onStarEntry,
@@ -95,6 +100,11 @@ export function CalculatorScreen({
 }: Props) {
   const [expression, setExpression] = useState("");
   const [error, setError] = useState<string | null>(null);
+  // The last result the expression evaluated to. Half-typed expressions
+  // ("12+") have no value, and blanking the headline on every operator press
+  // would make it strobe — so the last real answer stays up, dimmed, until
+  // the expression evaluates again.
+  const [lastResult, setLastResult] = useState<string | null>(null);
   // The result `=` seeded the current expression with — non-null exactly
   // while the next `=` would extend the chain rather than start a new one.
   const [chainFrom, setChainFrom] = useState<string | null>(null);
@@ -113,6 +123,17 @@ export function CalculatorScreen({
     mode.hexPreview && preview !== null
       ? formatHex(Number.parseFloat(preview))
       : null;
+
+  // What the headline reads, and whether it is still speaking for what is on
+  // the expression line below it. An empty display rests at 0; a half-typed
+  // one falls back to the last answer, and says so by dimming.
+  const typing = expression.trim() !== "";
+  const resultStale = typing && preview === null;
+  const result = typing ? (preview ?? lastResult ?? "0") : "0";
+
+  useEffect(() => {
+    if (preview !== null) setLastResult(preview);
+  }, [preview]);
 
   // The folded-up expression behind each chained entry, by entry id — what
   // the tape's "Copy chain" action puts on the clipboard.
@@ -145,6 +166,7 @@ export function CalculatorScreen({
     setError(null);
     setExpression("");
     setChainFrom(null);
+    setLastResult(null);
   }, []);
 
   const backspace = useCallback(() => {
@@ -368,7 +390,7 @@ export function CalculatorScreen({
           bar is how text leaves the display. */}
       <div
         ref={displayRef}
-        className="relative flex min-h-[5.5rem] shrink grow basis-0 flex-col items-end justify-end gap-1 overflow-hidden px-5 py-4 [touch-action:pan-x] [-webkit-touch-callout:none] select-none"
+        className={`relative flex shrink grow basis-0 flex-col items-end justify-end gap-1 overflow-hidden px-5 py-4 [touch-action:pan-x] [-webkit-touch-callout:none] select-none ${DISPLAY_MIN_HEIGHT[displayTextSize]}`}
         title="Hold for copy and paste"
         onPointerDown={(e) => {
           displayLongPress.onPointerDown(e);
@@ -391,26 +413,14 @@ export function CalculatorScreen({
             {copied}
           </span>
         ) : null}
-        <output
-          className="w-full break-all text-right font-mono text-3xl leading-tight text-fg-bright"
-          aria-live="polite"
-        >
-          {expression || "0"}
-        </output>
-        <div className="min-h-6 text-right font-mono text-base text-muted">
-          {error ? (
-            <span className="text-danger">{error}</span>
-          ) : preview !== null && preview !== expression ? (
-            <span>
-              = {preview}
-              {hexPreview ? (
-                <span className="ml-3 text-sm">{hexPreview}</span>
-              ) : null}
-            </span>
-          ) : hexPreview && preview === expression ? (
-            <span className="text-sm">{hexPreview}</span>
-          ) : null}
-        </div>
+        <DisplayReadout
+          result={result}
+          stale={resultStale}
+          expression={expression}
+          error={error}
+          hex={hexPreview}
+          textSize={displayTextSize}
+        />
       </div>
 
       {/* The clipboard bar the display's long press raises. It renders
