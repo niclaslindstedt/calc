@@ -41,9 +41,47 @@ const ABOUT_PLACEMENT: FloatingPlacement = {
 };
 
 const SOURCE_URL = "https://github.com/niclaslindstedt/calc";
+
 // The build identifier composed at build time (see `vite.config.ts`): the
 // version, the CI run number, the deploy slot, and the short commit hash.
 const BUILD_LABEL = __BUILD_LABEL__;
+
+// One row of the About dropdown: an external link whose label (and optional
+// build-label subtitle) truncate rather than wrap, so a long value can never
+// stretch the panel. The shape is contacts' `FooterLink`, trimmed to what
+// this menu needs.
+function AboutLink({
+  href,
+  sublabel,
+  onNavigate,
+  children,
+}: {
+  href: string;
+  sublabel?: string;
+  onNavigate: () => void;
+  children: string;
+}) {
+  return (
+    <a
+      role="menuitem"
+      href={href}
+      target="_blank"
+      rel="noreferrer noopener"
+      className="flex w-full items-center gap-2.5 px-3 py-1.5 text-left text-sm text-fg hover:bg-surface hover:text-fg-bright"
+      onClick={onNavigate}
+    >
+      <ExternalLinkIcon className="h-4 w-4 shrink-0 text-muted" />
+      <span className="flex min-w-0 flex-1 flex-col">
+        <span className="truncate">{children}</span>
+        {sublabel ? (
+          <span className="truncate font-mono text-xs text-muted">
+            {sublabel}
+          </span>
+        ) : null}
+      </span>
+    </a>
+  );
+}
 
 type Props = {
   namespaces: Namespace[];
@@ -292,8 +330,13 @@ export function SideMenuContent({
       </div>
 
       {/* The About dropdown — portalled and positioned by the framework
-          `FloatingPanel`. The build label subtitles the source link, so a bug
-          report can name the exact build it came from. */}
+          `FloatingPanel`, which sets `minWidth` from the trigger but lets
+          `maxWidth` run to the viewport edge. The content is therefore what
+          decides how wide the panel lands, so every row here is a truncating
+          flex column (contacts' footer-row shape): nothing inside can demand
+          width, and the panel stays at the trigger's. The build label
+          subtitles the source link, so a bug report can name the exact build
+          it came from. */}
       <FloatingPanel
         open={aboutOpen}
         onClose={() => setAboutOpen(false)}
@@ -301,29 +344,20 @@ export function SideMenuContent({
         placement={ABOUT_PLACEMENT}
         className="py-1"
       >
-        <div role="menu" className="flex w-full flex-col p-1">
-          <div className="px-2 py-1.5">
-            <p className="text-sm font-medium text-fg-bright">Calc</p>
-            <p className="text-xs text-muted">
-              A local-first calculator that keeps its tape as markdown.
-            </p>
-          </div>
-          <a
-            role="menuitem"
+        <div role="menu" className="flex w-full flex-col">
+          <AboutLink
             href={SOURCE_URL}
-            target="_blank"
-            rel="noreferrer"
-            className="flex w-full items-center gap-2 rounded-lg px-2 py-1.5 text-left text-sm text-fg hover:bg-surface-2"
-            onClick={() => setAboutOpen(false)}
+            sublabel={BUILD_LABEL}
+            onNavigate={() => setAboutOpen(false)}
           >
-            <ExternalLinkIcon className="h-4 w-4 shrink-0 text-muted" />
-            <span className="min-w-0">
-              <span className="block truncate">Source code</span>
-              <span className="block truncate font-mono text-xs text-muted">
-                {BUILD_LABEL}
-              </span>
-            </span>
-          </a>
+            Source code
+          </AboutLink>
+          <AboutLink
+            href={`${SOURCE_URL}/issues`}
+            onNavigate={() => setAboutOpen(false)}
+          >
+            Report an issue
+          </AboutLink>
         </div>
       </FloatingPanel>
 
