@@ -6,6 +6,11 @@
 // footer stays about the app itself). Folder create/rename is inline (focus +
 // select on mount, Enter/blur commits, empty cancels); session rows get a
 // right-click / long-press action menu.
+//
+// A chevron rail above the footer folds it away, handing those two rows to the
+// session list. The choice persists (`calc:footer-collapsed`) and is offered on
+// every viewport — the phone drawer gets the same control as the docked
+// sidebar.
 
 import { useRef, useState } from "react";
 
@@ -25,12 +30,14 @@ import {
   HelpCircleIcon,
   type FloatingPlacement,
 } from "@niclaslindstedt/oss-framework/components";
+import { useLocalStorageState } from "@niclaslindstedt/oss-framework/hooks";
 import {
   NamespaceSwitcher,
   type Namespace,
 } from "@niclaslindstedt/oss-framework/namespaces";
 
 import { sessionTitle, type Folder, type Session } from "./session.ts";
+import { FooterCollapseRail } from "./SidebarRails.tsx";
 
 // The About dropdown opens up-and-to-the-left of its footer trigger; the
 // framework's `FloatingPanel` flips it above automatically.
@@ -41,6 +48,9 @@ const ABOUT_PLACEMENT: FloatingPlacement = {
 };
 
 const SOURCE_URL = "https://github.com/niclaslindstedt/calc";
+
+// The footer-collapse choice persists across reloads under this key.
+const FOOTER_COLLAPSED_KEY = "calc:footer-collapsed";
 
 // The build identifier composed at build time (see `vite.config.ts`): the
 // version, the CI run number, the deploy slot, and the short commit hash.
@@ -121,6 +131,11 @@ export function SideMenuContent({
   onOpenSettings,
 }: Props) {
   const [creatingFolder, setCreatingFolder] = useState(false);
+  // Whether the footer (About / Settings) is folded away behind its rail.
+  const [footerCollapsed, setFooterCollapsed] = useLocalStorageState<boolean>(
+    FOOTER_COLLAPSED_KEY,
+    false,
+  );
   // The footer "About" dropdown, anchored to `aboutRef` and flipped upward.
   const [aboutOpen, setAboutOpen] = useState(false);
   const aboutRef = useRef<HTMLButtonElement>(null);
@@ -305,29 +320,41 @@ export function SideMenuContent({
         ) : null}
       </div>
 
+      {/* Footer collapse rail — a thin, full-width chevron button seated just
+          above the footer that folds it away (and back), handing the freed
+          vertical space to the session list. */}
+      <FooterCollapseRail
+        collapsed={footerCollapsed}
+        label={footerCollapsed ? "Show footer" : "Hide footer"}
+        onClick={() => setFooterCollapsed((v) => !v)}
+      />
+
       {/* Footer: About over Settings, which stays pinned last under the
-          thumb. Connecting storage lives in Settings → Storage. */}
-      <div className="shrink-0 border-t border-line p-2">
-        <button
-          ref={aboutRef}
-          type="button"
-          aria-haspopup="menu"
-          aria-expanded={aboutOpen}
-          className="flex w-full items-center gap-2 rounded-lg px-2 py-1.5 text-left text-sm text-fg hover:bg-surface-2"
-          onClick={() => setAboutOpen((v) => !v)}
-        >
-          <HelpCircleIcon className="h-4 w-4 shrink-0 text-muted" />
-          About
-        </button>
-        <button
-          type="button"
-          className="flex w-full items-center gap-2 rounded-lg px-2 py-1.5 text-left text-sm text-fg hover:bg-surface-2"
-          onClick={onOpenSettings}
-        >
-          <CogIcon className="h-4 w-4 shrink-0 text-muted" />
-          Settings
-        </button>
-      </div>
+          thumb. Connecting storage lives in Settings → Storage. Foldable away
+          via the rail above. */}
+      {!footerCollapsed && (
+        <div className="shrink-0 border-t border-line p-2">
+          <button
+            ref={aboutRef}
+            type="button"
+            aria-haspopup="menu"
+            aria-expanded={aboutOpen}
+            className="flex w-full items-center gap-2 rounded-lg px-2 py-1.5 text-left text-sm text-fg hover:bg-surface-2"
+            onClick={() => setAboutOpen((v) => !v)}
+          >
+            <HelpCircleIcon className="h-4 w-4 shrink-0 text-muted" />
+            About
+          </button>
+          <button
+            type="button"
+            className="flex w-full items-center gap-2 rounded-lg px-2 py-1.5 text-left text-sm text-fg hover:bg-surface-2"
+            onClick={onOpenSettings}
+          >
+            <CogIcon className="h-4 w-4 shrink-0 text-muted" />
+            Settings
+          </button>
+        </div>
+      )}
 
       {/* The About dropdown — portalled and positioned by the framework
           `FloatingPanel`, which sets `minWidth` from the trigger but lets

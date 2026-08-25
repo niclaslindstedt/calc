@@ -125,6 +125,13 @@ and keep the session.
   Settings → General: the draggable floating button (drag it to either edge,
   at any height), or an inward swipe from the edge the button rests against.
   A wide screen docks the sidebar and uses neither.
+- **Hiding the sidebar** — on a docked (wide-screen) sidebar, a chevron grip
+  rides its inner edge and folds the whole panel away, handing its width to
+  the calculator; it is invisible until the pointer comes to that edge, and
+  once collapsed it waits at the screen edge to bring the panel back. A
+  second chevron rail just above the footer folds About and Settings away, so
+  the session list gets those rows instead. Both choices are remembered per
+  device.
 - **Text sizes** — Settings → Appearance sizes both surfaces (Small /
   Medium / Large / Huge, each with a live preview): the display's result and
   expression, which step together so the result stays the headline, and the
