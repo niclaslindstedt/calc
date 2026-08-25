@@ -360,10 +360,15 @@ export function CalculatorScreen({
           : `Expand history${session.entries.length ? ` (${session.entries.length})` : ""}`}
       </button>
 
-      {/* Display */}
+      {/* Display. `select-none` (plus the iOS callout suppression) because the
+          display is a keypad readout, not a document: the long press on it is
+          already spoken for by the clipboard bar, and letting the platform
+          answer the same gesture with a text selection paints blue handles
+          over the number and drags the highlight up into the tape toggle. The
+          bar is how text leaves the display. */}
       <div
         ref={displayRef}
-        className="relative flex min-h-[5.5rem] shrink grow basis-0 flex-col items-end justify-end gap-1 overflow-hidden px-5 py-4 [touch-action:pan-x]"
+        className="relative flex min-h-[5.5rem] shrink grow basis-0 flex-col items-end justify-end gap-1 overflow-hidden px-5 py-4 [touch-action:pan-x] [-webkit-touch-callout:none] select-none"
         title="Hold for copy and paste"
         onPointerDown={(e) => {
           displayLongPress.onPointerDown(e);
