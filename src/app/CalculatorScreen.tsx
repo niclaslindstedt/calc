@@ -4,20 +4,28 @@
 // display, and the active mode's keypad sits below. The display leads with
 // the running result, big, and carries the expression being typed underneath
 // it — characters reveal there one at a time as they arrive (RevealText.tsx),
-// and both lines take their scale from Settings → Appearance → Display. The
-// tape always keeps a slice of the screen — the last few entries stay in view
-// — and expands to half the screen (scrolling either way) via the handle or a
-// swipe down on the display. Pressing `=` logs an entry to the tape.
-// Programmer-flavoured modes add a hex spelling of the result. A long press
-// on the display raises the clipboard bar — copy what is on it, or paste what
-// the clipboard has to offer (ClipboardPill.tsx, paste.ts).
+// operators set as chips (expression.ts), and both lines take their scale
+// from Settings → Appearance → Display. Pressing `=` logs an entry to the
+// tape. Programmer-flavoured modes add a hex spelling of the result. A long
+// press on the display raises the clipboard bar — copy what is on it, or
+// paste what the clipboard has to offer (ClipboardPill.tsx, paste.ts).
+//
+// The tape and the calculator share the screen across a **draggable seam**:
+// a single hairline with a grab glyph on it. Drag it and the tape takes
+// whatever share of the column you leave it at — there are no steps to land
+// on, so a desktop pointer can stop anywhere. Two ends are special:
+//
+//   - drag it (nearly) shut and the tape falls back to resting height, where
+//     it sizes to its content and keeps the last few entries in view;
+//   - drag it far enough that the display and the keypad no longer fit the
+//     floors they set for themselves, and the tape stops sharing at all — it
+//     takes the whole screen, the seam parked at the bottom to drag back up.
+//
+// On a phone the same two ends arrive by swipe: down on the tape opens it all
+// the way, and down/up on the display steps it open and shut.
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
-import {
-  ChevronDownIcon,
-  ChevronUpIcon,
-} from "@niclaslindstedt/oss-framework/components";
 import {
   copyTextToClipboard,
   useLongPress,
@@ -28,6 +36,7 @@ import { ClipboardPill } from "./ClipboardPill.tsx";
 import { DISPLAY_MIN_HEIGHT, DisplayReadout } from "./DisplayReadout.tsx";
 import { evaluate, EvalError, formatHex, formatResult } from "./evaluator.ts";
 import { HistoryEntryRow } from "./HistoryEntryRow.tsx";
+import { GrabHandleIcon } from "./icons.tsx";
 import { Keypad } from "./Keypad.tsx";
 import type { KeyDef, Mode } from "./modes.ts";
 import { clipLabel, pasteCandidate, type PasteCandidate } from "./paste.ts";
@@ -53,8 +62,38 @@ type Props = {
   onClearHistory: () => void;
 };
 
-// How far a downward drag on the display must travel to latch the tape open.
+// How far a swipe down the display must travel to count as one.
 const REVEAL_AT = 56;
+
+// …and how far a pull down the tape must. Shorter, because it has to fit
+// inside a tape resting at a couple of rows tall.
+const PULL_AT = 40;
+
+// How far the seam must move before the gesture stops being a click. Below
+// this a press on the handle just toggles the tape.
+const DRAG_SLOP = 4;
+
+// The height a keyboard step moves the seam.
+const KEY_STEP = 48;
+
+// Below this the tape is not worth sharing the column for — the drag lands
+// back on resting height instead.
+const COLLAPSE_AT = 48;
+
+// The fallback floor for "the calculator no longer fits", used only until the
+// display and the keypad have been measured (they state their own minimums,
+// which move with the mode and the text sizes).
+const FALLBACK_CALC_FLOOR = 320;
+
+// The share of the column the tape opens to when it is toggled rather than
+// dragged — the half-and-half it has always used.
+const HALF = 0.5;
+
+// How the tape is sized right now. `auto` is its resting height (content, up
+// to a few entries); `share` is a fraction of the column, wherever the seam
+// was left; `full` is the whole screen, calculator and all.
+type TapeSize =
+  { kind: "auto" } | { kind: "share"; share: number } | { kind: "full" };
 
 // How long the in-place copy confirmation stays up — the tape's beat, so both
 // copies read the same (HistoryEntryRow.tsx).
@@ -252,11 +291,159 @@ export function CalculatorScreen({
     return () => window.removeEventListener("keydown", onKeydown);
   }, [append, equals, backspace, clear]);
 
-  // Keep the tape pinned to its newest entry — it is always in view now, so
-  // this runs whether or not it is expanded.
+  // ---- how the tape and the calculator split the column -------------------
+
+  const columnRef = useRef<HTMLDivElement>(null);
+  const tapeRef = useRef<HTMLDivElement>(null);
+  const displayRef = useRef<HTMLDivElement>(null);
+
+  const [tape, setTape] = useState<TapeSize>(() =>
+    historyOpen ? { kind: "share", share: HALF } : { kind: "auto" },
+  );
+  // True only while the seam is under a pointer — the flex basis animates on
+  // every other change, but a transition during a drag lags the finger.
+  const [dragging, setDragging] = useState(false);
+  const full = tape.kind === "full";
+
+  // App's own idea of open/closed (it opens the tape when a saved session is
+  // loaded, and shuts it for a new scratch). Mirrored both ways through this
+  // ref, so neither side re-triggers the other.
+  const openRef = useRef(historyOpen);
+
+  // What the display and the keypad together insist on. Both state a floor in
+  // CSS — the display for the type size it draws, the keypad for its row
+  // count — so the seam asks them rather than guessing, and the answer moves
+  // with the mode and the Appearance settings. Remembered across `full`,
+  // where neither element is mounted to be asked.
+  const calcFloor = useRef(FALLBACK_CALC_FLOOR);
   useEffect(() => {
-    tapeEndRef.current?.scrollIntoView({ block: "end" });
-  }, [historyOpen, session.entries.length]);
+    const display = displayRef.current;
+    const keypad =
+      columnRef.current?.querySelector<HTMLElement>("[data-calc-keypad]");
+    if (!display || !keypad) return;
+    const floor =
+      (Number.parseFloat(getComputedStyle(display).minHeight) || 0) +
+      (Number.parseFloat(getComputedStyle(keypad).minHeight) || 0);
+    if (floor > 0) calcFloor.current = floor;
+  }, [mode, hiddenKeys, displayTextSize, tape.kind]);
+
+  // The one door into the tape's size, and so the one place that owns the
+  // rule: a share that would leave the calculator under its own floor is not
+  // a share at all — the tape takes the screen instead.
+  // Where the seam was last *asked* to sit, in pixels — the base a keyboard
+  // step works from. Measuring instead would stall the moment the tape goes
+  // full: the element stops moving, so every arrow press would start over
+  // from the same height and never climb back out. Cleared by any other way
+  // of resizing, which re-bases the next step on what is actually on screen.
+  const seamTarget = useRef<number | null>(null);
+
+  const resize = useCallback(
+    (next: TapeSize) => {
+      seamTarget.current = null;
+      let size = next;
+      if (size.kind === "share") {
+        const column = columnRef.current?.getBoundingClientRect().height ?? 0;
+        if (column > 0 && column * (1 - size.share) < calcFloor.current) {
+          size = { kind: "full" };
+        }
+      }
+      setTape(size);
+      const open = size.kind !== "auto";
+      if (open === openRef.current) return;
+      openRef.current = open;
+      onHistoryOpenChange(open);
+    },
+    [onHistoryOpenChange],
+  );
+
+  useEffect(() => {
+    if (historyOpen === openRef.current) return;
+    openRef.current = historyOpen;
+    resize(historyOpen ? { kind: "share", share: HALF } : { kind: "auto" });
+  }, [historyOpen, resize]);
+
+  // A share is a fraction, but the floor it has to clear is in pixels — so a
+  // window that shrinks under a tape left at half can cramp the calculator
+  // without anyone having touched the seam. Re-run the rule when it does.
+  useEffect(() => {
+    if (tape.kind !== "share") return;
+    const recheck = () => resize(tape);
+    window.addEventListener("resize", recheck);
+    return () => window.removeEventListener("resize", recheck);
+  }, [tape, resize]);
+
+  // Land a dragged (or arrow-keyed) seam height on a size. `resize` decides
+  // whether the share it is handed can stand.
+  const settle = useCallback(
+    (height: number, columnHeight: number) => {
+      if (columnHeight <= 0) return;
+      const next = Math.min(Math.max(height, 0), columnHeight);
+      if (next < COLLAPSE_AT) resize({ kind: "auto" });
+      else resize({ kind: "share", share: next / columnHeight });
+      seamTarget.current = next;
+    },
+    [resize],
+  );
+
+  const seam = useRef<{ y: number; height: number; column: number } | null>(
+    null,
+  );
+  // Set once a press on the seam has travelled: the click that trails it is a
+  // drag landing, not a toggle.
+  const seamMoved = useRef(false);
+
+  const onSeamPointerDown = (e: React.PointerEvent<HTMLButtonElement>) => {
+    e.currentTarget.setPointerCapture(e.pointerId);
+    seam.current = {
+      y: e.clientY,
+      height: tapeRef.current?.getBoundingClientRect().height ?? 0,
+      column: columnRef.current?.getBoundingClientRect().height ?? 0,
+    };
+    seamMoved.current = false;
+    setDragging(true);
+  };
+
+  const onSeamPointerMove = (e: React.PointerEvent<HTMLButtonElement>) => {
+    const start = seam.current;
+    if (!start) return;
+    const dy = e.clientY - start.y;
+    if (!seamMoved.current && Math.abs(dy) < DRAG_SLOP) return;
+    seamMoved.current = true;
+    settle(start.height + dy, start.column);
+  };
+
+  const endSeamDrag = () => {
+    seam.current = null;
+    setDragging(false);
+  };
+
+  const toggleTape = () => {
+    resize(
+      tape.kind === "auto" ? { kind: "share", share: HALF } : { kind: "auto" },
+    );
+  };
+
+  const onSeamKeyDown = (e: React.KeyboardEvent<HTMLButtonElement>) => {
+    if (e.key !== "ArrowUp" && e.key !== "ArrowDown") return;
+    e.preventDefault();
+    const from =
+      seamTarget.current ??
+      tapeRef.current?.getBoundingClientRect().height ??
+      0;
+    settle(
+      from + (e.key === "ArrowDown" ? KEY_STEP : -KEY_STEP),
+      columnRef.current?.getBoundingClientRect().height ?? 0,
+    );
+  };
+
+  // The display's swipe steps through the three sizes rather than jumping to
+  // an end, so the gesture that opens the tape can also close it again.
+  const stepOpen = () =>
+    resize(
+      tape.kind === "auto" ? { kind: "share", share: HALF } : { kind: "full" },
+    );
+  const stepShut = () =>
+    resize(full ? { kind: "share", share: HALF } : { kind: "auto" });
 
   // Swipe down on the display to expand the tape (and up to collapse it).
   const drag = useRef<{ y: number; active: boolean }>({ y: 0, active: false });
@@ -268,9 +455,49 @@ export function CalculatorScreen({
     if (!drag.current.active) return;
     const dy = e.clientY - drag.current.y;
     drag.current.active = false;
-    if (dy > REVEAL_AT) onHistoryOpenChange(true);
-    else if (dy < -REVEAL_AT) onHistoryOpenChange(false);
+    if (dy > REVEAL_AT) stepOpen();
+    else if (dy < -REVEAL_AT) stepShut();
   };
+
+  // …and pull the tape itself down to open it the whole way. Armed only from
+  // the top of the list, so the gesture never fights a scroll.
+  //
+  // Touch events rather than pointer events, alone in this file: the tape is
+  // a scroll container, and a few pixels into a vertical drag the browser
+  // claims the gesture as a scroll and *cancels* the pointer — even sitting
+  // at the top with nothing to scroll to. Touches keep coming.
+  //
+  // It fires on the way down rather than on the lift, because a resting tape
+  // is only a row or two tall: by the time the pull has travelled far enough
+  // to mean anything, the finger is past the bottom of the element that would
+  // have seen it let go.
+  const pull = useRef<{ y: number; armed: boolean }>({ y: 0, armed: false });
+  const onTapeTouchStart = (e: React.TouchEvent<HTMLDivElement>) => {
+    const touch = e.touches[0];
+    pull.current = {
+      y: touch?.clientY ?? 0,
+      armed:
+        e.touches.length === 1 &&
+        !full &&
+        (tapeRef.current?.scrollTop ?? 0) <= 0,
+    };
+  };
+  const onTapeTouchMove = (e: React.TouchEvent<HTMLDivElement>) => {
+    const touch = e.touches[0];
+    if (!pull.current.armed || !touch) return;
+    if (touch.clientY - pull.current.y < PULL_AT) return;
+    pull.current.armed = false;
+    resize({ kind: "full" });
+  };
+  const disarmPull = () => {
+    pull.current.armed = false;
+  };
+
+  // Keep the tape pinned to its newest entry — it is always in view now, so
+  // this runs whether or not it is expanded.
+  useEffect(() => {
+    tapeEndRef.current?.scrollIntoView({ block: "end" });
+  }, [tape.kind, session.entries.length]);
 
   // Hold the display to raise the clipboard bar: copy what is on the display,
   // or paste what the clipboard is holding. The clipboard is read up front
@@ -283,7 +510,6 @@ export function CalculatorScreen({
   // What the last copy took, in the tape's words — null while no
   // confirmation is up.
   const [copied, setCopied] = useState<string | null>(null);
-  const displayRef = useRef<HTMLDivElement>(null);
   const copiedTimer = useRef<number | undefined>(undefined);
 
   useEffect(
@@ -292,6 +518,12 @@ export function CalculatorScreen({
     },
     [],
   );
+
+  // A tape taking the whole screen takes the display with it, and the bar
+  // hangs off a box that is no longer there.
+  useEffect(() => {
+    if (full) setClipboardOpen(false);
+  }, [full]);
 
   const displayLongPress = useLongPress(() => {
     // The press has become a clipboard gesture, so the lift that ends it must
@@ -329,16 +561,33 @@ export function CalculatorScreen({
   }, [pasteReady, append]);
 
   return (
-    <div className="flex h-full min-h-0 flex-col">
-      {/* Tape. Collapsed it sizes to its content but stops at roughly four
-          entries (and never takes more than a third of a short screen), so the
-          recent run is always readable without hiding the keys; expanded it
-          claims half the screen. It scrolls either way. */}
+    <div ref={columnRef} className="flex h-full min-h-0 flex-col">
+      {/* Tape. At resting height it sizes to its content but stops at roughly
+          four entries (and never takes more than a third of a short screen),
+          so the recent run is always readable without hiding the keys; opened
+          it takes the share the seam was left at, or the whole screen. It
+          scrolls in every case. */}
       <div
-        className={`flex min-h-0 shrink flex-col overflow-y-auto bg-surface transition-[flex-basis,max-height] duration-200 ${
-          historyOpen ? "grow basis-1/2" : "basis-auto max-h-[min(17rem,35svh)]"
+        ref={tapeRef}
+        className={`flex min-h-0 flex-col overflow-y-auto bg-surface ${
+          dragging ? "" : "transition-[flex-basis,max-height] duration-200"
+        } ${
+          full
+            ? "grow basis-0"
+            : tape.kind === "share"
+              ? "shrink-0 grow-0"
+              : "shrink basis-auto max-h-[min(17rem,35svh)]"
         }`}
+        style={
+          tape.kind === "share"
+            ? { flexBasis: `${tape.share * 100}%` }
+            : undefined
+        }
         aria-label="Session history"
+        onTouchStart={onTapeTouchStart}
+        onTouchMove={onTapeTouchMove}
+        onTouchEnd={disarmPull}
+        onTouchCancel={disarmPull}
       >
         {/* `mt-auto` keeps a short tape resting on the display, newest entry
             nearest the keys — the receipt grows down out of the top. */}
@@ -363,65 +612,86 @@ export function CalculatorScreen({
         </div>
       </div>
 
-      {/* Expand handle. The framework glyphs carry no intrinsic size — without
-          an explicit box they stretch to fill this flex row and swallow the
-          screen, so every icon here is sized. */}
+      {/* The seam. A hairline with a grab glyph riding it: drag to resize,
+          click to toggle, arrow keys to step. The glyph carries its own
+          background so the line reads as passing behind it rather than
+          through it. */}
       <button
         type="button"
-        className="flex shrink-0 items-center justify-center gap-1.5 border-y border-line bg-surface py-1.5 text-xs text-muted"
-        onClick={() => onHistoryOpenChange(!historyOpen)}
-        aria-expanded={historyOpen}
+        className={`relative flex w-full shrink-0 cursor-row-resize touch-none items-center justify-center py-1.5 select-none ${
+          full ? "pb-[max(0.375rem,env(safe-area-inset-bottom))]" : ""
+        }`}
+        aria-label="Resize history"
+        aria-expanded={tape.kind !== "auto"}
+        title={`${
+          tape.kind === "auto" ? "Expand" : "Collapse"
+        } the history — or drag to resize${
+          session.entries.length ? ` (${session.entries.length})` : ""
+        }`}
+        onPointerDown={onSeamPointerDown}
+        onPointerMove={onSeamPointerMove}
+        onPointerUp={endSeamDrag}
+        onPointerCancel={endSeamDrag}
+        onKeyDown={onSeamKeyDown}
+        onClick={() => {
+          if (seamMoved.current) {
+            seamMoved.current = false;
+            return;
+          }
+          toggleTape();
+        }}
       >
-        {historyOpen ? (
-          <ChevronUpIcon className="h-3.5 w-3.5 shrink-0" />
-        ) : (
-          <ChevronDownIcon className="h-3.5 w-3.5 shrink-0" />
-        )}
-        {historyOpen
-          ? "Collapse history"
-          : `Expand history${session.entries.length ? ` (${session.entries.length})` : ""}`}
+        <span
+          aria-hidden="true"
+          className="absolute inset-x-0 top-1/2 h-px -translate-y-1/2 bg-line"
+        />
+        <span className="relative flex items-center rounded-full bg-page-bg px-2 text-muted transition-colors hover:text-fg-bright">
+          <GrabHandleIcon className="h-5 w-5" />
+        </span>
       </button>
 
       {/* Display. `select-none` (plus the iOS callout suppression) because the
           display is a keypad readout, not a document: the long press on it is
           already spoken for by the clipboard bar, and letting the platform
           answer the same gesture with a text selection paints blue handles
-          over the number and drags the highlight up into the tape toggle. The
-          bar is how text leaves the display. */}
-      <div
-        ref={displayRef}
-        className={`relative flex shrink grow basis-0 flex-col items-end justify-end gap-1 overflow-hidden px-5 py-4 [touch-action:pan-x] [-webkit-touch-callout:none] select-none ${DISPLAY_MIN_HEIGHT[displayTextSize]}`}
-        title="Hold for copy and paste"
-        onPointerDown={(e) => {
-          displayLongPress.onPointerDown(e);
-          onDisplayPointerDown(e);
-        }}
-        onPointerMove={displayLongPress.onPointerMove}
-        onPointerUp={(e) => {
-          displayLongPress.onPointerUp(e);
-          onDisplayPointerUp(e);
-        }}
-        onPointerLeave={displayLongPress.onPointerLeave}
-        onPointerCancel={displayLongPress.onPointerCancel}
-      >
-        {/* The copy confirmation, in the tape's words and colours. */}
-        {copied ? (
-          <span
-            role="status"
-            className="pointer-events-none absolute top-1 right-5 z-20 rounded-md bg-accent px-2 py-0.5 text-xs font-medium text-page-bg shadow-md"
-          >
-            {copied}
-          </span>
-        ) : null}
-        <DisplayReadout
-          result={result}
-          stale={resultStale}
-          expression={expression}
-          error={error}
-          hex={hexPreview}
-          textSize={displayTextSize}
-        />
-      </div>
+          over the number and drags the highlight up into the tape. The bar is
+          how text leaves the display. */}
+      {full ? null : (
+        <div
+          ref={displayRef}
+          className={`relative flex shrink grow basis-0 flex-col items-end justify-end gap-1 overflow-hidden px-5 py-4 [touch-action:pan-x] [-webkit-touch-callout:none] select-none ${DISPLAY_MIN_HEIGHT[displayTextSize]}`}
+          title="Hold for copy and paste"
+          onPointerDown={(e) => {
+            displayLongPress.onPointerDown(e);
+            onDisplayPointerDown(e);
+          }}
+          onPointerMove={displayLongPress.onPointerMove}
+          onPointerUp={(e) => {
+            displayLongPress.onPointerUp(e);
+            onDisplayPointerUp(e);
+          }}
+          onPointerLeave={displayLongPress.onPointerLeave}
+          onPointerCancel={displayLongPress.onPointerCancel}
+        >
+          {/* The copy confirmation, in the tape's words and colours. */}
+          {copied ? (
+            <span
+              role="status"
+              className="pointer-events-none absolute top-1 right-5 z-20 rounded-md bg-accent px-2 py-0.5 text-xs font-medium text-page-bg shadow-md"
+            >
+              {copied}
+            </span>
+          ) : null}
+          <DisplayReadout
+            result={result}
+            stale={resultStale}
+            expression={expression}
+            error={error}
+            hex={hexPreview}
+            textSize={displayTextSize}
+          />
+        </div>
+      )}
 
       {/* The clipboard bar the display's long press raises. It renders
           nothing in place — the pill portals itself out to `document.body`
@@ -437,15 +707,17 @@ export function CalculatorScreen({
       />
 
       {/* Keypad — the active mode's layout minus the user's hidden keys */}
-      <Keypad
-        mode={mode}
-        hidden={hiddenKeys}
-        keyFeedback={keyFeedback}
-        textSize={keyTextSize}
-        clearIsBackspace={expression.length > 0}
-        onKey={onKey}
-        onKeyLongPress={onKeyLongPress}
-      />
+      {full ? null : (
+        <Keypad
+          mode={mode}
+          hidden={hiddenKeys}
+          keyFeedback={keyFeedback}
+          textSize={keyTextSize}
+          clearIsBackspace={expression.length > 0}
+          onKey={onKey}
+          onKeyLongPress={onKeyLongPress}
+        />
+      )}
     </div>
   );
 }

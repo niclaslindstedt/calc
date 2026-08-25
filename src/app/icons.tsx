@@ -32,3 +32,29 @@ export function PasteIcon({ className }: IconProps) {
     </svg>
   );
 }
+
+/**
+ * Six dots in two rows — the grab handle sitting on the hairline between the
+ * tape and the display (CalculatorScreen.tsx). The seam is a single pixel, so
+ * the glyph is all the affordance there is: it has to say "this line moves"
+ * on its own. Dots rather than bars, which at this size would read as the
+ * `=` key a few centimetres below.
+ */
+export function GrabHandleIcon({ className }: IconProps) {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth={2.5}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden
+      focusable="false"
+      className={className}
+    >
+      <path d="M5 10h.01M12 10h.01M19 10h.01" />
+      <path d="M5 14h.01M12 14h.01M19 14h.01" />
+    </svg>
+  );
+}

@@ -434,7 +434,7 @@ export function SettingsModal({
             <Section title="Calculator">
               <ToggleRow
                 label="Swipe down for history"
-                hint="Drag the display downward to expand the session tape."
+                hint="Drag the display down to open the session tape a step, and up to shut it again."
                 checked={draft.swipeDownHistory}
                 onChange={(next) => update("swipeDownHistory", next)}
               />

@@ -13,13 +13,18 @@ storage transports, gesture hooks, components).
 main.tsx
 └── App.tsx                    theme, sidebar shell, top bar, modals
     ├── SideMenuContent.tsx    namespaces, folders, saved sessions, footer
-    ├── CalculatorScreen.tsx   tape (always visible, expandable), display,
-    │   │                      Keypad
+    ├── CalculatorScreen.tsx   tape (always visible), the draggable seam,
+    │   │                      display, Keypad
     │   ├── DisplayReadout.tsx result on top, expression under it, error or
     │   │                      hex below; sized by the Appearance setting
     │   ├── RevealText.tsx     the expression's per-character reveal
+    │   ├── ExpressionText     the same expression, still — operators as
+    │   │                      chips (expression.ts splits them out)
     │   ├── HistoryEntryRow    tap=copy value, long-press=copy expression
-    │   │                      or chain, star gutter, left-swipe=note/delete
+    │   │                      or chain, star gutter, left-swipe or
+    │   │                      right-click=note/delete
+    │   ├── CopiedFlash.tsx    the copy confirmation over the value it took
+    │   │                      (portalled, so the tape cannot clip it)
     │   ├── ClipboardPill.tsx  the copy / paste twin pill a long press on the
     │   │                      display raises (portalled to document.body)
     │   └── Keypad.tsx         mode-driven grid; the erase key reads the
@@ -64,6 +69,10 @@ debounced 800 ms (`useSessions.persistSession`).
   [storage-format.md](storage-format.md)), filenames, directory layout.
 - `modes.ts` — keypad layouts (basic / scientific / programmer), custom-mode
   resolution, and the visible-keys filter behind per-mode customization.
+- `expression.ts` — how an expression is read rather than stored: the split
+  into values and the operators between them, which the display and the tape
+  draw as bordered chips. Only operators with an operand on their left are
+  chipped, so the `−` in `−5` stays welded to its number.
 - `paste.ts` — what the clipboard has to offer the display: text the shared
   grammar already understands pastes verbatim, text it cannot parse gives up
   its first number instead (`Total: $1,234.56` → `1234.56`, either locale's
