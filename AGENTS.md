@@ -64,7 +64,9 @@ recursive-descent parser over one shared grammar for all modes),
 `session.ts` (the Session/Entry/Folder model), `chain.ts` (folds a run of
 `=`-chained calculations back into one bracketed expression), `codec.ts`
 (markdown + YAML front matter serialization, filenames, directory layout),
-`modes.ts` (keypad layout definitions and custom-mode resolution).
+`modes.ts` (keypad layout definitions and custom-mode resolution),
+`paste.ts` (what the clipboard has to offer the display: a whole expression,
+or the first number salvaged out of text we cannot parse).
 
 Storage: `store.ts` builds a framework `FileStore` (folder / Dropbox /
 Drive) and binds it to sessions via `createSessionStore` — one markdown file

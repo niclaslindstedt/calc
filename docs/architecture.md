@@ -17,6 +17,8 @@ main.tsx
     │   │                      Keypad
     │   ├── HistoryEntryRow    tap=copy value, long-press=copy expression
     │   │                      or chain, star gutter, left-swipe=note/delete
+    │   ├── ClipboardPill.tsx  the copy / paste twin pill a long press on the
+    │   │                      display raises (portalled to document.body)
     │   └── Keypad.tsx         mode-driven grid; the erase key reads the
     │                          display (⌫ / C, tap and hold); doubles as the
     │                          mode editor
@@ -59,6 +61,11 @@ debounced 800 ms (`useSessions.persistSession`).
   [storage-format.md](storage-format.md)), filenames, directory layout.
 - `modes.ts` — keypad layouts (basic / scientific / programmer), custom-mode
   resolution, and the visible-keys filter behind per-mode customization.
+- `paste.ts` — what the clipboard has to offer the display: text the shared
+  grammar already understands pastes verbatim, text it cannot parse gives up
+  its first number instead (`Total: $1,234.56` → `1234.56`, either locale's
+  separators), and text with no number in it offers nothing, which is what
+  keeps the paste half of the bar dark.
 
 ## Storage
 
