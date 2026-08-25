@@ -12,6 +12,8 @@ storage transports, gesture hooks, components).
 ```
 main.tsx
 └── App.tsx                    theme, sidebar shell, top bar, modals
+    ├── SidebarRails.tsx       the two collapse rails: the docked sidebar's
+    │                          edge grip, and the one above the footer
     ├── SideMenuContent.tsx    namespaces, folders, saved sessions, footer
     ├── CalculatorScreen.tsx   tape (always visible), the draggable seam,
     │   │                      display, Keypad
@@ -101,7 +103,13 @@ calc:namespace:active    active namespace slug
 calc:backend             chosen backend id
 calc:dropbox:token/:refresh, calc:gdrive:token   OAuth tokens
 calc:menu-position       sidebar button position
+calc:sidebar-collapsed   docked sidebar folded away to its edge rail
+calc:footer-collapsed    sidebar footer folded away behind its rail
 ```
+
+Both collapse flags are per-device layout choices — a wide desktop and a
+small laptop want different answers — so they ride localStorage rather than
+the appearance store.
 
 The folder backend's directory handle lives in IndexedDB
 (framework-managed).
