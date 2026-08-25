@@ -9,7 +9,7 @@
 //     keys just wiggle their lock state via aria — pressing buttons is the
 //     whole editing gesture.
 
-import { visibleKeys, type KeyDef, type Mode } from "./modes.ts";
+import { layoutRows, type KeyDef, type Mode } from "./modes.ts";
 
 type Props = {
   mode: Mode;
@@ -42,24 +42,6 @@ const PRESS_ANIMATION =
   "shadow-[0_3px_0_0_var(--color-line)] transition-[transform,box-shadow,filter] duration-75 " +
   "active:translate-y-[3px] active:shadow-none active:brightness-125";
 
-// How many rows the layout flows into — the pad's floor height derives from
-// it, so a tall layout on a short screen keeps every row (the display gives
-// up the space instead of the bottom row being clipped away).
-function rowCount(keys: readonly KeyDef[], columns: number): number {
-  let used = 0;
-  let rows = 1;
-  for (const key of keys) {
-    const span = Math.min(key.span ?? 1, columns);
-    if (used + span > columns) {
-      rows += 1;
-      used = span;
-    } else {
-      used += span;
-    }
-  }
-  return rows;
-}
-
 // A key's smallest comfortable box, and the gap between keys — the row floor
 // above is written in these terms, so they stay in step with the classes.
 const MIN_KEY_HEIGHT = "2.5rem";
@@ -74,8 +56,12 @@ export function Keypad({
   editing = false,
   onToggleKey,
 }: Props) {
-  const keys = editing ? mode.keys : visibleKeys(mode, hidden);
-  const rows = rowCount(keys, mode.columns);
+  // The editor shows the whole layout (hidden keys dimmed in place, so the
+  // grid doesn't reflow under the finger doing the hiding); the app shows the
+  // trimmed layout packed into full rows.
+  const placed = editing ? layoutRows(mode) : layoutRows(mode, hidden);
+  const keys = placed.flat();
+  const rows = placed.length;
   return (
     <div
       className={
@@ -122,7 +108,9 @@ export function Keypad({
                     : "opacity-70"
                 : ""
             }`}
-            style={key.span ? { gridColumn: `span ${key.span}` } : undefined}
+            style={
+              key.span > 1 ? { gridColumn: `span ${key.span}` } : undefined
+            }
             aria-pressed={editing ? !isHidden : undefined}
             aria-disabled={editing && !key.optional ? true : undefined}
             title={

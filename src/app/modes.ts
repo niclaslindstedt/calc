@@ -151,25 +151,25 @@ const SCIENTIFIC: Mode = {
     { id: "fact", label: "n!", input: "!", tone: "fn", optional: true },
     { id: "pi", label: "π", input: "π", tone: "fn", optional: true },
     { id: "econst", label: "e", input: "e", tone: "fn", optional: true },
-    CLEAR,
+    { ...CLEAR, span: 2 },
     PARENS,
     { id: "mod", label: "%", input: "%", tone: "muted", optional: true },
     BACKSPACE,
-    { id: "div", label: "÷", input: "÷", tone: "op" },
     digit("7"),
     digit("8"),
     digit("9"),
+    { id: "div", label: "÷", input: "÷", tone: "op" },
     { id: "mul", label: "×", input: "×", tone: "op" },
-    { id: "sub", label: "−", input: "−", tone: "op" },
     digit("4"),
     digit("5"),
     digit("6"),
+    { id: "sub", label: "−", input: "−", tone: "op" },
     { id: "add", label: "+", input: "+", tone: "op" },
-    { id: "abs", label: "|x|", input: "abs(", tone: "fn", optional: true },
     digit("1"),
     digit("2"),
     digit("3"),
     { id: "dot", label: ".", input: ".", tone: "digit" },
+    { id: "abs", label: "|x|", input: "abs(", tone: "fn", optional: true },
     { ...digit("0"), span: 2 },
     { ...EQUALS, span: 3 },
   ],
@@ -197,24 +197,24 @@ const PROGRAMMER: Mode = {
     { id: "hexE", label: "E", input: "E", tone: "fn", optional: true },
     { id: "hexF", label: "F", input: "F", tone: "fn", optional: true },
     { id: "mod", label: "%", input: "%", tone: "muted", optional: true },
-    CLEAR,
-    PARENS,
-    BACKSPACE,
-    { id: "div", label: "÷", input: "÷", tone: "op" },
-    { id: "mul", label: "×", input: "×", tone: "op" },
     digit("7"),
     digit("8"),
     digit("9"),
-    { id: "sub", label: "−", input: "−", tone: "op" },
-    { id: "add", label: "+", input: "+", tone: "op" },
+    { id: "div", label: "÷", input: "÷", tone: "op" },
+    { id: "mul", label: "×", input: "×", tone: "op" },
     digit("4"),
     digit("5"),
     digit("6"),
+    { id: "sub", label: "−", input: "−", tone: "op" },
+    { id: "add", label: "+", input: "+", tone: "op" },
     digit("1"),
     digit("2"),
     digit("3"),
+    PARENS,
+    BACKSPACE,
     { ...digit("0"), span: 2 },
-    { ...EQUALS, span: 3 },
+    CLEAR,
+    { ...EQUALS, span: 2 },
   ],
 };
 
@@ -249,4 +249,61 @@ export function resolveMode(
 // keys are always kept, so the core of every layout survives customization.
 export function visibleKeys(mode: Mode, hidden: readonly string[]): KeyDef[] {
   return mode.keys.filter((k) => !k.optional || !hidden.includes(k.id));
+}
+
+// A key with the width it actually occupies once the layout is packed.
+export type PlacedKey = KeyDef & { span: number };
+
+// Pack a mode into rows of exactly `columns` width.
+//
+// Rows come from the layout as authored — the packing runs over the mode's
+// full key list — and hiding a key (Settings → Layouts) removes it from *its*
+// row, widening what's left to close the gap. Keeping the authored rows is
+// what stops a trim from shuffling the whole pad diagonally: hide `n!` and the
+// function row's remaining keys grow, while `7 8 9 ÷ ×` stays put. It also
+// means `=` can never be stranded alone next to four empty columns — a row
+// that loses everything else simply hands its width to the survivor.
+export function layoutRows(
+  mode: Mode,
+  hidden: readonly string[] = [],
+): PlacedKey[][] {
+  const { columns } = mode;
+  const span = (key: KeyDef) => Math.min(Math.max(key.span ?? 1, 1), columns);
+
+  // 1. Rows as authored.
+  const authored: KeyDef[][] = [];
+  let row: KeyDef[] = [];
+  let used = 0;
+  for (const key of mode.keys) {
+    if (used + span(key) > columns) {
+      authored.push(row);
+      row = [];
+      used = 0;
+    }
+    row.push(key);
+    used += span(key);
+  }
+  if (row.length > 0) authored.push(row);
+
+  // 2. Drop the hidden keys and widen the rest back out to the full grid,
+  //    growing from the right so the leading keys keep their size.
+  const rows: PlacedKey[][] = [];
+  for (const source of authored) {
+    const kept = source
+      .filter((key) => !key.optional || !hidden.includes(key.id))
+      .map((key) => ({ ...key, span: span(key) }));
+    if (kept.length === 0) continue;
+    let leftover = columns - kept.reduce((sum, key) => sum + key.span, 0);
+    for (
+      let i = kept.length - 1;
+      leftover > 0;
+      i = i === 0 ? kept.length - 1 : i - 1
+    ) {
+      kept[i].span += 1;
+      leftover -= 1;
+    }
+    rows.push(kept);
+  }
+
+  return rows;
 }
