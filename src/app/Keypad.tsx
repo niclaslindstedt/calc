@@ -13,6 +13,8 @@
 //     compact size, inert and hidden from assistive tech — it exists only to
 //     show what a button-text size looks like.
 
+import { useState } from "react";
+
 import { useLongPress } from "@niclaslindstedt/oss-framework/hooks";
 
 import { layoutRows, type KeyDef, type Mode, type PlacedKey } from "./modes.ts";
@@ -30,6 +32,10 @@ type Props = {
   // the label is not just cosmetic — see CalculatorScreen.
   clearIsBackspace?: boolean;
   onKey?: (key: KeyDef) => void;
+  // The key a hardware keystroke just landed on, so the pad lights the cap
+  // that answered it. The pad tracks its own pointer presses; this is only
+  // the keyboard's half. See CalculatorScreen's `keyIdForKeystroke`.
+  pressedKeyId?: string | null;
   // Long press (or right-click) on a key that has a second gesture. Only the
   // erase key does today.
   onKeyLongPress?: (key: KeyDef) => void;
@@ -50,18 +56,21 @@ const TEXT_SIZE_CLASSES: Record<KeyTextSize, string> = {
   xl: "text-3xl sm:text-4xl",
 };
 
+// Every cap answers the pointer: a cursor that says "press me", and a hover
+// tone one step brighter than its resting fill. `hover:` only ever matches a
+// device that can actually hover, so this costs a phone nothing.
 function toneClasses(tone: KeyDef["tone"]): string {
   switch (tone) {
     case "accent":
-      return "bg-accent text-page-bg";
+      return "bg-accent text-page-bg hover:brightness-110";
     case "op":
-      return "bg-surface-3 text-accent";
+      return "bg-surface-3 text-accent hover:bg-surface-2";
     case "fn":
-      return "bg-surface-3 text-fg";
+      return "bg-surface-3 text-fg hover:bg-surface-2 hover:text-fg-bright";
     case "muted":
-      return "bg-surface-2 text-muted";
+      return "bg-surface-2 text-muted hover:bg-surface-3 hover:text-fg";
     default:
-      return "bg-surface-2 text-fg-bright";
+      return "bg-surface-2 text-fg-bright hover:bg-surface-3";
   }
 }
 
@@ -80,10 +89,21 @@ type KeyProps = {
   keyDef: PlacedKey;
   // What the cap reads — the erase key's differs from the authored label.
   label: string;
+  // Sizes the label relative to the cap's own text size. The erase key's `⌫`
+  // is drawn small inside its em box, so it needs scaling up to carry the same
+  // weight as a digit.
+  labelClassName?: string;
   hint?: string;
   ariaLabel?: string;
   className: string;
   onPress: () => void;
+  // Held down right now (pointer or hardware key) — see the `calc-key-hit`
+  // rules in styles.css.
+  hit?: boolean;
+  // The pointer went down on / came off this cap, so the pad can track which
+  // key is under the finger.
+  onHitStart?: () => void;
+  onHitEnd?: () => void;
   // Absent when the key has no second gesture; the framework hook swallows
   // the click that trails a long press, so a tap and a hold never both fire.
   onLongPress?: () => void;
@@ -94,10 +114,14 @@ type KeyProps = {
 function KeypadKey({
   keyDef,
   label,
+  labelClassName,
   hint,
   ariaLabel,
   className,
   onPress,
+  hit,
+  onHitStart,
+  onHitEnd,
   onLongPress,
   ariaPressed,
   ariaDisabled,
@@ -108,7 +132,7 @@ function KeypadKey({
   return (
     <button
       type="button"
-      className={className}
+      className={`${className}${hit ? " calc-key-hit" : ""}`}
       style={
         keyDef.span > 1 ? { gridColumn: `span ${keyDef.span}` } : undefined
       }
@@ -118,6 +142,25 @@ function KeypadKey({
       title={hint}
       onClick={onPress}
       {...longPress}
+      // Composed over the long-press handlers rather than before them: the
+      // spread would otherwise drop whichever of the two came first, and both
+      // want the same pointer events.
+      onPointerDown={(e) => {
+        longPress.onPointerDown?.(e);
+        onHitStart?.();
+      }}
+      onPointerUp={(e) => {
+        longPress.onPointerUp?.(e);
+        onHitEnd?.();
+      }}
+      onPointerLeave={(e) => {
+        longPress.onPointerLeave?.(e);
+        onHitEnd?.();
+      }}
+      onPointerCancel={(e) => {
+        longPress.onPointerCancel?.(e);
+        onHitEnd?.();
+      }}
       onContextMenu={(e) => {
         // Right-click reaches the long press on a desktop pointer, where
         // there is nothing to hold.
@@ -126,7 +169,7 @@ function KeypadKey({
         onLongPress();
       }}
     >
-      {label}
+      {labelClassName ? <span className={labelClassName}>{label}</span> : label}
     </button>
   );
 }
@@ -138,11 +181,16 @@ export function Keypad({
   textSize = "m",
   clearIsBackspace = false,
   onKey,
+  pressedKeyId,
   onKeyLongPress,
   editing = false,
   onToggleKey,
   preview = false,
 }: Props) {
+  // Which cap the pointer is currently holding down. The hardware keyboard's
+  // half of the same question arrives as `pressedKeyId`; a cap lights for
+  // either, so a typed `3` and a tapped `3` are felt the same way.
+  const [touched, setTouched] = useState<string | null>(null);
   // The editor shows the whole layout (hidden keys dimmed in place, so the
   // grid doesn't reflow under the finger doing the hiding); the app and the
   // preview show the trimmed layout packed into full rows.
@@ -194,6 +242,12 @@ export function Keypad({
             key={key.id}
             keyDef={key}
             label={isBackspace ? "⌫" : key.label}
+            // `⌫` sits small inside its em box — left at the cap's own size it
+            // reads as a footnote beside the digits. Scale it back up to their
+            // visual weight.
+            labelClassName={
+              isBackspace ? "text-[1.7em] leading-none" : undefined
+            }
             ariaLabel={
               editing || key.action !== "clear"
                 ? undefined
@@ -203,9 +257,11 @@ export function Keypad({
             }
             className={`${
               inModal ? "h-12" : "h-full min-h-10"
-            } rounded-xl font-mono select-none ${
+            } relative rounded-xl font-mono select-none ${
               TEXT_SIZE_CLASSES[textSize]
-            } ${toneClasses(key.tone)} ${keyFeedback && !editing ? PRESS_ANIMATION : ""} ${
+            } ${toneClasses(key.tone)} ${
+              key.tone === "accent" ? "calc-key-accent" : ""
+            } ${keyFeedback && !editing ? PRESS_ANIMATION : ""} ${
               editing
                 ? isHidden
                   ? "opacity-30 line-through"
@@ -214,6 +270,9 @@ export function Keypad({
                     : "opacity-70"
                 : ""
             }`}
+            hit={!inModal && (touched === key.id || pressedKeyId === key.id)}
+            onHitStart={inModal ? undefined : () => setTouched(key.id)}
+            onHitEnd={inModal ? undefined : () => setTouched(null)}
             ariaPressed={editing ? !isHidden : undefined}
             ariaDisabled={editing && !key.optional ? true : undefined}
             hint={

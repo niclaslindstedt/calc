@@ -346,10 +346,10 @@ export function App() {
               <button
                 key={mode.id}
                 type="button"
-                className={`rounded-lg px-2.5 py-1 font-mono text-xs ${
+                className={`rounded-lg px-2.5 py-1 font-mono text-xs transition-colors ${
                   mode.id === activeMode.id
-                    ? "bg-accent text-page-bg"
-                    : "bg-surface-2 text-muted hover:text-fg"
+                    ? "bg-accent text-page-bg hover:brightness-110"
+                    : "bg-surface-2 text-muted hover:bg-surface-3 hover:text-fg-bright"
                 }`}
                 title={mode.name}
                 aria-pressed={mode.id === activeMode.id}
@@ -362,9 +362,9 @@ export function App() {
 
           <button
             type="button"
-            className={`shrink-0 rounded-lg p-1.5 ${
+            className={`shrink-0 rounded-lg p-1.5 transition-colors ${
               sessions.activeIsSaved && sessions.saveState !== "error"
-                ? "text-muted"
+                ? "text-muted hover:text-fg-bright"
                 : "text-accent"
             } hover:bg-surface-2`}
             aria-label="Save session"
