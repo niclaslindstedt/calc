@@ -9,10 +9,36 @@ import {
   type ModeId,
 } from "./modes.ts";
 
+/** How the sidebar opens on a phone. `button` shows the draggable floating
+ *  menu button; `swipe` hides it and opens the drawer with an inward swipe
+ *  from the button's edge instead. Either/or — the same choice the contacts
+ *  sibling offers, so the two apps feel the same in the hand. */
+export type MenuMode = "button" | "swipe";
+
+/** Keypad button text size (Settings → Appearance). `m` is the size the pad
+ *  has always used; the rest step the cap label up or down. */
+export type KeyTextSize = "s" | "m" | "l" | "xl";
+
+/** The size steps, in picker order — the labels the Appearance tab shows. */
+export const KEY_TEXT_SIZES: { id: KeyTextSize; label: string }[] = [
+  { id: "s", label: "Small" },
+  { id: "m", label: "Medium" },
+  { id: "l", label: "Large" },
+  { id: "xl", label: "Huge" },
+];
+
+function isKeyTextSize(raw: unknown): raw is KeyTextSize {
+  return KEY_TEXT_SIZES.some((size) => size.id === raw);
+}
+
 // App settings live in localStorage (the app's rule: localStorage for
 // settings, never for session documents). The shape is versionless — unknown
 // keys are dropped by the parse merge, missing ones fall back to defaults.
 export type AppSettings = {
+  // How the phone drawer opens: the floating button, or an edge swipe.
+  menuMode: MenuMode;
+  // How large the keypad's button labels are drawn.
+  keyTextSize: KeyTextSize;
   // Reveal the tape by swiping down on the display (in addition to the
   // history toggle button).
   swipeDownHistory: boolean;
@@ -31,6 +57,8 @@ export type AppSettings = {
 const STORAGE_KEY = "calc:settings";
 
 export const DEFAULT_SETTINGS: AppSettings = {
+  menuMode: "button",
+  keyTextSize: "m",
   swipeDownHistory: true,
   keyFeedback: true,
   enabledModes: [...BUILTIN_MODE_IDS],
@@ -63,6 +91,10 @@ function parseSettings(raw: string): AppSettings {
         )
       : DEFAULT_SETTINGS.enabledModes;
     return {
+      menuMode: parsed.menuMode === "swipe" ? "swipe" : "button",
+      keyTextSize: isKeyTextSize(parsed.keyTextSize)
+        ? parsed.keyTextSize
+        : DEFAULT_SETTINGS.keyTextSize,
       swipeDownHistory:
         typeof parsed.swipeDownHistory === "boolean"
           ? parsed.swipeDownHistory

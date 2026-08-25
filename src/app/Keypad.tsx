@@ -9,15 +9,22 @@
 //     tapping an optional key toggles it in/out of the layout, and required
 //     keys just wiggle their lock state via aria — pressing buttons is the
 //     whole editing gesture.
+//   - preview (Settings → Appearance): the trimmed layout at the editor's
+//     compact size, inert and hidden from assistive tech — it exists only to
+//     show what a button-text size looks like.
 
 import { useLongPress } from "@niclaslindstedt/oss-framework/hooks";
 
 import { layoutRows, type KeyDef, type Mode, type PlacedKey } from "./modes.ts";
+import type { KeyTextSize } from "./useAppSettings.ts";
 
 type Props = {
   mode: Mode;
   hidden: readonly string[];
   keyFeedback: boolean;
+  // How large the cap labels are drawn (Settings → Appearance). Defaults to
+  // the size the pad has always used, so the editor previews can leave it out.
+  textSize?: KeyTextSize;
   // The erase key reads the display: `⌫` while there are characters to take
   // back, `C` once there are none. The two faces carry different actions, so
   // the label is not just cosmetic — see CalculatorScreen.
@@ -28,6 +35,19 @@ type Props = {
   onKeyLongPress?: (key: KeyDef) => void;
   editing?: boolean;
   onToggleKey?: (keyId: string) => void;
+  // A look-only pad: no press handling, no editor decorations, and out of the
+  // accessibility tree so it doesn't read as a second keypad.
+  preview?: boolean;
+};
+
+// The cap-label steps behind Settings → Appearance → "Button text size".
+// Each step keeps the small-screen/`sm:` pairing the pad has always had, so a
+// wider screen still gets the roomier size.
+const TEXT_SIZE_CLASSES: Record<KeyTextSize, string> = {
+  s: "text-base sm:text-lg",
+  m: "text-lg sm:text-xl",
+  l: "text-2xl sm:text-3xl",
+  xl: "text-3xl sm:text-4xl",
 };
 
 function toneClasses(tone: KeyDef["tone"]): string {
@@ -115,30 +135,36 @@ export function Keypad({
   mode,
   hidden,
   keyFeedback,
+  textSize = "m",
   clearIsBackspace = false,
   onKey,
   onKeyLongPress,
   editing = false,
   onToggleKey,
+  preview = false,
 }: Props) {
   // The editor shows the whole layout (hidden keys dimmed in place, so the
-  // grid doesn't reflow under the finger doing the hiding); the app shows the
-  // trimmed layout packed into full rows.
+  // grid doesn't reflow under the finger doing the hiding); the app and the
+  // preview show the trimmed layout packed into full rows.
   const placed = editing ? layoutRows(mode) : layoutRows(mode, hidden);
   const keys = placed.flat();
   const rows = placed.length;
+  // Both in-modal faces size to their content instead of claiming a screen.
+  const inModal = editing || preview;
   return (
     <div
       className={
         "grid shrink-0 gap-2 p-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] " +
         // In the app the pad claims the bottom slab of the screen and its rows
         // stretch into it (capped so a tall phone doesn't grow thumb-sized
-        // keys); in the mode editor it sits in a scrolling modal and sizes to
-        // its content instead.
-        (editing ? "" : "max-h-[58%] grow")
+        // keys); in the mode editor and the preview it sits in a scrolling
+        // modal and sizes to its content instead.
+        (inModal ? "" : "max-h-[58%] grow") +
+        (preview ? " pointer-events-none" : "")
       }
+      aria-hidden={preview ? true : undefined}
       style={
-        editing
+        inModal
           ? { gridTemplateColumns: `repeat(${mode.columns}, minmax(0, 1fr))` }
           : {
               gridTemplateColumns: `repeat(${mode.columns}, minmax(0, 1fr))`,
@@ -172,10 +198,10 @@ export function Keypad({
                   : "Clear"
             }
             className={`${
-              editing ? "h-12" : "h-full min-h-10"
-            } rounded-xl font-mono text-lg select-none sm:text-xl ${toneClasses(
-              key.tone,
-            )} ${keyFeedback && !editing ? PRESS_ANIMATION : ""} ${
+              inModal ? "h-12" : "h-full min-h-10"
+            } rounded-xl font-mono select-none ${
+              TEXT_SIZE_CLASSES[textSize]
+            } ${toneClasses(key.tone)} ${keyFeedback && !editing ? PRESS_ANIMATION : ""} ${
               editing
                 ? isHidden
                   ? "opacity-30 line-through"
@@ -187,17 +213,19 @@ export function Keypad({
             ariaPressed={editing ? !isHidden : undefined}
             ariaDisabled={editing && !key.optional ? true : undefined}
             hint={
-              editing
-                ? key.optional
-                  ? isHidden
-                    ? `Show ${key.label}`
-                    : `Hide ${key.label}`
-                  : `${key.label} is always shown`
-                : key.action === "clear"
-                  ? isBackspace
-                    ? "Erase a character; hold to erase them all"
-                    : "Nothing to erase; hold to clear the history"
-                  : undefined
+              preview
+                ? undefined
+                : editing
+                  ? key.optional
+                    ? isHidden
+                      ? `Show ${key.label}`
+                      : `Hide ${key.label}`
+                    : `${key.label} is always shown`
+                  : key.action === "clear"
+                    ? isBackspace
+                      ? "Erase a character; hold to erase them all"
+                      : "Nothing to erase; hold to clear the history"
+                    : undefined
             }
             onPress={() => {
               if (editing) {

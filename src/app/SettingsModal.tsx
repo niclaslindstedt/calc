@@ -38,7 +38,9 @@ import {
   Modal,
   PaletteIcon,
   Section,
+  SegmentedControl,
   SlidersIcon,
+  SpinnerIcon,
   ToggleRow,
   TrashIcon,
   type FloatingPlacement,
@@ -59,11 +61,18 @@ import {
   type CustomMode,
   type ModeId,
 } from "./modes.ts";
-import { DEFAULT_SETTINGS, type AppSettings } from "./useAppSettings.ts";
+import {
+  DEFAULT_SETTINGS,
+  KEY_TEXT_SIZES,
+  type AppSettings,
+  type MenuMode,
+} from "./useAppSettings.ts";
 import type { BackendId } from "./store.ts";
 import {
+  DROPBOX_APP_FOLDER,
   DROPBOX_APP_KEY,
   FOLDER_BACKEND_AVAILABLE,
+  GDRIVE_APP_FOLDER,
   GOOGLE_CLIENT_ID,
 } from "./store.ts";
 
@@ -95,6 +104,29 @@ const BACKEND_NAMES: Record<BackendId, string> = {
   gdrive: "Google Drive",
 };
 
+// What the Storage tab's picker holds: a backend, or "this device" — the
+// unconnected state, where a tape lives in memory until a backend is chosen.
+type StorageChoice = BackendId | "none";
+
+// Every backend is listed, whether or not this browser/build can reach it —
+// a Storage tab that shows one lonely segment reads as "there is no storage",
+// which is exactly the confusion this picker exists to clear up. Picking an
+// unreachable one explains what it needs instead of offering a dead button.
+// Labels stay one word so four segments fit a phone.
+const BACKEND_OPTIONS: { value: StorageChoice; label: string }[] = [
+  { value: "none", label: "Device" },
+  { value: "folder", label: "Folder" },
+  { value: "dropbox", label: "Dropbox" },
+  { value: "gdrive", label: "Drive" },
+];
+
+// "Open sidebar with" (General) — the floating button or an inward edge
+// swipe, one or the other.
+const MENU_MODE_OPTIONS: { value: MenuMode; label: string }[] = [
+  { value: "button", label: "Floating button" },
+  { value: "swipe", label: "Edge swipe" },
+];
+
 type Props = {
   open: boolean;
   onClose: () => void;
@@ -106,10 +138,12 @@ type Props = {
   backend: BackendId | null;
   connected: boolean;
   folderReconnectNeeded: boolean;
-  onConnectFolder: () => void;
-  onConnectDropbox: () => void;
-  onConnectGdrive: () => void;
-  onReconnectFolder: () => void;
+  // The connect flows are awaited so their button can show a spinner while an
+  // OAuth redirect / consent popup or the directory picker is in flight.
+  onConnectFolder: () => Promise<void>;
+  onConnectDropbox: () => Promise<void>;
+  onConnectGdrive: () => Promise<void>;
+  onReconnectFolder: () => Promise<void>;
   onDisconnect: () => void;
   initialTab?: SettingsTab;
 };
@@ -152,6 +186,24 @@ export function SettingsModal({
     setDraftName("");
   };
 
+  // ---- Storage tab (device state, applied on press — not part of Save) ----
+  // The picker holds the *target* backend; an unconnected one shows its
+  // Connect affordance until the OAuth flow (cloud) or the directory pick
+  // (folder) lands. Copied from the contacts sibling's Storage tab.
+  const [picked, setPicked] = useState<StorageChoice>(backend ?? "none");
+  useEffect(() => {
+    setPicked(backend ?? "none");
+  }, [backend]);
+  // While a connect flow is in flight (an OAuth redirect / consent popup, or
+  // the directory picker plus its permission prompt) the button shows a
+  // spinner and locks, so the tap reads as "working" instead of dead. Only one
+  // connect affordance is visible at a time, so one flag covers them all.
+  const [connecting, setConnecting] = useState(false);
+  const runConnect = (fn: () => Promise<void>) => {
+    setConnecting(true);
+    void fn().finally(() => setConnecting(false));
+  };
+
   // On open, snapshot the live appearance and seed the settings draft.
   useEffect(() => {
     if (!open) return;
@@ -159,6 +211,8 @@ export function SettingsModal({
     setDraft(settings);
     setTab(initialTab);
     setMenuOpen(false);
+    setPicked(backend ?? "none");
+    setConnecting(false);
     closeEditors();
     // Only re-run when the dialog opens.
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -387,6 +441,27 @@ export function SettingsModal({
             </Section>
           ) : null}
 
+          {tab === "general" ? (
+            <Section title="Sidebar">
+              <div className="flex flex-col gap-1">
+                <span className="text-sm text-fg-bright">
+                  Open sidebar with
+                </span>
+                <SegmentedControl<MenuMode>
+                  value={draft.menuMode}
+                  options={MENU_MODE_OPTIONS}
+                  onChange={(next) => update("menuMode", next)}
+                  ariaLabel="Open sidebar with"
+                />
+                <p className="text-xs text-muted">
+                  On a phone, one or the other: tap the floating menu button, or
+                  swipe in from the edge it rests against. On a wide screen the
+                  sidebar is docked and neither applies.
+                </p>
+              </div>
+            </Section>
+          ) : null}
+
           {tab === "layouts" && !editing && draftBase === null ? (
             <>
               <Section title="Modes">
@@ -457,6 +532,7 @@ export function SettingsModal({
                   mode={editing}
                   hidden={draft.hiddenKeys[editing.id] ?? []}
                   keyFeedback={false}
+                  textSize={draft.keyTextSize}
                   editing
                   onToggleKey={(keyId) => toggleKey(editing.id, keyId)}
                 />
@@ -479,6 +555,7 @@ export function SettingsModal({
                   mode={MODES[draftBase]}
                   hidden={draftHidden}
                   keyFeedback={false}
+                  textSize={draft.keyTextSize}
                   editing
                   onToggleKey={(keyId) =>
                     setDraftHidden((prev) =>
@@ -516,70 +593,189 @@ export function SettingsModal({
           ) : null}
 
           {tab === "appearance" ? (
-            <AppearancePicker
-              appearance={appearance}
-              onChange={onAppearanceChange}
-            />
+            <>
+              <Section title="Keypad">
+                <div className="flex flex-col gap-1">
+                  <span className="text-sm text-fg-bright">
+                    Button text size
+                  </span>
+                  <SegmentedControl
+                    value={draft.keyTextSize}
+                    options={KEY_TEXT_SIZES.map((size) => ({
+                      value: size.id,
+                      label: size.label,
+                    }))}
+                    onChange={(next) => update("keyTextSize", next)}
+                    ariaLabel="Button text size"
+                  />
+                  <p className="text-xs text-muted">
+                    How large the keypad's button labels are drawn. The keys
+                    keep their size — only the text grows.
+                  </p>
+                </div>
+                <div className="rounded-xl border border-line bg-page-bg">
+                  <Keypad
+                    mode={MODES.basic}
+                    hidden={draft.hiddenKeys.basic ?? []}
+                    keyFeedback={false}
+                    textSize={draft.keyTextSize}
+                    preview
+                  />
+                </div>
+              </Section>
+              <AppearancePicker
+                appearance={appearance}
+                onChange={onAppearanceChange}
+              />
+            </>
           ) : null}
 
           {tab === "storage" ? (
             <Section title="Storage backend">
               <p className="mb-2 text-xs text-muted">
                 Sessions are stored as markdown files. Settings stay on this
-                device; nothing is stored until you connect a backend and save a
+                device; nothing leaves it until you connect a backend and save a
                 session. Connecting applies straight away — it is not part of
                 Save.
               </p>
-              {connected ? (
-                <div className="flex items-center justify-between gap-2">
-                  <span className="text-sm text-fg">
-                    Connected: {backend ? BACKEND_NAMES[backend] : "—"}
-                  </span>
-                  <Button variant="danger" onClick={onDisconnect}>
-                    Disconnect
-                  </Button>
-                </div>
-              ) : folderReconnectNeeded ? (
-                <div className="flex flex-wrap items-center justify-between gap-2">
-                  <span className="text-sm text-muted">
-                    This browser needs permission to reopen your folder.
-                  </span>
-                  <Button variant="primary" onClick={onReconnectFolder}>
-                    Reconnect folder…
-                  </Button>
-                </div>
-              ) : (
-                <div className="flex flex-wrap gap-2">
-                  {FOLDER_BACKEND_AVAILABLE ? (
-                    <Button variant="secondary" onClick={onConnectFolder}>
-                      Local folder…
-                    </Button>
-                  ) : null}
-                  {DROPBOX_APP_KEY ? (
-                    <Button variant="secondary" onClick={onConnectDropbox}>
-                      Dropbox…
-                    </Button>
-                  ) : null}
-                  {GOOGLE_CLIENT_ID ? (
-                    <Button variant="secondary" onClick={onConnectGdrive}>
-                      Google Drive…
-                    </Button>
-                  ) : null}
-                  {!FOLDER_BACKEND_AVAILABLE &&
-                  !DROPBOX_APP_KEY &&
-                  !GOOGLE_CLIENT_ID ? (
-                    <p className="text-sm text-muted">
-                      No backend is available in this browser/build — see
-                      docs/configuration.md.
+              <SegmentedControl<StorageChoice>
+                value={picked}
+                options={BACKEND_OPTIONS}
+                onChange={(next) => {
+                  setPicked(next);
+                  // Picking "This device" gives the backend up right away —
+                  // the one choice that needs no connect step.
+                  if (next === "none" && backend !== null) onDisconnect();
+                }}
+                ariaLabel="Storage backend"
+              />
+
+              {picked === "none" ? (
+                <p className="text-xs text-muted">
+                  Tapes live in memory only. The disk icon has nothing to write
+                  to until a backend is connected — pick one above.
+                </p>
+              ) : null}
+
+              {picked === "folder" ? (
+                <div className="flex flex-col gap-2">
+                  <p className="text-xs text-muted">
+                    A folder you pick on this device. Sessions land in it as
+                    real markdown files you can open, search and back up
+                    yourself. Needs a browser with the File System Access API
+                    (Chromium-based); the grant is re-confirmed after a restart.
+                  </p>
+                  {!FOLDER_BACKEND_AVAILABLE ? (
+                    <p className="text-sm text-danger">
+                      This browser has no folder picker — use Dropbox or Google
+                      Drive here, or open the app in a Chromium browser.
                     </p>
-                  ) : null}
+                  ) : connected && backend === "folder" ? (
+                    <div className="flex flex-wrap items-center gap-2">
+                      <span className="text-sm text-success">
+                        Connected to a local folder.
+                      </span>
+                      <Button variant="secondary" onClick={onDisconnect}>
+                        Disconnect
+                      </Button>
+                    </div>
+                  ) : folderReconnectNeeded ? (
+                    <div className="flex flex-wrap items-center gap-2">
+                      <span className="text-sm text-accent">
+                        This browser needs permission to reopen your folder.
+                      </span>
+                      <ConnectButton
+                        busy={connecting}
+                        label="Reconnect folder…"
+                        onPress={() => runConnect(onReconnectFolder)}
+                      />
+                    </div>
+                  ) : (
+                    <ConnectButton
+                      busy={connecting}
+                      label="Choose a folder…"
+                      onPress={() => runConnect(onConnectFolder)}
+                    />
+                  )}
                 </div>
-              )}
+              ) : null}
+
+              {picked === "dropbox" || picked === "gdrive" ? (
+                <div className="flex flex-col gap-2">
+                  <p className="text-xs text-muted">
+                    {picked === "dropbox"
+                      ? `Sessions sync to Apps/${DROPBOX_APP_FOLDER}/ in your Dropbox — the app only ever sees its own folder.`
+                      : `Sessions sync to a ${GDRIVE_APP_FOLDER} folder the app creates in your Google Drive.`}
+                  </p>
+                  {(picked === "dropbox" && !DROPBOX_APP_KEY) ||
+                  (picked === "gdrive" && !GOOGLE_CLIENT_ID) ? (
+                    // Every backend stays in the picker, so this is where an
+                    // unconfigured one explains itself instead of offering a
+                    // button that could only fail.
+                    <p className="text-sm text-danger">
+                      {BACKEND_NAMES[picked]} needs an app key baked into the
+                      build (
+                      {picked === "dropbox"
+                        ? "VITE_DROPBOX_APP_KEY"
+                        : "VITE_GOOGLE_CLIENT_ID"}
+                      ) — see docs/configuration.md.
+                    </p>
+                  ) : connected && backend === picked ? (
+                    <div className="flex flex-wrap items-center gap-2">
+                      <span className="text-sm text-success">
+                        Connected to {BACKEND_NAMES[picked]}.
+                      </span>
+                      <Button variant="secondary" onClick={onDisconnect}>
+                        Disconnect
+                      </Button>
+                    </div>
+                  ) : (
+                    <ConnectButton
+                      busy={connecting}
+                      label={`Connect ${BACKEND_NAMES[picked]}…`}
+                      onPress={() =>
+                        runConnect(
+                          picked === "dropbox"
+                            ? onConnectDropbox
+                            : onConnectGdrive,
+                        )
+                      }
+                    />
+                  )}
+                </div>
+              ) : null}
             </Section>
           ) : null}
         </div>
       </div>
     </Modal>
+  );
+}
+
+// A connect affordance that shows it is working: the flows behind it hand
+// off to an OAuth redirect / consent popup or the directory picker, so the
+// press locks and spins until the promise settles.
+function ConnectButton({
+  busy,
+  label,
+  onPress,
+}: {
+  busy: boolean;
+  label: string;
+  onPress: () => void;
+}) {
+  return (
+    <Button
+      variant="primary"
+      className="self-start"
+      disabled={busy}
+      onClick={onPress}
+    >
+      <span className="flex items-center gap-1.5">
+        {busy ? <SpinnerIcon className="h-4 w-4 animate-spin" /> : null}
+        {label}
+      </span>
+    </Button>
   );
 }
 

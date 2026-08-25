@@ -96,10 +96,23 @@ and keep the session.
   swaps whole workspaces, each with its own directory in storage.
 - **Keyboard** — digits and operators type straight in; `Enter` is `=`,
   `Backspace` deletes, `Escape` clears.
-- **Settings** — the sidebar footer opens it: General (gestures), Layouts,
-  Appearance, and Storage, which is where a backend is connected. Changes
-  are staged and applied with Save; Cancel puts everything back. The footer
-  also carries an About entry with the build identifier.
+- **Opening the sidebar** — on a phone it is one of two, your pick in
+  Settings → General: the draggable floating button (drag it to either edge,
+  at any height), or an inward swipe from the edge the button rests against.
+  A wide screen docks the sidebar and uses neither.
+- **Button text size** — Settings → Appearance sizes the keypad's labels
+  (Small / Medium / Large / Huge) with a live preview of the pad. The keys
+  keep their size; only the text grows.
+- **Settings** — the sidebar footer opens it: General (gestures, sidebar),
+  Layouts, Appearance (button text size + theme), and Storage, which is
+  where a backend is connected. Changes are staged and applied with Save;
+  Cancel puts everything back. The footer also carries an About entry with
+  the build identifier.
+- **Storage** — Settings → Storage picks between _Device_ (tapes stay in
+  memory), a local _Folder_, _Dropbox_, and Google _Drive_. Every option is
+  listed whether or not this browser and build can reach it, and picking an
+  unreachable one says what it needs. Connecting or disconnecting applies at
+  once — it is not staged behind Save.
 
 ## Configuration
 

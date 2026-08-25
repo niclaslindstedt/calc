@@ -21,6 +21,7 @@ import {
   DROPBOX_APP_KEY,
   dropboxFileStore,
   ensurePermission,
+  FOLDER_BACKEND_AVAILABLE,
   folderFileStore,
   gdriveFileStore,
   GOOGLE_CLIENT_ID,
@@ -35,7 +36,7 @@ import {
   type BackendId,
   type SessionStore,
 } from "./store.ts";
-import { error as logError, status } from "../output.ts";
+import { error as logError, status, warn } from "../output.ts";
 import {
   appendEntry,
   clearEntries as clearSessionEntries,
@@ -59,6 +60,11 @@ export function useSessions(namespaceSlug: string) {
   const [backend, setBackend] = useState<BackendId | null>(null);
   const [connected, setConnected] = useState(false);
   const [folderReconnectNeeded, setFolderReconnectNeeded] = useState(false);
+  // Bumped every time the underlying `FileStore` is swapped (connect,
+  // reconnect, disconnect). `connected` alone can't carry that signal —
+  // switching straight from one connected backend to another never changes it,
+  // and the session store would keep writing to the old one.
+  const [storeEpoch, setStoreEpoch] = useState(0);
   const storeRef = useRef<SessionStore | null>(null);
   const fileStoreRef = useRef<ReturnType<typeof folderFileStore> | null>(null);
 
@@ -147,6 +153,7 @@ export function useSessions(namespaceSlug: string) {
         fileStoreRef.current = gdriveFileStore(token);
       }
       setBackend(preference);
+      setStoreEpoch((n) => n + 1);
       setConnected(true);
     })();
     return () => {
@@ -154,11 +161,12 @@ export function useSessions(namespaceSlug: string) {
     };
   }, []);
 
-  // Rebuild the store and reload whenever the connection or namespace moves.
+  // Rebuild the store and reload whenever the connection, the backend or the
+  // namespace moves.
   useEffect(() => {
     rebuildStore();
     void refresh();
-  }, [connected, rebuildStore, refresh]);
+  }, [connected, storeEpoch, rebuildStore, refresh]);
 
   // Switching namespace resets the working session (each namespace is its
   // own workspace); a scratch tape with content is intentionally dropped —
@@ -170,47 +178,96 @@ export function useSessions(namespaceSlug: string) {
     setActive(newSession());
   }, [namespaceSlug]);
 
+  // Pick a local folder and switch to it. The framework persists the handle to
+  // IndexedDB so the grant survives reloads. A dismissed picker or a declined
+  // permission prompt is a no-op — the same forgiving flow the contacts
+  // sibling runs, so neither leaves a rejected promise behind the button.
   const connectFolder = useCallback(async () => {
-    if (!window.showDirectoryPicker) return;
-    const handle = await window.showDirectoryPicker({ mode: "readwrite" });
+    if (!FOLDER_BACKEND_AVAILABLE || !window.showDirectoryPicker) return;
+    status("Opening the directory picker…");
+    let handle: FileSystemDirectoryHandle;
+    try {
+      handle = await window.showDirectoryPicker({ mode: "readwrite" });
+    } catch (err) {
+      // AbortError = the user dismissed the picker; nothing to do.
+      if (err instanceof DOMException && err.name === "AbortError") return;
+      logError(
+        `Folder picker failed: ${err instanceof Error ? err.message : String(err)}`,
+      );
+      return;
+    }
+    const granted = await ensurePermission(handle, true);
+    if (granted !== "granted") {
+      warn("Folder read-write permission was not granted");
+      return;
+    }
     await saveDirectoryHandle(handle);
     fileStoreRef.current = folderFileStore(handle);
     writeBackendPreference("folder");
     setBackend("folder");
     setFolderReconnectNeeded(false);
+    setStoreEpoch((n) => n + 1);
     setConnected(true);
+    status("Connected to a local folder");
   }, []);
 
+  // Re-confirm a revoked OS grant on the already-stored handle.
+  // `requestPermission` needs a user gesture, which is why this lives behind a
+  // click handler. Falls back to a fresh pick when the stored record is gone.
   const reconnectFolder = useCallback(async () => {
     const handle = await loadDirectoryHandle();
     if (!handle) return connectFolder();
     const granted = await ensurePermission(handle, true);
-    if (granted !== "granted") return;
+    if (granted !== "granted") {
+      warn("Folder reconnect declined");
+      return;
+    }
     fileStoreRef.current = folderFileStore(handle);
+    writeBackendPreference("folder");
+    setBackend("folder");
     setFolderReconnectNeeded(false);
+    setStoreEpoch((n) => n + 1);
     setConnected(true);
+    status("Reconnected to the local folder");
   }, [connectFolder]);
 
+  // Dropbox authorises by redirect: this call navigates away, and the boot
+  // effect above finishes the PKCE exchange when the browser comes back.
   const connectDropbox = useCallback(async () => {
     if (!DROPBOX_APP_KEY) return;
+    status("Starting Dropbox authorization…");
     await startDropboxAuth(DROPBOX_APP_KEY);
   }, []);
 
   const connectGdrive = useCallback(async () => {
     if (!GOOGLE_CLIENT_ID) return;
-    const token = await startGdriveAuth(GOOGLE_CLIENT_ID);
+    status("Requesting Google Drive consent…");
+    let token: string;
+    try {
+      token = await startGdriveAuth(GOOGLE_CLIENT_ID);
+    } catch (err) {
+      // A dismissed consent popup lands here — nothing to connect.
+      logError(
+        `Google Drive consent failed: ${err instanceof Error ? err.message : String(err)}`,
+      );
+      return;
+    }
     writeGdriveToken(token);
     fileStoreRef.current = gdriveFileStore(token);
     writeBackendPreference("gdrive");
     setBackend("gdrive");
+    setStoreEpoch((n) => n + 1);
     setConnected(true);
+    status("Connected to Google Drive");
   }, []);
 
   const disconnect = useCallback(() => {
+    status("Storage backend disconnected — tapes stay on this device");
     clearBackendState();
     fileStoreRef.current = null;
     storeRef.current = null;
     setBackend(null);
+    setStoreEpoch((n) => n + 1);
     setConnected(false);
     setFolderReconnectNeeded(false);
     setSaved([]);

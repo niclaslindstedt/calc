@@ -30,12 +30,12 @@ imports hooks from `"react"` (the sibling apps' convention).
 
 ## State
 
-| Hook               | Owns                                                                                                                                                | Persistence                    |
-| ------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------ |
-| `useSessions(ns)`  | Active session (scratch or saved), saved list, folders, actions                                                                                     | Storage backend (markdown)     |
-| `useAppSettings()` | Gestures, key animation, enabled modes, hidden keys, custom modes — read here, staged as a draft in the Settings dialog and committed whole on Save | localStorage `calc:settings`   |
-| `useNamespaces()`  | Namespace registry + active slug                                                                                                                    | localStorage `calc:namespaces` |
-| `App` appearance   | Theme / fonts / UI style (`ThemeAppearance`)                                                                                                        | localStorage `calc:appearance` |
+| Hook               | Owns                                                                                                                                                                                            | Persistence                    |
+| ------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------ |
+| `useSessions(ns)`  | Active session (scratch or saved), saved list, folders, actions                                                                                                                                 | Storage backend (markdown)     |
+| `useAppSettings()` | Gestures, key animation, sidebar open mode, keypad button text size, enabled modes, hidden keys, custom modes — read here, staged as a draft in the Settings dialog and committed whole on Save | localStorage `calc:settings`   |
+| `useNamespaces()`  | Namespace registry + active slug                                                                                                                                                                | localStorage `calc:namespaces` |
+| `App` appearance   | Theme / fonts / UI style (`ThemeAppearance`)                                                                                                                                                    | localStorage `calc:appearance` |
 
 A **scratch** session exists only in memory — it becomes a file when the
 disk icon saves it. A **saved** session writes through on every change,
@@ -74,7 +74,8 @@ write the new path, then reconcile the old file away.
 localStorage keys (settings and pointers only, never documents):
 
 ```
-calc:settings            app settings (modes, hidden keys, gestures)
+calc:settings            app settings (modes, hidden keys, gestures,
+                         sidebar open mode, keypad button text size)
 calc:appearance          theme appearance
 calc:namespaces          namespace registry
 calc:namespace:active    active namespace slug
@@ -85,6 +86,12 @@ calc:menu-position       sidebar button position
 
 The folder backend's directory handle lives in IndexedDB
 (framework-managed).
+
+Settings → Storage drives all of this from one picker (Device / Folder /
+Dropbox / Drive). Connecting swaps the `FileStore` behind `useSessions`,
+which bumps a store epoch so the session store is rebuilt and re-listed — a
+switch straight from one connected backend to another changes no other state,
+so without that epoch the old transport would keep taking the writes.
 
 ## PWA
 
