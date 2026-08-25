@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 
 import {
   appendEntry,
+  clearEntries,
   isDiscardable,
   newSession,
   nextSessionTitle,
@@ -52,6 +53,23 @@ describe("session model", () => {
   it("removes entries", () => {
     const s = appendEntry(newSession(0), "2*3", "6", { now: 1 });
     expect(removeEntry(s, s.entries[0].id, 2).entries).toHaveLength(0);
+  });
+
+  it("clears every entry but keeps the session", () => {
+    let s = { ...newSession(0), title: "Budget", mode: "scientific" };
+    s = appendEntry(s, "2*3", "6", { now: 1 });
+    s = appendEntry(s, "6+1", "7", { now: 2 });
+    const cleared = clearEntries(s, 3);
+    expect(cleared.entries).toEqual([]);
+    expect(cleared.title).toBe("Budget");
+    expect(cleared.mode).toBe("scientific");
+    expect(cleared.id).toBe(s.id);
+    expect(cleared.updatedAt).toBe(3);
+  });
+
+  it("leaves an already empty tape untouched", () => {
+    const s = newSession(0);
+    expect(clearEntries(s, 9)).toBe(s);
   });
 
   it("keeps the mode a new session was opened in", () => {

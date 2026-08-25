@@ -17,7 +17,9 @@ main.tsx
     │   │                      Keypad
     │   ├── HistoryEntryRow    tap=copy value, long-press=copy expression
     │   │                      or chain, star gutter, left-swipe=note/delete
-    │   └── Keypad.tsx         mode-driven grid; doubles as the mode editor
+    │   └── Keypad.tsx         mode-driven grid; the erase key reads the
+    │                          display (⌫ / C, tap and hold); doubles as the
+    │                          mode editor
     └── SettingsModal.tsx      General / Layouts / Appearance / Storage
 ```
 

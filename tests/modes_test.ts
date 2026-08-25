@@ -29,11 +29,21 @@ describe("built-in modes", () => {
       const required = MODES[id].keys.filter((k) => !k.optional);
       for (const key of required) {
         expect(
-          ["clear", "equals", "backspace"].includes(key.id) ||
+          ["clear", "equals"].includes(key.id) ||
             key.tone === "digit" ||
             key.tone === "op",
         ).toBe(true);
       }
+    }
+  });
+
+  it("gives every layout exactly one erase key", () => {
+    for (const id of BUILTIN_MODE_IDS) {
+      const erase = MODES[id].keys.filter((k) => k.action === "clear");
+      // `C` covers backspace (tap) and clear (hold), so a second erase key
+      // would just be the same gesture twice.
+      expect({ id, count: erase.length }).toEqual({ id, count: 1 });
+      expect(erase[0].optional).toBeUndefined();
     }
   });
 });

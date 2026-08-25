@@ -7,6 +7,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 
 import {
+  ConfirmDialog,
   ToastViewport,
   defaultToastStore,
 } from "@niclaslindstedt/oss-framework/components";
@@ -96,6 +97,9 @@ export function App() {
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [settingsTab, setSettingsTab] = useState<SettingsTab>("general");
   const [namespacesOpen, setNamespacesOpen] = useState(false);
+  // Long-pressing `C` on an empty display asks to wipe the tape. It is the
+  // one keypad gesture with nothing to undo it, so it asks first.
+  const [clearHistoryOpen, setClearHistoryOpen] = useState(false);
 
   // ---- sidebar shell ----------------------------------------------------
   const pinned = useMediaQuery("(min-width: 768px)");
@@ -142,6 +146,8 @@ export function App() {
         .filter((m): m is NonNullable<typeof m> => m !== null),
     [settings.enabledModes, settings.customModes],
   );
+
+  const entryCount = sessions.active.entries.length;
 
   // ---- title editing ----------------------------------------------------
   const [titleDraft, setTitleDraft] = useState(sessions.active.title);
@@ -325,9 +331,31 @@ export function App() {
             onNoteEntry={sessions.noteEntry}
             onStarEntry={sessions.starEntry}
             onDeleteEntry={sessions.deleteEntry}
+            onClearHistory={() => {
+              if (entryCount > 0) setClearHistoryOpen(true);
+            }}
           />
         </div>
       </main>
+
+      <ConfirmDialog
+        open={clearHistoryOpen}
+        title="Clear history?"
+        description={`This removes ${entryCount} ${
+          entryCount === 1 ? "entry" : "entries"
+        } from this session's tape, notes and stars included. It cannot be undone.`}
+        confirmLabel="Clear history"
+        tone="danger"
+        onConfirm={() => {
+          sessions.clearEntries();
+          setClearHistoryOpen(false);
+          defaultToastStore.push({
+            message: "History cleared",
+            kind: "success",
+          });
+        }}
+        onCancel={() => setClearHistoryOpen(false)}
+      />
 
       <SettingsModal
         open={settingsOpen}
