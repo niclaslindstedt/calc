@@ -65,10 +65,22 @@ folder: f-shopping
   no heading (the stored title stays empty; the UI shows "Untitled
   session").
 - One bullet per tape entry:
-  ``- `<expression>` = `<result>` _(at <ISO-8601>)_`` — the expression and
-  result in backticks so they read as code, the timestamp as a
-  human-readable italic marker (the checklist sibling's marker style;
+  ``- <markers> `<expression>` = `<result>` _(at <ISO-8601>)_`` — the
+  expression and result in backticks so they read as code, the timestamp as
+  a human-readable italic marker (the checklist sibling's marker style;
   legacy `*(at …)*` markers still parse).
+- `<markers>` is zero, one, or both of these leading glyphs, in this order,
+  each followed by a space:
+
+  | Marker | Meaning                                                                                   |
+  | ------ | ----------------------------------------------------------------------------------------- |
+  | `⭐`   | Starred — the user highlighted this row from the tape's left gutter                       |
+  | `↳`    | Chained — the expression starts with the previous entry's result (see `src/app/chain.ts`) |
+
+  An entry with neither marker is written exactly as it was before the
+  markers existed, so files predating them round-trip untouched. A `↳` on
+  the first entry is dropped on parse — nothing precedes it.
+
 - Note lines follow their entry, indented two spaces; multi-line notes keep
   their line breaks.
 
@@ -84,3 +96,6 @@ folder: f-shopping
   versa.
 - Unknown lines end the entry being parsed rather than being swallowed into
   a note, so foreign additions degrade gracefully.
+- **Chains are re-derivable, not stored** — the `↳` marker only records that
+  an entry continued from the one above; the folded expression the tape's
+  "Copy chain" action produces is rebuilt from the run at read time.

@@ -14,9 +14,11 @@
 ## Features
 
 - Sessions: scratch by default, saved with the disk icon, named like notes
-- Tape: swipe down to reveal; entries read result-first with a note button
-  in the left gutter; tap an entry to copy its value, long-press to copy the
-  expression, left-swipe for note/delete
+- Tape: always visible above the display (last few entries), expandable to
+  half the screen and scrollable; entries read result-first with a star in
+  the left gutter; tap an entry to copy its value, long-press to copy the
+  expression (or, on a chained entry, the whole run folded into one
+  bracketed expression), left-swipe for note/delete
 - Modes: basic / scientific / programmer, per-session, plus user-defined
   modes derived from a base layout; buttons can be hidden per mode
 - Sidebar: folders and namespaces for organizing sessions
@@ -29,4 +31,5 @@
 One markdown file per session under `calculations/`, YAML front matter with
 `type: calculation`, `id`, `created`, `updated`, and optional `mode`,
 `folder`, `archived`; the body is `# Title` plus one `- \`expr\` = \`result\``
-bullet per tape entry with indented note lines.
+bullet per tape entry with indented note lines, optionally led by ⭐
+(starred) and ↳ (continued from the entry above).

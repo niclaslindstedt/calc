@@ -2,9 +2,10 @@
 //
 // The session domain model. A session is one calculator tape: every
 // calculation that ended with `=` appends an Entry, and an entry can carry a
-// free-text note explaining it. Sessions are scratch (in memory only) until
-// the user saves them with the disk icon; saved sessions live as markdown
-// files in the chosen storage backend (see codec.ts for the file format).
+// free-text note explaining it and a star marking it as important. Sessions
+// are scratch (in memory only) until the user saves them with the disk icon;
+// saved sessions live as markdown files in the chosen storage backend (see
+// codec.ts for the file format).
 
 import { DEFAULT_MODE, type ModeId } from "./modes.ts";
 
@@ -14,6 +15,13 @@ export type Entry = {
   result: string;
   // Optional free-text comment attached via the left-swipe note action.
   note?: string;
+  // Marked important from the tape's left gutter — the star is a highlight,
+  // nothing else in the app keys off it.
+  starred?: boolean;
+  // This calculation continued from the previous entry's result: `=` seeded
+  // the expression and the user built on it without clearing. chain.ts folds
+  // such a run back into one expression.
+  chained?: boolean;
   // Epoch ms when `=` was pressed.
   at: number;
 };
@@ -80,9 +88,13 @@ export function appendEntry(
   session: Session,
   expression: string,
   result: string,
-  now = Date.now(),
+  {
+    chained = false,
+    now = Date.now(),
+  }: { chained?: boolean; now?: number } = {},
 ): Session {
   const entry: Entry = { id: newId(), expression, result, at: now };
+  if (chained) entry.chained = true;
   return {
     ...session,
     entries: [...session.entries, entry],
@@ -104,6 +116,26 @@ export function setEntryNote(
         ? trimmed
           ? { ...e, note: trimmed }
           : { ...e, note: undefined }
+        : e,
+    ),
+    updatedAt: now,
+  };
+}
+
+// Flip an entry's star. Absent (rather than `false`) when off, so an unstarred
+// entry serializes exactly as it did before stars existed.
+export function toggleEntryStar(
+  session: Session,
+  entryId: string,
+  now = Date.now(),
+): Session {
+  return {
+    ...session,
+    entries: session.entries.map((e) =>
+      e.id === entryId
+        ? e.starred
+          ? { ...e, starred: undefined }
+          : { ...e, starred: true }
         : e,
     ),
     updatedAt: now,

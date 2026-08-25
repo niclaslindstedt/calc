@@ -43,3 +43,19 @@ body {
     }
   }
 }
+
+/* Settings dialog: the density knob (Appearance → Density) drives the card
+   spacing inside the tab panel, matching the sibling contacts app. Scoped to
+   `.settings-body` so it never reaches the calculator itself. */
+[data-density="compact"] .settings-body .p-3 {
+  padding: 0.5rem;
+}
+[data-density="compact"] .settings-body .mt-3:not(:first-child) {
+  margin-top: 0.5rem;
+}
+[data-density="spacious"] .settings-body .p-3 {
+  padding: 1rem;
+}
+[data-density="spacious"] .settings-body .mt-3:not(:first-child) {
+  margin-top: 1rem;
+}

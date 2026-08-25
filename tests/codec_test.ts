@@ -29,9 +29,16 @@ function sampleSession(): Session {
         expression: "12 × 4.5",
         result: "54",
         note: "Twelve packs at 4.50 each",
+        starred: true,
         at: T0,
       },
-      { id: "e2", expression: "54 + 12.9", result: "66.9", at: T1 },
+      {
+        id: "e2",
+        expression: "54 + 12.9",
+        result: "66.9",
+        chained: true,
+        at: T1,
+      },
     ],
   };
 }
@@ -51,9 +58,9 @@ describe("sessionToMarkdown", () => {
         "",
         "# Groceries budget",
         "",
-        "- `12 × 4.5` = `54` _(at 2026-08-24T09:00:00.000Z)_",
+        "- ⭐ `12 × 4.5` = `54` _(at 2026-08-24T09:00:00.000Z)_",
         "  Twelve packs at 4.50 each",
-        "- `54 + 12.9` = `66.9` _(at 2026-08-24T09:05:00.000Z)_",
+        "- ↳ `54 + 12.9` = `66.9` _(at 2026-08-24T09:05:00.000Z)_",
         "",
       ].join("\n"),
     );
@@ -93,7 +100,35 @@ describe("parseSessionMarkdown", () => {
     expect(parsed?.entries[0].result).toBe("54");
     expect(parsed?.entries[0].note).toBe("Twelve packs at 4.50 each");
     expect(parsed?.entries[0].at).toBe(T0);
+    expect(parsed?.entries[0].starred).toBe(true);
     expect(parsed?.entries[1].note).toBeUndefined();
+    expect(parsed?.entries[1].starred).toBeUndefined();
+    expect(parsed?.entries[1].chained).toBe(true);
+  });
+
+  it("leaves the markers off an ordinary entry", () => {
+    const md = sessionToMarkdown({
+      ...sampleSession(),
+      entries: [{ id: "e1", expression: "1+1", result: "2", at: T0 }],
+    });
+    expect(md).toContain("- `1+1` = `2` _(at 2026-08-24T09:00:00.000Z)_");
+  });
+
+  it("ignores a chain marker on the first entry — nothing precedes it", () => {
+    const parsed = parseSessionMarkdown(
+      [
+        "---",
+        "type: calculation",
+        "id: stray-chain",
+        "created: 2026-08-24T09:00:00.000Z",
+        "updated: 2026-08-24T09:00:00.000Z",
+        "---",
+        "",
+        "- ↳ `1+1` = `2` _(at 2026-08-24T09:00:00.000Z)_",
+        "",
+      ].join("\n"),
+    );
+    expect(parsed?.entries[0].chained).toBeUndefined();
   });
 
   it("accepts the legacy star-emphasis timestamp marker", () => {

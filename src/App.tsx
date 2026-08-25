@@ -34,7 +34,7 @@ import { APP_LOOK } from "./app/look.ts";
 import { MODES, resolveMode } from "./app/modes.ts";
 import { cacheIdForBase } from "./app/pwa.ts";
 import { nextSessionTitle } from "./app/session.ts";
-import { SettingsModal } from "./app/SettingsModal.tsx";
+import { SettingsModal, type SettingsTab } from "./app/SettingsModal.tsx";
 import { SideMenuContent } from "./app/SideMenuContent.tsx";
 import { useAppSettings } from "./app/useAppSettings.ts";
 import { useNamespaces } from "./app/useNamespaces.ts";
@@ -88,22 +88,13 @@ export function App() {
   }, [appearance.ui.density]);
 
   // ---- app state --------------------------------------------------------
-  const {
-    settings,
-    update,
-    toggleMode,
-    toggleKey,
-    createCustomMode,
-    deleteCustomMode,
-  } = useAppSettings();
+  const { settings, commit: commitSettings } = useAppSettings();
   const namespaces = useNamespaces();
   const sessions = useSessions(namespaces.activeSlug);
 
   const [historyOpen, setHistoryOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
-  const [settingsTab, setSettingsTab] = useState<"general" | "storage">(
-    "general",
-  );
+  const [settingsTab, setSettingsTab] = useState<SettingsTab>("general");
   const [namespacesOpen, setNamespacesOpen] = useState(false);
 
   // ---- sidebar shell ----------------------------------------------------
@@ -190,21 +181,6 @@ export function App() {
     }, 0);
   };
 
-  const onCopied = (what: "value" | "expression") =>
-    defaultToastStore.push({
-      message: what === "value" ? "Value copied" : "Expression copied",
-    });
-
-  const storageLabel = sessions.connected
-    ? sessions.backend === "folder"
-      ? "Local folder"
-      : sessions.backend === "dropbox"
-        ? "Dropbox"
-        : "Google Drive"
-    : sessions.folderReconnectNeeded
-      ? "Reconnect folder…"
-      : "Connect storage…";
-
   return (
     <div className="flex h-[var(--app-height,100svh)] overflow-hidden bg-page-bg text-fg">
       <Sidebar
@@ -261,16 +237,6 @@ export function App() {
           onDeleteFolder={sessions.deleteFolder}
           onOpenSettings={() => {
             setSettingsTab("general");
-            setSettingsOpen(true);
-            setDrawerOpen(false);
-          }}
-          storageLabel={storageLabel}
-          onOpenStorage={() => {
-            if (sessions.folderReconnectNeeded) {
-              void sessions.reconnectFolder();
-              return;
-            }
-            setSettingsTab("storage");
             setSettingsOpen(true);
             setDrawerOpen(false);
           }}
@@ -357,29 +323,26 @@ export function App() {
             keyFeedback={settings.keyFeedback}
             onLogEntry={sessions.logEntry}
             onNoteEntry={sessions.noteEntry}
+            onStarEntry={sessions.starEntry}
             onDeleteEntry={sessions.deleteEntry}
-            onCopied={onCopied}
           />
         </div>
       </main>
 
       <SettingsModal
-        key={settingsTab + String(settingsOpen)}
         open={settingsOpen}
         onClose={() => setSettingsOpen(false)}
         settings={settings}
-        onUpdate={update}
-        onToggleMode={toggleMode}
-        onToggleKey={toggleKey}
-        onCreateCustomMode={createCustomMode}
-        onDeleteCustomMode={deleteCustomMode}
+        onCommit={commitSettings}
         appearance={appearance}
         onAppearanceChange={setAppearance}
         backend={sessions.backend}
         connected={sessions.connected}
+        folderReconnectNeeded={sessions.folderReconnectNeeded}
         onConnectFolder={() => void sessions.connectFolder()}
         onConnectDropbox={() => void sessions.connectDropbox()}
         onConnectGdrive={() => void sessions.connectGdrive()}
+        onReconnectFolder={() => void sessions.reconnectFolder()}
         onDisconnect={sessions.disconnect}
         initialTab={settingsTab}
       />

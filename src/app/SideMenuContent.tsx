@@ -2,11 +2,12 @@
 //
 // The sidebar: namespaces on top, then the saved-session tree — folders (one
 // level, like the notes sibling) with loose sessions below — and a footer
-// with storage and settings. Folder create/rename is inline (focus + select
-// on mount, Enter/blur commits, empty cancels); session rows get a
+// with About and Settings (storage lives in Settings → Storage, so the
+// footer stays about the app itself). Folder create/rename is inline (focus +
+// select on mount, Enter/blur commits, empty cancels); session rows get a
 // right-click / long-press action menu.
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 
 import {
   Button,
@@ -19,6 +20,10 @@ import {
   RowActionMenu,
   TrashIcon,
   CogIcon,
+  ExternalLinkIcon,
+  FloatingPanel,
+  HelpCircleIcon,
+  type FloatingPlacement,
 } from "@niclaslindstedt/oss-framework/components";
 import {
   NamespaceSwitcher,
@@ -26,6 +31,57 @@ import {
 } from "@niclaslindstedt/oss-framework/namespaces";
 
 import { sessionTitle, type Folder, type Session } from "./session.ts";
+
+// The About dropdown opens up-and-to-the-left of its footer trigger; the
+// framework's `FloatingPanel` flips it above automatically.
+const ABOUT_PLACEMENT: FloatingPlacement = {
+  width: { kind: "min", minPx: 200 },
+  anchor: "left",
+  coordinateSpace: "viewport",
+};
+
+const SOURCE_URL = "https://github.com/niclaslindstedt/calc";
+
+// The build identifier composed at build time (see `vite.config.ts`): the
+// version, the CI run number, the deploy slot, and the short commit hash.
+const BUILD_LABEL = __BUILD_LABEL__;
+
+// One row of the About dropdown: an external link whose label (and optional
+// build-label subtitle) truncate rather than wrap, so a long value can never
+// stretch the panel. The shape is contacts' `FooterLink`, trimmed to what
+// this menu needs.
+function AboutLink({
+  href,
+  sublabel,
+  onNavigate,
+  children,
+}: {
+  href: string;
+  sublabel?: string;
+  onNavigate: () => void;
+  children: string;
+}) {
+  return (
+    <a
+      role="menuitem"
+      href={href}
+      target="_blank"
+      rel="noreferrer noopener"
+      className="flex w-full items-center gap-2.5 px-3 py-1.5 text-left text-sm text-fg hover:bg-surface hover:text-fg-bright"
+      onClick={onNavigate}
+    >
+      <ExternalLinkIcon className="h-4 w-4 shrink-0 text-muted" />
+      <span className="flex min-w-0 flex-1 flex-col">
+        <span className="truncate">{children}</span>
+        {sublabel ? (
+          <span className="truncate font-mono text-xs text-muted">
+            {sublabel}
+          </span>
+        ) : null}
+      </span>
+    </a>
+  );
+}
 
 type Props = {
   namespaces: Namespace[];
@@ -44,8 +100,6 @@ type Props = {
   onRenameFolder: (id: string, name: string) => void;
   onDeleteFolder: (id: string) => void;
   onOpenSettings: () => void;
-  storageLabel: string;
-  onOpenStorage: () => void;
 };
 
 export function SideMenuContent({
@@ -65,10 +119,11 @@ export function SideMenuContent({
   onRenameFolder,
   onDeleteFolder,
   onOpenSettings,
-  storageLabel,
-  onOpenStorage,
 }: Props) {
   const [creatingFolder, setCreatingFolder] = useState(false);
+  // The footer "About" dropdown, anchored to `aboutRef` and flipped upward.
+  const [aboutOpen, setAboutOpen] = useState(false);
+  const aboutRef = useRef<HTMLButtonElement>(null);
   const [renamingFolder, setRenamingFolder] = useState<string | null>(null);
   const [renamingSession, setRenamingSession] = useState<string | null>(null);
   const [confirmDelete, setConfirmDelete] = useState<Session | null>(null);
@@ -250,14 +305,19 @@ export function SideMenuContent({
         ) : null}
       </div>
 
+      {/* Footer: About over Settings, which stays pinned last under the
+          thumb. Connecting storage lives in Settings → Storage. */}
       <div className="shrink-0 border-t border-line p-2">
         <button
+          ref={aboutRef}
           type="button"
+          aria-haspopup="menu"
+          aria-expanded={aboutOpen}
           className="flex w-full items-center gap-2 rounded-lg px-2 py-1.5 text-left text-sm text-fg hover:bg-surface-2"
-          onClick={onOpenStorage}
+          onClick={() => setAboutOpen((v) => !v)}
         >
-          <FolderIcon className="h-4 w-4 shrink-0 text-muted" />
-          <span className="min-w-0 truncate">{storageLabel}</span>
+          <HelpCircleIcon className="h-4 w-4 shrink-0 text-muted" />
+          About
         </button>
         <button
           type="button"
@@ -268,6 +328,38 @@ export function SideMenuContent({
           Settings
         </button>
       </div>
+
+      {/* The About dropdown — portalled and positioned by the framework
+          `FloatingPanel`, which sets `minWidth` from the trigger but lets
+          `maxWidth` run to the viewport edge. The content is therefore what
+          decides how wide the panel lands, so every row here is a truncating
+          flex column (contacts' footer-row shape): nothing inside can demand
+          width, and the panel stays at the trigger's. The build label
+          subtitles the source link, so a bug report can name the exact build
+          it came from. */}
+      <FloatingPanel
+        open={aboutOpen}
+        onClose={() => setAboutOpen(false)}
+        triggerRef={aboutRef}
+        placement={ABOUT_PLACEMENT}
+        className="py-1"
+      >
+        <div role="menu" className="flex w-full flex-col">
+          <AboutLink
+            href={SOURCE_URL}
+            sublabel={BUILD_LABEL}
+            onNavigate={() => setAboutOpen(false)}
+          >
+            Source code
+          </AboutLink>
+          <AboutLink
+            href={`${SOURCE_URL}/issues`}
+            onNavigate={() => setAboutOpen(false)}
+          >
+            Report an issue
+          </AboutLink>
+        </div>
+      </FloatingPanel>
 
       <ConfirmDialog
         open={confirmDelete !== null}

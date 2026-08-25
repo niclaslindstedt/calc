@@ -13,9 +13,10 @@ storage transports, gesture hooks, components).
 main.tsx
 └── App.tsx                    theme, sidebar shell, top bar, modals
     ├── SideMenuContent.tsx    namespaces, folders, saved sessions, footer
-    ├── CalculatorScreen.tsx   tape (swipe-down), display, Keypad
-    │   ├── HistoryEntryRow    tap=copy value, long-press=copy expression,
-    │   │                      note button / left-swipe=note, swipe=delete
+    ├── CalculatorScreen.tsx   tape (always visible, expandable), display,
+    │   │                      Keypad
+    │   ├── HistoryEntryRow    tap=copy value, long-press=copy expression
+    │   │                      or chain, star gutter, left-swipe=note/delete
     │   └── Keypad.tsx         mode-driven grid; doubles as the mode editor
     └── SettingsModal.tsx      General / Layouts / Appearance / Storage
 ```
@@ -27,12 +28,12 @@ imports hooks from `"react"` (the sibling apps' convention).
 
 ## State
 
-| Hook               | Owns                                                              | Persistence                    |
-| ------------------ | ----------------------------------------------------------------- | ------------------------------ |
-| `useSessions(ns)`  | Active session (scratch or saved), saved list, folders, actions   | Storage backend (markdown)     |
-| `useAppSettings()` | Gestures, key animation, enabled modes, hidden keys, custom modes | localStorage `calc:settings`   |
-| `useNamespaces()`  | Namespace registry + active slug                                  | localStorage `calc:namespaces` |
-| `App` appearance   | Theme / fonts / UI style (`ThemeAppearance`)                      | localStorage `calc:appearance` |
+| Hook               | Owns                                                                                                                                                | Persistence                    |
+| ------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------ |
+| `useSessions(ns)`  | Active session (scratch or saved), saved list, folders, actions                                                                                     | Storage backend (markdown)     |
+| `useAppSettings()` | Gestures, key animation, enabled modes, hidden keys, custom modes — read here, staged as a draft in the Settings dialog and committed whole on Save | localStorage `calc:settings`   |
+| `useNamespaces()`  | Namespace registry + active slug                                                                                                                    | localStorage `calc:namespaces` |
+| `App` appearance   | Theme / fonts / UI style (`ThemeAppearance`)                                                                                                        | localStorage `calc:appearance` |
 
 A **scratch** session exists only in memory — it becomes a file when the
 disk icon saves it. A **saved** session writes through on every change,
@@ -47,6 +48,11 @@ debounced 800 ms (`useSessions.persistSession`).
   precedence. Modes are presentation only — any stored expression
   re-evaluates identically anywhere.
 - `session.ts` — `Session` / `Entry` / `Folder` model and pure operations.
+- `chain.ts` — folds a run of calculations that each built on the last
+  result back into one expression (`1+2 = 3`, `3*2 = 6` → `(1+2)*2`),
+  bracketing only where the evaluator's precedence would otherwise
+  re-associate it. Its precedence table mirrors `evaluator.ts` — the two
+  move together.
 - `codec.ts` — the markdown + YAML front matter file format (see
   [storage-format.md](storage-format.md)), filenames, directory layout.
 - `modes.ts` — keypad layouts (basic / scientific / programmer), custom-mode

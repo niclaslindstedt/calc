@@ -1,19 +1,21 @@
 // SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0
 //
-// The calculator surface, Calcbot-style: a tall display that shows the
-// expression being typed with a live result preview, the active mode's
-// keypad below, and the session tape hidden above the display — revealed by
-// swiping down on the display (or the history toggle). Pressing `=` logs an
-// entry to the tape. Programmer-flavoured modes add a hex spelling of the
-// preview.
+// The calculator surface, Calcbot-style: the session tape rests above a tall
+// display that shows the expression being typed with a live result preview,
+// and the active mode's keypad sits below. The tape always keeps a slice of
+// the screen — the last few entries stay in view — and expands to half the
+// screen (scrolling either way) via the handle or a swipe down on the
+// display. Pressing `=` logs an entry to the tape. Programmer-flavoured modes
+// add a hex spelling of the preview.
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import {
   ChevronDownIcon,
   ChevronUpIcon,
 } from "@niclaslindstedt/oss-framework/components";
 
+import { chainExpression } from "./chain.ts";
 import { evaluate, EvalError, formatHex, formatResult } from "./evaluator.ts";
 import { HistoryEntryRow } from "./HistoryEntryRow.tsx";
 import { Keypad } from "./Keypad.tsx";
@@ -28,14 +30,24 @@ type Props = {
   onHistoryOpenChange: (open: boolean) => void;
   swipeDownHistory: boolean;
   keyFeedback: boolean;
-  onLogEntry: (expression: string, result: string) => void;
+  onLogEntry: (expression: string, result: string, chained: boolean) => void;
   onNoteEntry: (entryId: string, note: string) => void;
+  onStarEntry: (entryId: string) => void;
   onDeleteEntry: (entryId: string) => void;
-  onCopied: (what: "value" | "expression") => void;
 };
 
 // How far a downward drag on the display must travel to latch the tape open.
 const REVEAL_AT = 56;
+
+// True when `expression` still uses `seed` (the result `=` handed over) as a
+// value rather than having edited it away: typing more digits onto the seed
+// grows the number instead of operating on it, and backspacing into it breaks
+// the link entirely. See chain.ts for what the link buys.
+function continuesFrom(expression: string, seed: string): boolean {
+  if (!expression.startsWith(seed)) return false;
+  const rest = expression.slice(seed.length);
+  return rest === "" || !/^[0-9a-fA-F.xX]/.test(rest);
+}
 
 export function CalculatorScreen({
   session,
@@ -47,11 +59,14 @@ export function CalculatorScreen({
   keyFeedback,
   onLogEntry,
   onNoteEntry,
+  onStarEntry,
   onDeleteEntry,
-  onCopied,
 }: Props) {
   const [expression, setExpression] = useState("");
   const [error, setError] = useState<string | null>(null);
+  // The result `=` seeded the current expression with — non-null exactly
+  // while the next `=` would extend the chain rather than start a new one.
+  const [chainFrom, setChainFrom] = useState<string | null>(null);
   const tapeEndRef = useRef<HTMLDivElement>(null);
 
   // Live preview: evaluate as the user types; errors stay silent until `=`.
@@ -67,6 +82,17 @@ export function CalculatorScreen({
     mode.hexPreview && preview !== null
       ? formatHex(Number.parseFloat(preview))
       : null;
+
+  // The folded-up expression behind each chained entry, by entry id — what
+  // the tape's "Copy chain" action puts on the clipboard.
+  const chains = useMemo(() => {
+    const byId = new Map<string, string>();
+    session.entries.forEach((entry, index) => {
+      const chain = chainExpression(session.entries, index);
+      if (chain) byId.set(entry.id, chain);
+    });
+    return byId;
+  }, [session.entries]);
 
   const append = useCallback((text: string) => {
     setError(null);
@@ -87,6 +113,7 @@ export function CalculatorScreen({
   const clear = useCallback(() => {
     setError(null);
     setExpression("");
+    setChainFrom(null);
   }, []);
 
   const backspace = useCallback(() => {
@@ -94,19 +121,32 @@ export function CalculatorScreen({
     setExpression((prev) => prev.slice(0, -1));
   }, []);
 
+  // Any edit that walks off the seeded result ends the chain — the run of
+  // calculations only holds while each step builds on the last one's value.
+  useEffect(() => {
+    if (chainFrom !== null && !continuesFrom(expression, chainFrom)) {
+      setChainFrom(null);
+    }
+  }, [expression, chainFrom]);
+
   const equals = useCallback(() => {
     const expr = expression.trim();
     if (!expr) return;
     try {
       const result = formatResult(evaluate(expr));
-      onLogEntry(expr, result);
+      onLogEntry(
+        expr,
+        result,
+        chainFrom !== null && continuesFrom(expr, chainFrom),
+      );
       // Chain: the result becomes the start of the next expression.
       setExpression(result);
+      setChainFrom(result);
       setError(null);
     } catch (err) {
       setError(err instanceof EvalError ? err.message : "error");
     }
-  }, [expression, onLogEntry]);
+  }, [expression, chainFrom, onLogEntry]);
 
   const onKey = useCallback(
     (key: KeyDef) => {
@@ -147,14 +187,13 @@ export function CalculatorScreen({
     return () => window.removeEventListener("keydown", onKeydown);
   }, [append, equals, backspace, clear]);
 
-  // Keep the tape pinned to its newest entry.
+  // Keep the tape pinned to its newest entry — it is always in view now, so
+  // this runs whether or not it is expanded.
   useEffect(() => {
-    if (historyOpen) {
-      tapeEndRef.current?.scrollIntoView({ block: "end" });
-    }
+    tapeEndRef.current?.scrollIntoView({ block: "end" });
   }, [historyOpen, session.entries.length]);
 
-  // Swipe down on the display to reveal the tape (and up to hide it).
+  // Swipe down on the display to expand the tape (and up to collapse it).
   const drag = useRef<{ y: number; active: boolean }>({ y: 0, active: false });
   const onDisplayPointerDown = (e: { clientY: number }) => {
     if (!swipeDownHistory) return;
@@ -170,19 +209,21 @@ export function CalculatorScreen({
 
   return (
     <div className="flex h-full min-h-0 flex-col">
-      {/* Tape — collapsed until revealed */}
+      {/* Tape. Collapsed it sizes to its content but stops at roughly four
+          entries (and never takes more than a third of a short screen), so the
+          recent run is always readable without hiding the keys; expanded it
+          claims half the screen. It scrolls either way. */}
       <div
-        className={`flex min-h-0 shrink flex-col overflow-y-auto bg-surface transition-[flex-basis] ${
-          historyOpen ? "grow basis-1/2" : "basis-0"
+        className={`flex min-h-0 shrink flex-col overflow-y-auto bg-surface transition-[flex-basis,max-height] duration-200 ${
+          historyOpen ? "grow basis-1/2" : "basis-auto max-h-[min(17rem,35svh)]"
         }`}
         aria-label="Session history"
-        aria-hidden={!historyOpen}
       >
         {/* `mt-auto` keeps a short tape resting on the display, newest entry
             nearest the keys — the receipt grows down out of the top. */}
         <div className="mt-auto">
           {session.entries.length === 0 ? (
-            <p className="px-4 py-6 text-center text-sm text-muted">
+            <p className="px-4 py-4 text-center text-xs text-muted">
               Calculations that end with = land here.
             </p>
           ) : (
@@ -190,9 +231,10 @@ export function CalculatorScreen({
               <HistoryEntryRow
                 key={entry.id}
                 entry={entry}
+                chain={chains.get(entry.id) ?? null}
                 onNote={onNoteEntry}
+                onStar={onStarEntry}
                 onDelete={onDeleteEntry}
-                onCopied={onCopied}
               />
             ))
           )}
@@ -200,7 +242,7 @@ export function CalculatorScreen({
         </div>
       </div>
 
-      {/* Reveal handle. The framework glyphs carry no intrinsic size — without
+      {/* Expand handle. The framework glyphs carry no intrinsic size — without
           an explicit box they stretch to fill this flex row and swallow the
           screen, so every icon here is sized. */}
       <button
@@ -215,8 +257,8 @@ export function CalculatorScreen({
           <ChevronDownIcon className="h-3.5 w-3.5 shrink-0" />
         )}
         {historyOpen
-          ? "Hide history"
-          : `History${session.entries.length ? ` (${session.entries.length})` : ""}`}
+          ? "Collapse history"
+          : `Expand history${session.entries.length ? ` (${session.entries.length})` : ""}`}
       </button>
 
       {/* Display */}
