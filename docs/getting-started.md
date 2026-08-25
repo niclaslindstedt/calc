@@ -35,7 +35,9 @@ npm run dev
    entry lands on the tape above the display, which always keeps the last
    few entries in view. Drag the hairline under the tape to give it more of
    the screen (drag it far enough and it takes all of it); on a phone, swipe
-   down the tape to open it the whole way.
+   down the tape to open it the whole way. Pressing `=` again on the same
+   calculation adds nothing new — a held key lights the entry that already
+   records it rather than repeating it down the tape.
 2. Left-swipe a tape entry — or right-click it — and press the note button
    and write down _why_ this calculation exists. Tap an entry to copy its
    value; long-press to copy the expression — on an entry that continued

@@ -6,7 +6,8 @@
 // it — characters reveal there one at a time as they arrive (RevealText.tsx),
 // operators set as chips (expression.ts), and both lines take their scale
 // from Settings → Appearance → Display. Pressing `=` logs an entry to the
-// tape. Programmer-flavoured modes add a hex spelling of the result. A long
+// tape — unless the calculation only restates the entry already at the end of
+// it, which a held `=` lights instead of repeating (session.ts). Programmer-flavoured modes add a hex spelling of the result. A long
 // press on the display raises the clipboard bar — copy what is on it, or
 // paste what the clipboard has to offer (ClipboardPill.tsx, paste.ts).
 //
@@ -40,7 +41,7 @@ import { GrabHandleIcon } from "./icons.tsx";
 import { Keypad } from "./Keypad.tsx";
 import type { KeyDef, Mode } from "./modes.ts";
 import { clipLabel, pasteCandidate, type PasteCandidate } from "./paste.ts";
-import type { Session } from "./session.ts";
+import { repeatedEntry, type Session } from "./session.ts";
 import type { DisplayTextSize, KeyTextSize } from "./useAppSettings.ts";
 
 type Props = {
@@ -133,6 +134,11 @@ type TapeSize =
 // copies read the same (HistoryEntryRow.tsx).
 const COPIED_MS = 1200;
 
+// How long a repeated `=` keeps the entry it restates lit. Every repeat
+// refreshes it, so a held key holds the highlight and it fades once the key
+// comes up.
+const REPEAT_HIGHLIGHT_MS = 1200;
+
 // Best-effort clipboard read: null when the browser has no async clipboard,
 // or when the user (or the permission prompt) says no. The paste half of the
 // bar hangs off the answer, so a refusal simply leaves it dark.
@@ -181,7 +187,31 @@ export function CalculatorScreen({
   // The result `=` seeded the current expression with — non-null exactly
   // while the next `=` would extend the chain rather than start a new one.
   const [chainFrom, setChainFrom] = useState<string | null>(null);
+  // The tape entry a repeated `=` pointed back at, lit instead of copied onto
+  // the end of the tape. Null while nothing is being restated.
+  const [highlightId, setHighlightId] = useState<string | null>(null);
   const tapeEndRef = useRef<HTMLDivElement>(null);
+  const highlightTimer = useRef<number | undefined>(undefined);
+
+  // The highlight is a timer, so it must not outlive the screen.
+  useEffect(
+    () => () => {
+      window.clearTimeout(highlightTimer.current);
+    },
+    [],
+  );
+
+  const highlightEntry = useCallback((entryId: string) => {
+    setHighlightId(entryId);
+    window.clearTimeout(highlightTimer.current);
+    highlightTimer.current = window.setTimeout(
+      () => setHighlightId(null),
+      REPEAT_HIGHLIGHT_MS,
+    );
+    // The entry being pointed at is the newest one, and a tape scrolled away
+    // from its end would light it out of sight.
+    tapeEndRef.current?.scrollIntoView({ block: "end" });
+  }, []);
 
   // Live preview: evaluate as the user types; errors stay silent until `=`.
   let preview: string | null = null;
@@ -260,11 +290,19 @@ export function CalculatorScreen({
     if (!expr) return;
     try {
       const result = formatResult(evaluate(expr));
-      onLogEntry(
-        expr,
-        result,
-        chainFrom !== null && continuesFrom(expr, chainFrom),
-      );
+      // A press that would only restate the entry above it — the held key,
+      // or the same calculation typed out again — points at that entry
+      // instead of appending a twin of it.
+      const repeat = repeatedEntry(session, expr, result);
+      if (repeat) highlightEntry(repeat.id);
+      else {
+        setHighlightId(null);
+        onLogEntry(
+          expr,
+          result,
+          chainFrom !== null && continuesFrom(expr, chainFrom),
+        );
+      }
       // Chain: the result becomes the start of the next expression.
       setExpression(result);
       setChainFrom(result);
@@ -272,7 +310,7 @@ export function CalculatorScreen({
     } catch (err) {
       setError(err instanceof EvalError ? err.message : "error");
     }
-  }, [expression, chainFrom, onLogEntry]);
+  }, [expression, chainFrom, onLogEntry, session, highlightEntry]);
 
   // The erase key reads the display. With characters on it a tap takes one
   // back and a hold takes them all; with the display empty there is nothing
@@ -668,6 +706,7 @@ export function CalculatorScreen({
                 key={entry.id}
                 entry={entry}
                 chain={chains.get(entry.id) ?? null}
+                highlighted={entry.id === highlightId}
                 onNote={onNoteEntry}
                 onStar={onStarEntry}
                 onDelete={onDeleteEntry}

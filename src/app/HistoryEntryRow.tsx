@@ -46,6 +46,10 @@ type Props = {
   // The whole run of calculations this entry ends, folded into one
   // expression — null when the entry starts its own run.
   chain: string | null;
+  // Lit because `=` was pressed again on a calculation this entry already
+  // records — the tape points back at it rather than growing a twin of it
+  // (CalculatorScreen.tsx).
+  highlighted?: boolean;
   onNote: (entryId: string, note: string) => void;
   onStar: (entryId: string) => void;
   onDelete: (entryId: string) => void;
@@ -72,6 +76,7 @@ const COPIED_MS = 1200;
 export function HistoryEntryRow({
   entry,
   chain,
+  highlighted = false,
   onNote,
   onStar,
   onDelete,
@@ -183,7 +188,13 @@ export function HistoryEntryRow({
         label={copied ? COPIED_LABEL[copied] : null}
         anchorRef={rowRef}
       />
-      <SwipeableRow trailing={{ kind: "reveal", buttons: rowActions }}>
+      {/* `highlighted` paints the framework's tint-and-ring overlay above the
+          row's own opaque surface — what a repeated `=` lights instead of
+          appending a twin of this entry. */}
+      <SwipeableRow
+        trailing={{ kind: "reveal", buttons: rowActions }}
+        highlighted={highlighted}
+      >
         {/* The row is one big copy button with a star in its gutter, so it
             answers the pointer as such: the whole strip lifts to `surface-2`
             on hover and both targets take the pressable cursor. */}

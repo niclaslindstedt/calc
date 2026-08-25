@@ -167,3 +167,26 @@ export function clearEntries(session: Session, now = Date.now()): Session {
 export function isDiscardable(session: Session): boolean {
   return session.entries.length === 0 && session.title.trim() === "";
 }
+
+// The entry a fresh `=` would merely restate, or null when the calculation
+// says something new. Holding `=` (or ENTER) re-evaluates whatever `=` just
+// left on the display, so without this every repeat would append a twin of
+// the row above it: the tape fills with copies of one answer. Two shapes
+// count as a restatement of the last entry, both of which have to land on the
+// same result it already recorded:
+//
+//   - the display is that entry's own result, untouched since `=` seeded it
+//     (the held key);
+//   - the display is that entry's expression, typed out again.
+//
+// The caller highlights what this returns instead of logging (CalculatorScreen).
+export function repeatedEntry(
+  session: Session,
+  expression: string,
+  result: string,
+): Entry | null {
+  const last = session.entries[session.entries.length - 1];
+  if (!last || last.result !== result) return null;
+  const restates = expression === last.expression || expression === last.result;
+  return restates ? last : null;
+}
