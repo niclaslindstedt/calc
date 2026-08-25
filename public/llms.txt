@@ -14,8 +14,9 @@
 ## Features
 
 - Sessions: scratch by default, saved with the disk icon, named like notes
-- Tape: swipe down to reveal; tap an entry to copy its value, long-press to
-  copy the expression, left-swipe to attach a note
+- Tape: swipe down to reveal; entries read result-first with a note button
+  in the left gutter; tap an entry to copy its value, long-press to copy the
+  expression, left-swipe for note/delete
 - Modes: basic / scientific / programmer, per-session, plus user-defined
   modes derived from a base layout; buttons can be hidden per mode
 - Sidebar: folders and namespaces for organizing sessions

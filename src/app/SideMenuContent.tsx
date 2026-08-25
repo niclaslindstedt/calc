@@ -85,7 +85,7 @@ export function SideMenuContent({
           initial={session.title}
           placeholder="Session name"
           ariaLabel="Rename session"
-          icon={<ListIcon />}
+          icon={<ListIcon className="h-4 w-4" />}
           className={indent ? "ml-4" : ""}
           onCommit={(value) => {
             setRenamingSession(null);
@@ -100,7 +100,7 @@ export function SideMenuContent({
         ? [
             {
               label: "Move out of folder",
-              icon: <FolderIcon />,
+              icon: <FolderIcon className="h-4 w-4" />,
               onSelect: () => onMoveSession(session.id, undefined),
             },
           ]
@@ -109,7 +109,7 @@ export function SideMenuContent({
         .filter((f) => f.id !== session.folderId)
         .map((f) => ({
           label: `Move to ${f.name}`,
-          icon: <FolderIcon />,
+          icon: <FolderIcon className="h-4 w-4" />,
           onSelect: () => onMoveSession(session.id, f.id),
         })),
     ];
@@ -120,13 +120,13 @@ export function SideMenuContent({
         actions={[
           {
             label: "Rename",
-            icon: <PencilIcon />,
+            icon: <PencilIcon className="h-4 w-4" />,
             onSelect: () => setRenamingSession(session.id),
           },
           ...moveActions,
           {
             label: "Delete",
-            icon: <TrashIcon />,
+            icon: <TrashIcon className="h-4 w-4" />,
             danger: true,
             onSelect: () => setConfirmDelete(session),
           },
@@ -143,7 +143,7 @@ export function SideMenuContent({
           }`}
           onClick={() => onOpenSession(session.id)}
         >
-          <ListIcon className="shrink-0 text-muted" />
+          <ListIcon className="h-4 w-4 shrink-0 text-muted" />
           <span className="min-w-0 truncate">{sessionTitle(session)}</span>
         </button>
       </RowActionMenu>
@@ -170,14 +170,14 @@ export function SideMenuContent({
               aria-label="New folder"
               onClick={() => setCreatingFolder(true)}
             >
-              <FolderIcon />
+              <FolderIcon className="h-4 w-4" />
             </Button>
             <Button
               variant="ghost"
               aria-label="New session"
               onClick={onNewSession}
             >
-              <PlusIcon />
+              <PlusIcon className="h-4 w-4" />
             </Button>
           </div>
         </div>
@@ -187,7 +187,7 @@ export function SideMenuContent({
             initial=""
             placeholder="Folder name"
             ariaLabel="New folder name"
-            icon={<FolderIcon />}
+            icon={<FolderIcon className="h-4 w-4" />}
             onCommit={(value) => {
               setCreatingFolder(false);
               if (value.trim()) onCreateFolder(value.trim());
@@ -205,7 +205,7 @@ export function SideMenuContent({
                   initial={folder.name}
                   placeholder="Folder name"
                   ariaLabel="Rename folder"
-                  icon={<FolderIcon />}
+                  icon={<FolderIcon className="h-4 w-4" />}
                   onCommit={(value) => {
                     setRenamingFolder(null);
                     if (value.trim()) onRenameFolder(folder.id, value.trim());
@@ -218,19 +218,19 @@ export function SideMenuContent({
                   actions={[
                     {
                       label: "Rename folder",
-                      icon: <PencilIcon />,
+                      icon: <PencilIcon className="h-4 w-4" />,
                       onSelect: () => setRenamingFolder(folder.id),
                     },
                     {
                       label: "Delete folder",
-                      icon: <TrashIcon />,
+                      icon: <TrashIcon className="h-4 w-4" />,
                       danger: true,
                       onSelect: () => onDeleteFolder(folder.id),
                     },
                   ]}
                 >
                   <div className="flex items-center gap-2 px-2 py-1.5 text-sm text-muted">
-                    <FolderIcon className="shrink-0" />
+                    <FolderIcon className="h-4 w-4 shrink-0" />
                     <span className="min-w-0 truncate">{folder.name}</span>
                   </div>
                 </RowActionMenu>
@@ -256,7 +256,7 @@ export function SideMenuContent({
           className="flex w-full items-center gap-2 rounded-lg px-2 py-1.5 text-left text-sm text-fg hover:bg-surface-2"
           onClick={onOpenStorage}
         >
-          <FolderIcon className="shrink-0 text-muted" />
+          <FolderIcon className="h-4 w-4 shrink-0 text-muted" />
           <span className="min-w-0 truncate">{storageLabel}</span>
         </button>
         <button
@@ -264,7 +264,7 @@ export function SideMenuContent({
           className="flex w-full items-center gap-2 rounded-lg px-2 py-1.5 text-left text-sm text-fg hover:bg-surface-2"
           onClick={onOpenSettings}
         >
-          <CogIcon className="shrink-0 text-muted" />
+          <CogIcon className="h-4 w-4 shrink-0 text-muted" />
           Settings
         </button>
       </div>

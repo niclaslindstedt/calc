@@ -109,8 +109,13 @@ export function App() {
   // ---- sidebar shell ----------------------------------------------------
   const pinned = useMediaQuery("(min-width: 768px)");
   const [drawerOpen, setDrawerOpen] = useState(false);
-  const [menuPosition, setMenuPosition] =
-    usePersistentMenuPosition("calc:menu-position");
+  // The floating menu button rests over the display, not the keypad — the
+  // framework's default (`y: 0.5`) puts it on top of the top-left key. It
+  // stays draggable from there.
+  const [menuPosition, setMenuPosition] = usePersistentMenuPosition(
+    "calc:menu-position",
+    { side: "left", y: 0.2 },
+  );
   useSidebarInset(pinned, menuPosition.side);
   useEdgeSwipeOpen({
     side: menuPosition.side,
@@ -201,7 +206,7 @@ export function App() {
       : "Connect storage…";
 
   return (
-    <div className="flex h-[100svh] overflow-hidden bg-page-bg text-fg">
+    <div className="flex h-[var(--app-height,100svh)] overflow-hidden bg-page-bg text-fg">
       <Sidebar
         pinned={pinned}
         open={drawerOpen}

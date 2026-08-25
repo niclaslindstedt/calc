@@ -15,7 +15,7 @@ main.tsx
     ├── SideMenuContent.tsx    namespaces, folders, saved sessions, footer
     ├── CalculatorScreen.tsx   tape (swipe-down), display, Keypad
     │   ├── HistoryEntryRow    tap=copy value, long-press=copy expression,
-    │   │                      left-swipe=note/delete
+    │   │                      note button / left-swipe=note, swipe=delete
     │   └── Keypad.tsx         mode-driven grid; doubles as the mode editor
     └── SettingsModal.tsx      General / Layouts / Appearance / Storage
 ```

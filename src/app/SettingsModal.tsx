@@ -190,7 +190,7 @@ export function SettingsModal({
                       aria-label={`Delete ${mode.name}`}
                       onClick={() => onDeleteCustomMode(mode.id)}
                     >
-                      <TrashIcon />
+                      <TrashIcon className="h-4 w-4" />
                     </Button>
                   ) : null}
                 </div>
