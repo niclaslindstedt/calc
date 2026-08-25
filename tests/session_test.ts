@@ -8,6 +8,7 @@ import {
   newSession,
   nextSessionTitle,
   removeEntry,
+  repeatedEntry,
   sessionTitle,
   setEntryNote,
   toggleEntryStar,
@@ -102,5 +103,31 @@ describe("isDiscardable", () => {
     expect(isDiscardable(s)).toBe(true);
     expect(isDiscardable({ ...s, title: "Named" })).toBe(false);
     expect(isDiscardable(appendEntry(s, "1", "1", { now: 1 }))).toBe(false);
+  });
+
+  it("spots the entry a held `=` would restate", () => {
+    const s = appendEntry(newSession(0), "12+3", "15", { now: 1 });
+    // `=` seeds the display with the result; pressing it again re-evaluates
+    // that seed and lands on the same answer.
+    expect(repeatedEntry(s, "15", "15")).toBe(s.entries[0]);
+    // The same calculation typed out again is the same restatement.
+    expect(repeatedEntry(s, "12+3", "15")).toBe(s.entries[0]);
+  });
+
+  it("lets a calculation that says something new through", () => {
+    const s = appendEntry(newSession(0), "12+3", "15", { now: 1 });
+    expect(repeatedEntry(s, "15+1", "16")).toBeNull();
+    // Same expression, different answer (a mode change, say) still logs.
+    expect(repeatedEntry(s, "12+3", "16")).toBeNull();
+    // A different expression that happens to land on the same answer is a
+    // calculation of its own.
+    expect(repeatedEntry(s, "10+5", "15")).toBeNull();
+    // Only the last entry counts — an older twin does not silence a repeat.
+    const later = appendEntry(s, "2*2", "4", { now: 2 });
+    expect(repeatedEntry(later, "15", "15")).toBeNull();
+  });
+
+  it("has nothing to restate on an empty tape", () => {
+    expect(repeatedEntry(newSession(0), "15", "15")).toBeNull();
   });
 });
