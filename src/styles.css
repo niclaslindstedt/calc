@@ -18,3 +18,28 @@ body {
   color: var(--color-fg);
   font-family: var(--app-font-family, "JetBrains Mono", monospace);
 }
+
+/* Installed iOS PWA edge-to-edge under the home indicator — the fix the
+   sibling apps landed (contacts' `src/styles.css`). iOS only extends the page
+   under the home indicator when the *root* element carries a fixed `100vh`
+   height; with `100svh` (or any percentage height) the document stops at the
+   letterboxed viewport and iOS paints the remainder as a dead black band —
+   which is what swallowed the bottom keypad row. Force the root to `100vh` in
+   the installed iOS PWA and lift `--app-height` to match: the app shell and
+   the framework's drawer both size to `var(--app-height, 100svh)`, so this
+   fills them edge to edge. The keypad stays clear of the home indicator
+   because it pads with env(safe-area-inset-bottom). Scoped to iOS via the
+   -webkit-touch-callout probe (no other engine supports it) and to
+   display-mode: standalone, so a plain iOS Safari tab keeps `100svh`. */
+@supports (-webkit-touch-callout: none) {
+  @media (display-mode: standalone) {
+    html,
+    body {
+      height: 100vh;
+    }
+
+    :root {
+      --app-height: 100vh;
+    }
+  }
+}

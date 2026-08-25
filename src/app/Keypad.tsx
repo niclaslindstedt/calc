@@ -42,6 +42,29 @@ const PRESS_ANIMATION =
   "shadow-[0_3px_0_0_var(--color-line)] transition-[transform,box-shadow,filter] duration-75 " +
   "active:translate-y-[3px] active:shadow-none active:brightness-125";
 
+// How many rows the layout flows into — the pad's floor height derives from
+// it, so a tall layout on a short screen keeps every row (the display gives
+// up the space instead of the bottom row being clipped away).
+function rowCount(keys: readonly KeyDef[], columns: number): number {
+  let used = 0;
+  let rows = 1;
+  for (const key of keys) {
+    const span = Math.min(key.span ?? 1, columns);
+    if (used + span > columns) {
+      rows += 1;
+      used = span;
+    } else {
+      used += span;
+    }
+  }
+  return rows;
+}
+
+// A key's smallest comfortable box, and the gap between keys — the row floor
+// above is written in these terms, so they stay in step with the classes.
+const MIN_KEY_HEIGHT = "2.5rem";
+const KEY_GAP = "0.5rem";
+
 export function Keypad({
   mode,
   hidden,
@@ -52,10 +75,31 @@ export function Keypad({
   onToggleKey,
 }: Props) {
   const keys = editing ? mode.keys : visibleKeys(mode, hidden);
+  const rows = rowCount(keys, mode.columns);
   return (
     <div
-      className="grid shrink-0 gap-2 p-3 pb-[max(0.75rem,env(safe-area-inset-bottom))]"
-      style={{ gridTemplateColumns: `repeat(${mode.columns}, minmax(0, 1fr))` }}
+      className={
+        "grid shrink-0 gap-2 p-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] " +
+        // In the app the pad claims the bottom slab of the screen and its rows
+        // stretch into it (capped so a tall phone doesn't grow thumb-sized
+        // keys); in the mode editor it sits in a scrolling modal and sizes to
+        // its content instead.
+        (editing ? "" : "max-h-[58%] grow")
+      }
+      style={
+        editing
+          ? { gridTemplateColumns: `repeat(${mode.columns}, minmax(0, 1fr))` }
+          : {
+              gridTemplateColumns: `repeat(${mode.columns}, minmax(0, 1fr))`,
+              gridAutoRows: `minmax(${MIN_KEY_HEIGHT}, 1fr)`,
+              // The floor outranks the cap above (CSS resolves min-height
+              // last), so on a screen too short for both the display and a
+              // seven-row layout the rows survive whole.
+              minHeight:
+                `calc(${rows} * ${MIN_KEY_HEIGHT} + ${rows - 1} * ${KEY_GAP}` +
+                ` + 0.75rem + max(0.75rem, env(safe-area-inset-bottom)))`,
+            }
+      }
       role={editing ? "group" : undefined}
       aria-label={editing ? `Edit ${mode.name} layout` : undefined}
     >
@@ -65,7 +109,9 @@ export function Keypad({
           <button
             key={key.id}
             type="button"
-            className={`h-12 rounded-xl font-mono text-lg select-none sm:h-14 sm:text-xl ${toneClasses(
+            className={`${
+              editing ? "h-12" : "h-full min-h-10"
+            } rounded-xl font-mono text-lg select-none sm:text-xl ${toneClasses(
               key.tone,
             )} ${keyFeedback && !editing ? PRESS_ANIMATION : ""} ${
               editing

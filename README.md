@@ -23,8 +23,8 @@ down to the individual button.
 ## Why
 
 - **A tape you can annotate.** A calculator result without context dies in
-  seconds. Left-swipe an entry, attach a note, and the calculation still
-  makes sense next month.
+  seconds. Press an entry's note button, attach a note, and the calculation
+  still makes sense next month.
 - **Files, not databases.** Sessions are markdown with YAML front matter in
   a folder you own — local or cloud — diffable, greppable, future-proof.
 - **Your layout.** Hide the buttons you never press, or build a mode of your
@@ -71,8 +71,10 @@ see it). Press the disk icon in the top bar to name and keep the session.
   writes it to storage. Opening a session resumes its tape _and_ the mode it
   was last used with.
 - **Tape** — swipe down on the display (or press the History handle) to
-  reveal it. Tap an entry to copy its value; long-press to copy the
-  expression; left-swipe to reveal the note and delete actions.
+  reveal it. Each entry reads result-first with the expression under it and
+  a note button in the left gutter. Tap an entry to copy its value;
+  long-press to copy the expression; left-swipe to reveal the note and
+  delete actions.
 - **Modes** — the top-bar buttons switch the layout: basic (`123`),
   scientific (`sin`), programmer (`0x`). Settings → Layouts enables or
   disables modes, trims each mode's buttons, and creates new modes: pick a

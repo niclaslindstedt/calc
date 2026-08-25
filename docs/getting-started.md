@@ -34,9 +34,9 @@ npm run dev
 1. Type a calculation — keypad or hardware keyboard — and press `=`. The
    entry lands in the history; swipe down on the display (or press the
    History handle) to see the tape.
-2. Left-swipe a tape entry to reveal the note action and write down _why_
-   this calculation exists. Tap an entry to copy its value; long-press to
-   copy the expression.
+2. Press a tape entry's note button (left gutter, or left-swipe the row)
+   and write down _why_ this calculation exists. Tap an entry to copy its
+   value; long-press to copy the expression.
 3. Press the **disk icon** in the top bar. If no storage backend is
    connected yet, Settings → Storage opens — pick a local folder (Chromium)
    or a cloud backend. The session gets a suggested name with the title

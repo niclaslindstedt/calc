@@ -172,38 +172,48 @@ export function CalculatorScreen({
     <div className="flex h-full min-h-0 flex-col">
       {/* Tape — collapsed until revealed */}
       <div
-        className={`min-h-0 shrink overflow-y-auto bg-surface transition-[flex-basis] ${
+        className={`flex min-h-0 shrink flex-col overflow-y-auto bg-surface transition-[flex-basis] ${
           historyOpen ? "grow basis-1/2" : "basis-0"
         }`}
         aria-label="Session history"
         aria-hidden={!historyOpen}
       >
-        {session.entries.length === 0 ? (
-          <p className="px-4 py-6 text-center text-sm text-muted">
-            Calculations that end with = land here.
-          </p>
-        ) : (
-          session.entries.map((entry) => (
-            <HistoryEntryRow
-              key={entry.id}
-              entry={entry}
-              onNote={onNoteEntry}
-              onDelete={onDeleteEntry}
-              onCopied={onCopied}
-            />
-          ))
-        )}
-        <div ref={tapeEndRef} />
+        {/* `mt-auto` keeps a short tape resting on the display, newest entry
+            nearest the keys — the receipt grows down out of the top. */}
+        <div className="mt-auto">
+          {session.entries.length === 0 ? (
+            <p className="px-4 py-6 text-center text-sm text-muted">
+              Calculations that end with = land here.
+            </p>
+          ) : (
+            session.entries.map((entry) => (
+              <HistoryEntryRow
+                key={entry.id}
+                entry={entry}
+                onNote={onNoteEntry}
+                onDelete={onDeleteEntry}
+                onCopied={onCopied}
+              />
+            ))
+          )}
+          <div ref={tapeEndRef} />
+        </div>
       </div>
 
-      {/* Reveal handle */}
+      {/* Reveal handle. The framework glyphs carry no intrinsic size — without
+          an explicit box they stretch to fill this flex row and swallow the
+          screen, so every icon here is sized. */}
       <button
         type="button"
-        className="flex items-center justify-center gap-1 border-y border-line bg-surface py-1 text-xs text-muted"
+        className="flex shrink-0 items-center justify-center gap-1.5 border-y border-line bg-surface py-1.5 text-xs text-muted"
         onClick={() => onHistoryOpenChange(!historyOpen)}
         aria-expanded={historyOpen}
       >
-        {historyOpen ? <ChevronUpIcon /> : <ChevronDownIcon />}
+        {historyOpen ? (
+          <ChevronUpIcon className="h-3.5 w-3.5 shrink-0" />
+        ) : (
+          <ChevronDownIcon className="h-3.5 w-3.5 shrink-0" />
+        )}
         {historyOpen
           ? "Hide history"
           : `History${session.entries.length ? ` (${session.entries.length})` : ""}`}
@@ -211,7 +221,7 @@ export function CalculatorScreen({
 
       {/* Display */}
       <div
-        className="flex min-h-28 grow flex-col items-end justify-end gap-1 px-5 py-4 [touch-action:pan-x]"
+        className="flex min-h-[5.5rem] shrink grow basis-0 flex-col items-end justify-end gap-1 overflow-hidden px-5 py-4 [touch-action:pan-x]"
         onPointerDown={onDisplayPointerDown}
         onPointerUp={onDisplayPointerUp}
       >
