@@ -221,7 +221,15 @@ export function SideMenuContent({
   };
 
   return (
-    <div className="flex h-full min-h-0 flex-col">
+    // The framework panel reserves a bottom safe-area inset as padding so its
+    // last child clears the home indicator. That inset sits *below* whatever
+    // comes last (the collapse rail when the footer is folded, the footer when
+    // it isn't), which reads as dead space. Grow past the panel's content box
+    // to reclaim it — the sibling apps do the same — and let the footer and the
+    // rail carry their own bottom breathing room instead. Unlike those
+    // siblings, calc's shell paints under the home indicator (styles.css), so
+    // the room they carry still has to clear the inset.
+    <div className="flex min-h-0 shrink-0 flex-col [height:calc(100%+max(env(safe-area-inset-bottom),calc(1.25rem-var(--density-row-py))))]">
       <div className="min-h-0 grow overflow-y-auto p-2">
         <NamespaceSwitcher
           namespaces={namespaces}
@@ -325,6 +333,7 @@ export function SideMenuContent({
           vertical space to the session list. */}
       <FooterCollapseRail
         collapsed={footerCollapsed}
+        last={footerCollapsed}
         label={footerCollapsed ? "Show footer" : "Hide footer"}
         onClick={() => setFooterCollapsed((v) => !v)}
       />
@@ -333,7 +342,7 @@ export function SideMenuContent({
           thumb. Connecting storage lives in Settings → Storage. Foldable away
           via the rail above. */}
       {!footerCollapsed && (
-        <div className="shrink-0 border-t border-line p-2">
+        <div className="shrink-0 border-t border-line p-2 pb-[max(0.5rem,env(safe-area-inset-bottom))]">
           <button
             ref={aboutRef}
             type="button"

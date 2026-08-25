@@ -3,6 +3,19 @@
 @import "@niclaslindstedt/oss-framework/styles.css";
 @source "../node_modules/@niclaslindstedt/oss-framework/dist";
 
+/* Everything pressable says so. The browser's own stylesheet gives a button
+   the plain arrow, and Tailwind's preflight leaves it there, so every control
+   in the app — the mode pills, the keypad, a tape row, a sidebar entry —
+   read as inert text until told otherwise. One base rule beats a
+   `cursor-pointer` on each of them, and `:disabled` keeps the arrow because
+   there is nothing to press. */
+@layer base {
+  button:not(:disabled),
+  [role="button"]:not([aria-disabled="true"]) {
+    cursor: pointer;
+  }
+}
+
 /* App shell: the calculator is an app, not a document — no page scroll, no
    overscroll glow, theme tokens painted edge to edge. */
 html,
@@ -120,4 +133,61 @@ body {
 
 .calc-op:last-child {
   margin-inline-end: 0;
+}
+
+/* Keypad press feedback (Keypad.tsx). A key answering a press dips under the
+   finger, its glyph takes the theme accent, and a soft accent halo blooms out
+   of the cap and fades. It is driven by state rather than `:active` for one
+   reason: a key typed on a hardware keyboard has no `:active` to match, and a
+   press should be felt on the pad whether it came from the screen or the
+   keyboard. */
+@keyframes calc-key-dip {
+  from {
+    transform: scale(0.93);
+  }
+  to {
+    transform: scale(1);
+  }
+}
+
+@keyframes calc-key-halo {
+  from {
+    box-shadow: 0 0 0 0
+      color-mix(in oklab, var(--color-accent) 55%, transparent);
+    opacity: 1;
+  }
+  to {
+    box-shadow: 0 0 0 0.7rem
+      color-mix(in oklab, var(--color-accent) 0%, transparent);
+    opacity: 0;
+  }
+}
+
+.calc-key-hit {
+  animation: calc-key-dip 200ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+/* The halo rides a pseudo-element so it never fights the cap's own drop-edge
+   box-shadow — the raised-key look the "key feedback" setting turns on. */
+.calc-key-hit::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  animation: calc-key-halo 380ms cubic-bezier(0.22, 1, 0.36, 1) forwards;
+}
+
+/* Only the glyph takes the accent, so the pad never flashes a block of colour
+   under the thumb. The `=` key is already accent-on-accent and would erase its
+   own label, so it sits the recolour out and keeps the dip and the halo. */
+.calc-key-hit:not(.calc-key-accent) {
+  color: var(--color-accent);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .calc-key-hit,
+  .calc-key-hit::after {
+    animation: none;
+  }
 }

@@ -184,11 +184,14 @@ export function HistoryEntryRow({
         anchorRef={rowRef}
       />
       <SwipeableRow trailing={{ kind: "reveal", buttons: rowActions }}>
-        <div className="flex items-center gap-2 bg-surface pr-4 pl-2">
+        {/* The row is one big copy button with a star in its gutter, so it
+            answers the pointer as such: the whole strip lifts to `surface-2`
+            on hover and both targets take the pressable cursor. */}
+        <div className="flex items-center gap-2 bg-surface pr-4 pl-2 transition-colors hover:bg-surface-2">
           <button
             type="button"
-            className={`shrink-0 rounded-lg p-2 ${
-              entry.starred ? "text-accent" : "text-muted"
+            className={`shrink-0 rounded-lg p-2 hover:bg-surface-3 ${
+              entry.starred ? "text-accent" : "text-muted hover:text-fg-bright"
             }`}
             aria-label={entry.starred ? "Unstar entry" : "Star entry"}
             aria-pressed={Boolean(entry.starred)}

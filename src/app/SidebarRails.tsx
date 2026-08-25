@@ -29,13 +29,22 @@ export const SIDEBAR_RAIL_WIDTH = "1rem";
 // The thin chevron rail seated just above the footer. A full-width button one
 // line tall: tapping it folds the footer away to give the session list more
 // room, and again to bring it back. The chevron points down to collapse (fold
-// the footer out of view) and up to restore it.
+// the footer out of view) and up to restore it. Folded, the rail is the last
+// thing in the panel, so `last` hands it the bottom inset the footer was
+// carrying rather than leaving a band of dead space under it.
 export function FooterCollapseRail({
   collapsed,
+  last = false,
   label,
   onClick,
 }: {
   collapsed: boolean;
+  /**
+   * The rail is the panel's last child (the footer is folded away), so it owns
+   * the bottom breathing room the footer would otherwise carry — including the
+   * home-indicator inset, which calc's shell paints under.
+   */
+  last?: boolean;
   label: string;
   onClick: () => void;
 }) {
@@ -46,7 +55,11 @@ export function FooterCollapseRail({
       aria-label={label}
       aria-expanded={!collapsed}
       title={label}
-      className="flex w-full shrink-0 cursor-pointer items-center justify-center border-t border-line py-[calc(var(--density-row-py)+0.25rem)] text-muted hover:bg-surface-2 hover:text-fg-bright"
+      className={`flex w-full shrink-0 cursor-pointer items-center justify-center border-t border-line pt-[calc(var(--density-row-py)+0.25rem)] text-muted hover:bg-surface-2 hover:text-fg-bright ${
+        last
+          ? "pb-[max(calc(var(--density-row-py)+0.25rem),env(safe-area-inset-bottom))]"
+          : "pb-[calc(var(--density-row-py)+0.25rem)]"
+      }`}
     >
       {collapsed ? (
         <ChevronUpIcon className="h-4 w-4" />
@@ -124,7 +137,16 @@ export function SidebarCollapseRail({
     <button
       ref={elementRef}
       type="button"
-      onClick={onClick}
+      onClick={(e) => {
+        // A pressed rail keeps focus, and the first key typed afterwards
+        // promotes that focus to `:focus-visible` — which lit the rail's ring
+        // down the whole edge of the screen every time a digit was typed at
+        // the calculator. `detail > 0` is a genuine pointer press (keyboard
+        // activation reports 0), so the ring still belongs to anyone who
+        // tabbed here.
+        if (e.detail > 0) e.currentTarget.blur();
+        onClick();
+      }}
       aria-label={label}
       aria-expanded={!collapsed}
       title={label}

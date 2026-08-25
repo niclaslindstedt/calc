@@ -120,7 +120,10 @@ and keep the session.
   (one level, like the notes sibling app); the namespace switcher on top
   swaps whole workspaces, each with its own directory in storage.
 - **Keyboard** — digits and operators type straight in; `Enter` is `=`,
-  `Backspace` deletes, `Escape` clears.
+  `Backspace` deletes, and `C` or `Escape` clears (on the programmer pad `C`
+  is the hex digit, so `Escape` clears there). Every keystroke lights the
+  button that answered it — the cap dips, its glyph takes the accent, and a
+  soft halo fades out — so typing is felt on the pad the way tapping is.
 - **Opening the sidebar** — on a phone it is one of two, your pick in
   Settings → General: the draggable floating button (drag it to either edge,
   at any height), or an inward swipe from the edge the button rests against.

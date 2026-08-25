@@ -94,6 +94,11 @@ Settings → Layouts lets you:
 ## Keyboard
 
 Digits and operators type straight in (`*` and `x`-less spellings both
-work); `Enter` = `=`, `Backspace` deletes, `Escape` clears. `sqrt(`, `sin(`,
-`0xFF`, `1 << 8`, `5!` are all valid in any mode — layouts only decide which
-buttons are visible, not what the evaluator accepts.
+work); `Enter` = `=`, `Backspace` deletes, and `C` or `Escape` clears — on the
+programmer pad `C` stays the hex digit its button spells, so use `Escape`
+there. `sqrt(`, `sin(`, `0xFF`, `1 << 8`, `5!` are all valid in any mode —
+layouts only decide which buttons are visible, not what the evaluator accepts.
+
+Whatever you type lights the button that answered it: the cap dips, its glyph
+takes the theme accent, and a soft halo fades out of it — the same feedback a
+tap gives, so the pad still reads as the thing you are driving.

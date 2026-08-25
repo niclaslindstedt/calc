@@ -62,6 +62,40 @@ type Props = {
   onClearHistory: () => void;
 };
 
+// Hardware keys whose glyph on the pad is not the character they type. The
+// evaluator takes either spelling, so the keyboard appends the ASCII one and
+// this only exists to find the cap it belongs to.
+const KEYSTROKE_ALIASES: Record<string, string> = {
+  "*": "×",
+  "/": "÷",
+  "-": "−",
+};
+
+/**
+ * The pad key a hardware keystroke lands on, or null when this layout has no
+ * cap for it — a mode that hides `%` still accepts a typed one, it just has
+ * nothing to light.
+ *
+ * `typesHexC` mirrors the keydown handler's own reading of `c`: on a hex pad
+ * it is the hex digit, everywhere else it is Clear.
+ */
+function keyIdForKeystroke(
+  mode: Mode,
+  key: string,
+  typesHexC: boolean,
+): string | null {
+  const byAction = (action: KeyDef["action"]) =>
+    mode.keys.find((k) => k.action === action)?.id ?? null;
+  if (key === "Enter" || key === "=") return byAction("equals");
+  if (key === "Backspace" || key === "Escape") return byAction("clear");
+  if (!typesHexC && (key === "c" || key === "C")) return byAction("clear");
+  const input = KEYSTROKE_ALIASES[key] ?? key;
+  const match =
+    mode.keys.find((k) => k.input === input) ??
+    mode.keys.find((k) => k.input?.toUpperCase() === input.toUpperCase());
+  return match?.id ?? null;
+}
+
 // How far a swipe down the display must travel to count as one.
 const REVEAL_AT = 56;
 
@@ -262,7 +296,19 @@ export function CalculatorScreen({
     [expression, clear, onClearHistory],
   );
 
-  // Hardware keyboard support.
+  // Whether this layout spends `C` as a hex digit (the programmer pad and the
+  // custom modes built on it). Where it does, a typed `c` has to keep meaning
+  // what the cap says rather than becoming Clear.
+  const typesHexC = useMemo(
+    () => mode.keys.some((k) => k.input === "C"),
+    [mode],
+  );
+
+  // Hardware keyboard support. Every keystroke the calculator answers also
+  // lights the cap that answered it (`pressedKeyId`), so typing is felt on the
+  // pad the way tapping is. Auto-repeat keeps refreshing it, so a held key
+  // stays lit; the release clears it.
+  const [pressedKeyId, setPressedKeyId] = useState<string | null>(null);
   useEffect(() => {
     const onKeydown = (e: KeyboardEvent) => {
       const target = e.target as HTMLElement | null;
@@ -275,7 +321,14 @@ export function CalculatorScreen({
         return;
       }
       if (e.metaKey || e.ctrlKey || e.altKey) return;
-      if (/^[0-9a-fA-Fx.+\-*/%^()!&|~<>]$/.test(e.key)) {
+      // `C` is the calculator's clear the world over, so the desktop keyboard
+      // gets it too — except on a pad that spends `C` as a hex digit, where
+      // typing one has to keep meaning what the cap says. Escape clears on
+      // every pad regardless.
+      if (typesHexC ? false : e.key === "c" || e.key === "C") {
+        clear();
+        e.preventDefault();
+      } else if (/^[0-9a-fA-Fx.+\-*/%^()!&|~<>]$/.test(e.key)) {
         append(e.key);
         e.preventDefault();
       } else if (e.key === "Enter" || e.key === "=") {
@@ -285,11 +338,24 @@ export function CalculatorScreen({
         backspace();
       } else if (e.key === "Escape") {
         clear();
+      } else {
+        return;
       }
+      setPressedKeyId(keyIdForKeystroke(mode, e.key, typesHexC));
     };
+    const onKeyup = () => setPressedKeyId(null);
+    // A keystroke taken while the window is losing focus never reports its
+    // release, which would strand a cap lit.
+    const onBlur = () => setPressedKeyId(null);
     window.addEventListener("keydown", onKeydown);
-    return () => window.removeEventListener("keydown", onKeydown);
-  }, [append, equals, backspace, clear]);
+    window.addEventListener("keyup", onKeyup);
+    window.addEventListener("blur", onBlur);
+    return () => {
+      window.removeEventListener("keydown", onKeydown);
+      window.removeEventListener("keyup", onKeyup);
+      window.removeEventListener("blur", onBlur);
+    };
+  }, [append, equals, backspace, clear, mode, typesHexC]);
 
   // ---- how the tape and the calculator split the column -------------------
 
@@ -715,6 +781,7 @@ export function CalculatorScreen({
           textSize={keyTextSize}
           clearIsBackspace={expression.length > 0}
           onKey={onKey}
+          pressedKeyId={pressedKeyId}
           onKeyLongPress={onKeyLongPress}
         />
       )}
