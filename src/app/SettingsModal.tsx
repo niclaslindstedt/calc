@@ -8,8 +8,8 @@
 //
 // Sections: General (the calculator's gesture toggles), Layouts (enable /
 // disable modes, customize a mode's buttons by pressing them, create new
-// modes from a base layout), Appearance (the framework theme picker) and
-// Storage (the backend connection — the only way into it, so the sidebar
+// modes from a base layout), Appearance (display and keypad text sizes plus
+// the framework theme picker) and Storage (the backend connection — the only way into it, so the sidebar
 // footer stays about sessions).
 //
 // Editing model, borrowed wholesale from contacts: appearance edits preview
@@ -51,6 +51,7 @@ import {
   type ThemeAppearance,
 } from "@niclaslindstedt/oss-framework/theme";
 
+import { DisplayReadout } from "./DisplayReadout.tsx";
 import { Keypad } from "./Keypad.tsx";
 import { APP_LOOK } from "./look.ts";
 import {
@@ -63,6 +64,7 @@ import {
 } from "./modes.ts";
 import {
   DEFAULT_SETTINGS,
+  DISPLAY_TEXT_SIZES,
   KEY_TEXT_SIZES,
   type AppSettings,
   type MenuMode,
@@ -90,6 +92,10 @@ const TABS: TabDef[] = [
   { id: "appearance", label: "Appearance", icon: PaletteIcon },
   { id: "storage", label: "Storage", icon: DatabaseIcon },
 ];
+
+// What the Appearance tab's display preview reads — a calculation that shows
+// both lines at once, and short enough not to wrap at the largest size.
+const DISPLAY_SAMPLE = { result: "42", expression: "6×7" };
 
 // The mobile section menu hangs off the header burger.
 const MENU_PLACEMENT: FloatingPlacement = {
@@ -594,6 +600,36 @@ export function SettingsModal({
 
           {tab === "appearance" ? (
             <>
+              <Section title="Display">
+                <div className="flex flex-col gap-1">
+                  <span className="text-sm text-fg-bright">
+                    Result and expression size
+                  </span>
+                  <SegmentedControl
+                    value={draft.displayTextSize}
+                    options={DISPLAY_TEXT_SIZES.map((size) => ({
+                      value: size.id,
+                      label: size.label,
+                    }))}
+                    onChange={(next) => update("displayTextSize", next)}
+                    ariaLabel="Result and expression size"
+                  />
+                  <p className="text-xs text-muted">
+                    How large the display draws the result and the expression
+                    under it. The two step together — the result stays the
+                    headline.
+                  </p>
+                </div>
+                {/* The real readout, at the picked size. */}
+                <div className="flex flex-col items-end gap-1 rounded-xl border border-line bg-page-bg px-4 py-3">
+                  <DisplayReadout
+                    result={DISPLAY_SAMPLE.result}
+                    stale={false}
+                    expression={DISPLAY_SAMPLE.expression}
+                    textSize={draft.displayTextSize}
+                  />
+                </div>
+              </Section>
               <Section title="Keypad">
                 <div className="flex flex-col gap-1">
                   <span className="text-sm text-fg-bright">

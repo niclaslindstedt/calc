@@ -15,6 +15,9 @@ main.tsx
     ├── SideMenuContent.tsx    namespaces, folders, saved sessions, footer
     ├── CalculatorScreen.tsx   tape (always visible, expandable), display,
     │   │                      Keypad
+    │   ├── DisplayReadout.tsx result on top, expression under it, error or
+    │   │                      hex below; sized by the Appearance setting
+    │   ├── RevealText.tsx     the expression's per-character reveal
     │   ├── HistoryEntryRow    tap=copy value, long-press=copy expression
     │   │                      or chain, star gutter, left-swipe=note/delete
     │   ├── ClipboardPill.tsx  the copy / paste twin pill a long press on the
@@ -32,12 +35,12 @@ imports hooks from `"react"` (the sibling apps' convention).
 
 ## State
 
-| Hook               | Owns                                                                                                                                                                                            | Persistence                    |
-| ------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------ |
-| `useSessions(ns)`  | Active session (scratch or saved), saved list, folders, actions                                                                                                                                 | Storage backend (markdown)     |
-| `useAppSettings()` | Gestures, key animation, sidebar open mode, keypad button text size, enabled modes, hidden keys, custom modes — read here, staged as a draft in the Settings dialog and committed whole on Save | localStorage `calc:settings`   |
-| `useNamespaces()`  | Namespace registry + active slug                                                                                                                                                                | localStorage `calc:namespaces` |
-| `App` appearance   | Theme / fonts / UI style (`ThemeAppearance`)                                                                                                                                                    | localStorage `calc:appearance` |
+| Hook               | Owns                                                                                                                                                                                                  | Persistence                    |
+| ------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------ |
+| `useSessions(ns)`  | Active session (scratch or saved), saved list, folders, actions                                                                                                                                       | Storage backend (markdown)     |
+| `useAppSettings()` | Gestures, key animation, sidebar open mode, display and keypad text sizes, enabled modes, hidden keys, custom modes — read here, staged as a draft in the Settings dialog and committed whole on Save | localStorage `calc:settings`   |
+| `useNamespaces()`  | Namespace registry + active slug                                                                                                                                                                      | localStorage `calc:namespaces` |
+| `App` appearance   | Theme / fonts / UI style (`ThemeAppearance`)                                                                                                                                                          | localStorage `calc:appearance` |
 
 A **scratch** session exists only in memory — it becomes a file when the
 disk icon saves it. A **saved** session writes through on every change,
@@ -82,7 +85,7 @@ localStorage keys (settings and pointers only, never documents):
 
 ```
 calc:settings            app settings (modes, hidden keys, gestures,
-                         sidebar open mode, keypad button text size)
+                         sidebar open mode, display and keypad text sizes)
 calc:appearance          theme appearance
 calc:namespaces          namespace registry
 calc:namespace:active    active namespace slug

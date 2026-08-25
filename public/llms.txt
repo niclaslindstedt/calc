@@ -14,6 +14,10 @@
 ## Features
 
 - Sessions: scratch by default, saved with the disk icon, named like notes
+- Display: result-first — the answer big on top, the expression under it,
+  characters revealing one at a time as they are typed; a half-typed
+  expression holds the last answer, dimmed. Result/expression and keypad
+  label sizes are both settings (Settings > Appearance)
 - Tape: always visible above the display (last few entries), expandable to
   half the screen and scrollable; entries read result-first with a star in
   the left gutter; tap an entry to copy its value, long-press to copy the
