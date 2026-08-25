@@ -19,6 +19,10 @@
   the left gutter; tap an entry to copy its value, long-press to copy the
   expression (or, on a chained entry, the whole run folded into one
   bracketed expression), left-swipe for note/delete
+- Clipboard: hold the display for a copy / paste pill — copy takes the
+  expression on it, paste takes what the clipboard offers (an expression or
+  number verbatim, otherwise the first number found in the text, in either
+  locale's separators) and types it onto the expression
 - Erase key: one key per layout — `⌫` (tap = backspace, hold = clear the
   expression) while something is typed, `C` (tap = nothing, hold = clear the
   tape) once the display is empty

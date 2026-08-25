@@ -50,6 +50,22 @@ npm run dev
    button, or switch namespaces (separate workspaces) from the switcher on
    top.
 
+## Copy and paste
+
+Press and hold the display and a twin pill rises over it: **Copy** takes
+whatever the display is showing, **Paste** brings the clipboard in. The paste
+half names what it would add, because it does not always add what was copied
+— an expression or number the calculator understands (`12×4.5`, `0xFF`,
+`-0.5`) goes in verbatim, and text it cannot parse gives up its first number
+instead, in either locale's separators (`Total: $1,234.56` → `1234.56`, `1
+234,56 kr` → `1234.56`). Text with no number in it offers nothing and the
+half stays dark. What lands is typed onto the expression exactly as the
+keypad would type it, so pasting onto `12×` continues that calculation.
+
+The browser decides whether a page may read the clipboard: some ask first,
+and Firefox may refuse outright. A refusal leaves the paste half dark — the
+copy half still works.
+
 ## Erasing
 
 The keypad has a single erase key, and it follows the display. While there

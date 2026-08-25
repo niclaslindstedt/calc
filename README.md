@@ -83,6 +83,14 @@ and keep the session.
   offers its own expression or the whole chain folded into one bracketed
   expression. Left-swipe to reveal the note and delete actions. Every copy
   confirms with a brief label over the value it took.
+- **Clipboard** — press and hold the display to raise a twin pill over it:
+  **Copy** takes the expression (or the number) currently on the display,
+  **Paste** puts the clipboard on it. Paste reads what it can — an
+  expression or number the calculator understands goes in as it stands, and
+  anything else gives up its first number instead (`Total: $1,234.56` pastes
+  `1234.56`), so the half stays dark only when there is no number to find.
+  What lands is typed onto the expression exactly as the keypad would type
+  it, so it continues a half-written calculation rather than replacing it.
 - **Erasing** — one key does all of it. With something on the display it
   reads `⌫`: tap takes back a character, hold wipes the whole expression.
   With the display empty it reads `C`, a tap does nothing (there is nothing

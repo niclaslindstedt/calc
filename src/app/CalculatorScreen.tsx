@@ -6,7 +6,9 @@
 // the screen — the last few entries stay in view — and expands to half the
 // screen (scrolling either way) via the handle or a swipe down on the
 // display. Pressing `=` logs an entry to the tape. Programmer-flavoured modes
-// add a hex spelling of the preview.
+// add a hex spelling of the preview. A long press on the display raises the
+// clipboard bar — copy what is on it, or paste what the clipboard has to
+// offer (ClipboardPill.tsx, paste.ts).
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
@@ -14,12 +16,18 @@ import {
   ChevronDownIcon,
   ChevronUpIcon,
 } from "@niclaslindstedt/oss-framework/components";
+import {
+  copyTextToClipboard,
+  useLongPress,
+} from "@niclaslindstedt/oss-framework/hooks";
 
 import { chainExpression } from "./chain.ts";
+import { ClipboardPill } from "./ClipboardPill.tsx";
 import { evaluate, EvalError, formatHex, formatResult } from "./evaluator.ts";
 import { HistoryEntryRow } from "./HistoryEntryRow.tsx";
 import { Keypad } from "./Keypad.tsx";
 import type { KeyDef, Mode } from "./modes.ts";
+import { clipLabel, pasteCandidate, type PasteCandidate } from "./paste.ts";
 import type { Session } from "./session.ts";
 import type { KeyTextSize } from "./useAppSettings.ts";
 
@@ -43,6 +51,22 @@ type Props = {
 
 // How far a downward drag on the display must travel to latch the tape open.
 const REVEAL_AT = 56;
+
+// How long the in-place copy confirmation stays up — the tape's beat, so both
+// copies read the same (HistoryEntryRow.tsx).
+const COPIED_MS = 1200;
+
+// Best-effort clipboard read: null when the browser has no async clipboard,
+// or when the user (or the permission prompt) says no. The paste half of the
+// bar hangs off the answer, so a refusal simply leaves it dark.
+async function readClipboardText(): Promise<string | null> {
+  try {
+    if (!navigator.clipboard?.readText) return null;
+    return await navigator.clipboard.readText();
+  } catch {
+    return null;
+  }
+}
 
 // True when `expression` still uses `seed` (the result `=` handed over) as a
 // value rather than having edited it away: typing more digits onto the seed
@@ -226,6 +250,62 @@ export function CalculatorScreen({
     else if (dy < -REVEAL_AT) onHistoryOpenChange(false);
   };
 
+  // Hold the display to raise the clipboard bar: copy what is on the display,
+  // or paste what the clipboard is holding. The clipboard is read up front
+  // rather than on the press of the paste half, because the bar has to know
+  // whether there is anything to offer — a hold with an empty display and
+  // nothing usable on the clipboard raises no bar at all rather than two dead
+  // buttons.
+  const [clipboardOpen, setClipboardOpen] = useState(false);
+  const [pasteReady, setPasteReady] = useState<PasteCandidate | null>(null);
+  // What the last copy took, in the tape's words — null while no
+  // confirmation is up.
+  const [copied, setCopied] = useState<string | null>(null);
+  const displayRef = useRef<HTMLDivElement>(null);
+  const copiedTimer = useRef<number | undefined>(undefined);
+
+  useEffect(
+    () => () => {
+      window.clearTimeout(copiedTimer.current);
+    },
+    [],
+  );
+
+  const displayLongPress = useLongPress(() => {
+    // The press has become a clipboard gesture, so the lift that ends it must
+    // not also read as a swipe on the tape.
+    drag.current.active = false;
+    void readClipboardText().then((text) => {
+      const candidate = text === null ? null : pasteCandidate(text);
+      setPasteReady(candidate);
+      if (candidate || expression) setClipboardOpen(true);
+    });
+  });
+
+  // The display's own copy, confirmed in place the way the tape's is — a
+  // label over the number it took, so the eye never leaves it.
+  const copyDisplay = useCallback(() => {
+    setClipboardOpen(false);
+    if (!expression) return;
+    // The display holds a value once a calculation has been folded into its
+    // result — the same distinction the tape's two copies draw.
+    const label = preview === expression ? "Value copied" : "Expression copied";
+    void copyTextToClipboard(expression).then((ok) => {
+      if (!ok) return;
+      setCopied(label);
+      window.clearTimeout(copiedTimer.current);
+      copiedTimer.current = window.setTimeout(() => setCopied(null), COPIED_MS);
+    });
+  }, [expression, preview]);
+
+  // Pasting types the text onto the expression exactly as the keypad would,
+  // so a paste onto a half-typed calculation continues it instead of
+  // replacing it.
+  const pasteIntoDisplay = useCallback(() => {
+    setClipboardOpen(false);
+    if (pasteReady) append(pasteReady.text);
+  }, [pasteReady, append]);
+
   return (
     <div className="flex h-full min-h-0 flex-col">
       {/* Tape. Collapsed it sizes to its content but stops at roughly four
@@ -282,10 +362,30 @@ export function CalculatorScreen({
 
       {/* Display */}
       <div
-        className="flex min-h-[5.5rem] shrink grow basis-0 flex-col items-end justify-end gap-1 overflow-hidden px-5 py-4 [touch-action:pan-x]"
-        onPointerDown={onDisplayPointerDown}
-        onPointerUp={onDisplayPointerUp}
+        ref={displayRef}
+        className="relative flex min-h-[5.5rem] shrink grow basis-0 flex-col items-end justify-end gap-1 overflow-hidden px-5 py-4 [touch-action:pan-x]"
+        title="Hold for copy and paste"
+        onPointerDown={(e) => {
+          displayLongPress.onPointerDown(e);
+          onDisplayPointerDown(e);
+        }}
+        onPointerMove={displayLongPress.onPointerMove}
+        onPointerUp={(e) => {
+          displayLongPress.onPointerUp(e);
+          onDisplayPointerUp(e);
+        }}
+        onPointerLeave={displayLongPress.onPointerLeave}
+        onPointerCancel={displayLongPress.onPointerCancel}
       >
+        {/* The copy confirmation, in the tape's words and colours. */}
+        {copied ? (
+          <span
+            role="status"
+            className="pointer-events-none absolute top-1 right-5 z-20 rounded-md bg-accent px-2 py-0.5 text-xs font-medium text-page-bg shadow-md"
+          >
+            {copied}
+          </span>
+        ) : null}
         <output
           className="w-full break-all text-right font-mono text-3xl leading-tight text-fg-bright"
           aria-live="polite"
@@ -307,6 +407,19 @@ export function CalculatorScreen({
           ) : null}
         </div>
       </div>
+
+      {/* The clipboard bar the display's long press raises. It renders
+          nothing in place — the pill portals itself out to `document.body`
+          (see ClipboardPill.tsx). */}
+      <ClipboardPill
+        open={clipboardOpen}
+        anchorRef={displayRef}
+        copyLabel={expression ? clipLabel(expression) : null}
+        pasteLabel={pasteReady ? clipLabel(pasteReady.text) : null}
+        onCopy={copyDisplay}
+        onPaste={pasteIntoDisplay}
+        onDismiss={() => setClipboardOpen(false)}
+      />
 
       {/* Keypad — the active mode's layout minus the user's hidden keys */}
       <Keypad
