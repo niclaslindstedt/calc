@@ -163,6 +163,10 @@ export function Keypad({
         (preview ? " pointer-events-none" : "")
       }
       aria-hidden={preview ? true : undefined}
+      // The calculator screen measures this pad's floor to know when the tape
+      // has squeezed the keys past the point of being usable — see the tape
+      // handle in CalculatorScreen.tsx. Only the in-app pad is a candidate.
+      data-calc-keypad={inModal ? undefined : ""}
       style={
         inModal
           ? { gridTemplateColumns: `repeat(${mode.columns}, minmax(0, 1fr))` }

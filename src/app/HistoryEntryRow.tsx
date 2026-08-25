@@ -12,10 +12,13 @@
 //                   folded-up chain (see chain.ts)
 //   - star gutter → flag the row as important
 //   - left swipe  → note / delete actions
+//   - right-click → the same note / delete actions, as a menu. A desktop
+//                   pointer has no swipe in it, so the row's actions have to
+//                   arrive on the gesture a desktop *does* have.
 // Every copy confirms in place: a small label flicks up over the value it
-// copied, so the eye never leaves the number it just took. A saved note
-// renders under the calculation in muted text, so the tape reads like the
-// markdown file it round-trips to.
+// copied, so the eye never leaves the number it just took (CopiedFlash.tsx).
+// A saved note renders under the calculation in muted text, so the tape reads
+// like the markdown file it round-trips to.
 
 import { useEffect, useRef, useState } from "react";
 
@@ -27,12 +30,15 @@ import {
   SwipeableRow,
   TrashIcon,
   type FloatingPoint,
+  type RowAction,
 } from "@niclaslindstedt/oss-framework/components";
 import {
   copyTextToClipboard,
   useLongPress,
 } from "@niclaslindstedt/oss-framework/hooks";
 
+import { CopiedFlash } from "./CopiedFlash.tsx";
+import { ExpressionText } from "./ExpressionText.tsx";
 import type { Entry } from "./session.ts";
 
 type Props = {
@@ -54,6 +60,11 @@ const COPIED_LABEL = {
 
 type Copied = keyof typeof COPIED_LABEL;
 
+// The two menus a row can raise. `copy` is the long press's choice between an
+// entry's own expression and the chain behind it; `row` is the right-click
+// twin of the swipe-left actions.
+type MenuKind = "copy" | "row";
+
 // How long the in-place copy confirmation stays up. Long enough to read two
 // words, short enough that it never sits between the user and the next tap.
 const COPIED_MS = 1200;
@@ -69,9 +80,12 @@ export function HistoryEntryRow({
   const [draft, setDraft] = useState(entry.note ?? "");
   // The in-place confirmation over the value — null when nothing was copied.
   const [copied, setCopied] = useState<Copied | null>(null);
-  // Where the long press landed, and so where the copy menu opens. Null while
-  // the menu is closed.
-  const [menuAt, setMenuAt] = useState<FloatingPoint | null>(null);
+  // Where a menu was asked for, and which one. Null while none is open.
+  const [menu, setMenu] = useState<{
+    at: FloatingPoint;
+    kind: MenuKind;
+  } | null>(null);
+  const rowRef = useRef<HTMLDivElement>(null);
   const noteRef = useRef<HTMLTextAreaElement>(null);
   const longPressed = useRef(false);
   const pointer = useRef<FloatingPoint>({ x: 0, y: 0 });
@@ -98,7 +112,7 @@ export function HistoryEntryRow({
     longPressed.current = true;
     // With a chain behind it the press is a choice, not an action — the menu
     // opens where the finger is. Without one there is only one thing to copy.
-    if (chain) setMenuAt({ ...pointer.current });
+    if (chain) setMenu({ at: { ...pointer.current }, kind: "copy" });
     else copy("expression", entry.expression);
   });
 
@@ -122,39 +136,54 @@ export function HistoryEntryRow({
     window.setTimeout(() => noteRef.current?.focus(), 0);
   };
 
+  // One list, two doors: the swipe strip and the right-click menu offer the
+  // row's actions in the same order and wording, so the desktop gesture is
+  // the phone one rather than a second vocabulary.
+  const rowActions: RowAction[] = [
+    {
+      label: entry.note ? "Edit note" : "Add note",
+      icon: <NoteIcon className="h-4 w-4" />,
+      onSelect: openNote,
+    },
+    {
+      label: "Delete entry",
+      icon: <TrashIcon className="h-4 w-4" />,
+      danger: true,
+      onSelect: () => onDelete(entry.id),
+    },
+  ];
+
+  const copyActions: RowAction[] = [
+    {
+      label: "Copy expression",
+      icon: <CopyIcon className="h-4 w-4" />,
+      onSelect: () => copy("expression", entry.expression),
+    },
+    {
+      label: "Copy chain",
+      icon: <CopyIcon className="h-4 w-4" />,
+      onSelect: () => {
+        if (chain) copy("chain", chain);
+      },
+    },
+  ];
+
   return (
-    <div className="relative border-b border-line">
-      {/* The copy confirmation rides just above the value it copied, straddling
-          the row's top edge — the eye never leaves the number it just took.
-          It lives outside `SwipeableRow` (which clips its own overflow while a
-          swipe is armed) and is absolutely placed, so it neither reflows the
-          tape nor blocks the next tap. */}
-      {copied ? (
-        <span
-          role="status"
-          className="pointer-events-none absolute top-0 right-4 z-20 -translate-y-1/2 rounded-md bg-accent px-2 py-0.5 text-xs font-medium text-page-bg shadow-md"
-        >
-          {COPIED_LABEL[copied]}
-        </span>
-      ) : null}
-      <SwipeableRow
-        trailing={{
-          kind: "reveal",
-          buttons: [
-            {
-              label: entry.note ? "Edit note" : "Add note",
-              icon: <NoteIcon className="h-4 w-4" />,
-              onSelect: openNote,
-            },
-            {
-              label: "Delete entry",
-              icon: <TrashIcon className="h-4 w-4" />,
-              danger: true,
-              onSelect: () => onDelete(entry.id),
-            },
-          ],
-        }}
-      >
+    <div
+      ref={rowRef}
+      className="relative border-b border-line"
+      onContextMenu={(e) => {
+        // The row owns the right button: the platform menu has nothing to
+        // offer over a readout that cannot be selected anyway.
+        e.preventDefault();
+        setMenu({ at: { x: e.clientX, y: e.clientY }, kind: "row" });
+      }}
+    >
+      <CopiedFlash
+        label={copied ? COPIED_LABEL[copied] : null}
+        anchorRef={rowRef}
+      />
+      <SwipeableRow trailing={{ kind: "reveal", buttons: rowActions }}>
         <div className="flex items-center gap-2 bg-surface pr-4 pl-2">
           <button
             type="button"
@@ -188,30 +217,20 @@ export function HistoryEntryRow({
             <span className="block truncate font-mono text-2xl leading-tight text-fg-bright">
               {entry.result}
             </span>
-            <span className="block truncate font-mono text-sm text-muted">
-              {entry.expression}
-            </span>
+            <ExpressionText
+              text={entry.expression}
+              className="block truncate font-mono text-sm text-muted"
+            />
           </button>
         </div>
       </SwipeableRow>
       <ContextMenu
-        position={menuAt}
-        onClose={() => setMenuAt(null)}
-        ariaLabel="Copy this calculation"
-        actions={[
-          {
-            label: "Copy expression",
-            icon: <CopyIcon className="h-4 w-4" />,
-            onSelect: () => copy("expression", entry.expression),
-          },
-          {
-            label: "Copy chain",
-            icon: <CopyIcon className="h-4 w-4" />,
-            onSelect: () => {
-              if (chain) copy("chain", chain);
-            },
-          },
-        ]}
+        position={menu?.at ?? null}
+        onClose={() => setMenu(null)}
+        ariaLabel={
+          menu?.kind === "copy" ? "Copy this calculation" : "Entry actions"
+        }
+        actions={menu?.kind === "copy" ? copyActions : rowActions}
       />
       {editingNote ? (
         <textarea

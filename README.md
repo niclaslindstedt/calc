@@ -71,7 +71,10 @@ and keep the session.
 
 - **Display** — the result leads, big, with the expression it came from
   underneath it. Characters reveal one at a time as they are typed, sliding
-  in from the right while the line settles left of them. An expression
+  in from the right while the line settles left of them, and operators set
+  as bordered accent chips with room either side — `1 + 2` reads as two
+  values with an operation between them, the way it sits on the keypad. An
+  expression
   mid-thought (`12+`) keeps the last real answer up, dimmed, rather than
   blanking the headline; the hex spelling and any error read on a thin line
   below.
@@ -80,15 +83,23 @@ and keep the session.
   (notes-style: the title field is selected, ready to be overwritten) and
   writes it to storage. Opening a session resumes its tape _and_ the mode it
   was last used with.
-- **Tape** — always in view above the display, showing the last few entries;
-  swipe down on the display (or press the History handle) to expand it to
-  half the screen. It scrolls either way. Each entry reads result-first with
-  the expression under it and a star in the left gutter for the rows worth
-  finding again. Tap an entry to copy its value; long-press to copy the
-  expression — on an entry that continued from the one above, the long press
-  offers its own expression or the whole chain folded into one bracketed
-  expression. Left-swipe to reveal the note and delete actions. Every copy
-  confirms with a brief label over the value it took.
+- **Tape** — always in view above the display, showing the last few entries.
+  It scrolls at any size. Each entry reads result-first with the expression
+  under it and a star in the left gutter for the rows worth finding again.
+  Tap an entry to copy its value; long-press to copy the expression — on an
+  entry that continued from the one above, the long press offers its own
+  expression or the whole chain folded into one bracketed expression.
+  Left-swipe — or right-click, on a desktop pointer — reveals the note and
+  delete actions. Every copy confirms with a brief label over the value it
+  took.
+- **Resizing the tape** — the hairline between the tape and the display is a
+  handle: drag it and the tape takes whatever share you leave it at. Drag it
+  nearly shut and the tape falls back to its resting height; drag it far
+  enough that the display and keys no longer fit and the tape takes the whole
+  screen, the handle parked at the bottom to pull back up. Clicking it
+  toggles, and the arrow keys step it. On a phone, swipe down the tape to
+  open it the whole way, or swipe the display down and up to step it open and
+  shut (Settings → General).
 - **Clipboard** — press and hold the display to raise a twin pill over it:
   **Copy** takes the expression (or the number) currently on the display,
   **Paste** puts the clipboard on it. Paste reads what it can — an

@@ -33,9 +33,10 @@ npm run dev
 
 1. Type a calculation — keypad or hardware keyboard — and press `=`. The
    entry lands on the tape above the display, which always keeps the last
-   few entries in view; swipe down on the display (or press the History
-   handle) to expand it.
-2. Left-swipe a tape entry and press the note button
+   few entries in view. Drag the hairline under the tape to give it more of
+   the screen (drag it far enough and it takes all of it); on a phone, swipe
+   down the tape to open it the whole way.
+2. Left-swipe a tape entry — or right-click it — and press the note button
    and write down _why_ this calculation exists. Tap an entry to copy its
    value; long-press to copy the expression — on an entry that continued
    from the one above, the long press offers the whole run folded into one

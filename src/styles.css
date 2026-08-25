@@ -88,3 +88,36 @@ body {
     animation: none;
   }
 }
+
+/* Operators, as glyph buttons. An expression is read as values with
+   operations between them (expression.ts does the splitting), so the
+   operators are set the way they sit on the keypad: a bordered accent chip
+   with air either side, rather than a character wedged between two digits.
+   Sized in `em` throughout so the same chip serves the display's headline
+   expression and the tape's small print without a second rule. */
+.calc-op {
+  display: inline-block;
+  margin-inline: 0.24em;
+  padding-inline: 0.32em;
+  padding-block: 0.04em;
+  border: 1px solid color-mix(in oklab, var(--color-accent) 45%, transparent);
+  border-radius: 0.32em;
+  background: color-mix(in oklab, var(--color-accent) 12%, transparent);
+  color: var(--color-accent);
+  /* The chip must not grow the line it sits on — the display's readout is
+     bottom-aligned inside a clipped box, so a taller line would push the
+     expression's top edge out of view. */
+  line-height: 1;
+  vertical-align: baseline;
+}
+
+/* At the start or the end of a line the outer margin is dead space that
+   pushes the text off its own edge — the tape is right-aligned, so a trailing
+   operator would otherwise float away from the column. */
+.calc-op:first-child {
+  margin-inline-start: 0;
+}
+
+.calc-op:last-child {
+  margin-inline-end: 0;
+}
