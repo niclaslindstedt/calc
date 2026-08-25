@@ -12,9 +12,10 @@
 ## What
 
 Calc is a calculator that treats a computation as a document. Every
-calculation that ends with `=` lands on the session's tape; tape entries can
-carry notes explaining _why_ a number is what it is; and a session — tape,
-notes, and the keypad layout it was last used with — saves as a plain
+calculation that ends with `=` lands on the session's tape, which stays in
+view above the keys; tape entries can be starred and can carry notes
+explaining _why_ a number is what it is; and a session — tape, notes, and
+the keypad layout it was last used with — saves as a plain
 markdown file you can read anywhere. Sessions organize into folders and
 namespaces from the left sidebar, and layouts (basic, scientific,
 programmer, or modes you define yourself) are per-session and customizable
@@ -23,8 +24,11 @@ down to the individual button.
 ## Why
 
 - **A tape you can annotate.** A calculator result without context dies in
-  seconds. Press an entry's note button, attach a note, and the calculation
-  still makes sense next month.
+  seconds. Left-swipe an entry, attach a note, star the rows that matter,
+  and the calculation still makes sense next month.
+- **Chains you can copy.** Keep building on a result without pressing `C`
+  and the run folds back into one expression: `1+2 = 3`, then `3*2 = 6`,
+  copies as `(1+2)*2` — brackets added only where the grammar needs them.
 - **Files, not databases.** Sessions are markdown with YAML front matter in
   a folder you own — local or cloud — diffable, greppable, future-proof.
 - **Your layout.** Hide the buttons you never press, or build a mode of your
@@ -60,8 +64,8 @@ npm run dev
 ```
 
 Open the printed URL, type `12 × 4.5` and press `=` — the calculation lands
-in the history (swipe down on the display, or press the History handle, to
-see it). Press the disk icon in the top bar to name and keep the session.
+on the tape above the display. Press the disk icon in the top bar to name
+and keep the session.
 
 ## Usage
 
@@ -70,11 +74,15 @@ see it). Press the disk icon in the top bar to name and keep the session.
   (notes-style: the title field is selected, ready to be overwritten) and
   writes it to storage. Opening a session resumes its tape _and_ the mode it
   was last used with.
-- **Tape** — swipe down on the display (or press the History handle) to
-  reveal it. Each entry reads result-first with the expression under it and
-  a note button in the left gutter. Tap an entry to copy its value;
-  long-press to copy the expression; left-swipe to reveal the note and
-  delete actions.
+- **Tape** — always in view above the display, showing the last few entries;
+  swipe down on the display (or press the History handle) to expand it to
+  half the screen. It scrolls either way. Each entry reads result-first with
+  the expression under it and a star in the left gutter for the rows worth
+  finding again. Tap an entry to copy its value; long-press to copy the
+  expression — on an entry that continued from the one above, the long press
+  offers its own expression or the whole chain folded into one bracketed
+  expression. Left-swipe to reveal the note and delete actions. Every copy
+  confirms with a brief label over the value it took.
 - **Modes** — the top-bar buttons switch the layout: basic (`123`),
   scientific (`sin`), programmer (`0x`). Settings → Layouts enables or
   disables modes, trims each mode's buttons, and creates new modes: pick a
@@ -84,6 +92,10 @@ see it). Press the disk icon in the top bar to name and keep the session.
   swaps whole workspaces, each with its own directory in storage.
 - **Keyboard** — digits and operators type straight in; `Enter` is `=`,
   `Backspace` deletes, `Escape` clears.
+- **Settings** — the sidebar footer opens it: General (gestures), Layouts,
+  Appearance, and Storage, which is where a backend is connected. Changes
+  are staged and applied with Save; Cancel puts everything back. The footer
+  also carries an About entry with the build identifier.
 
 ## Configuration
 

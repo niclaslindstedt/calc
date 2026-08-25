@@ -19,9 +19,14 @@
 //
 //   # Groceries budget
 //
-//   - `12 * 4.5` = `54` _(at 2026-08-24T09:01:00.000Z)_
+//   - ⭐ `12 * 4.5` = `54` _(at 2026-08-24T09:01:00.000Z)_
 //     Twelve packs at 4.50 each
-//   - `54 + 12.9` = `66.9` _(at 2026-08-24T09:02:00.000Z)_
+//   - ↳ `54 + 12.9` = `66.9` _(at 2026-08-24T09:02:00.000Z)_
+//
+// Two optional markers lead the expression, in this order: ⭐ for a starred
+// entry (the tape's left-gutter highlight) and ↳ for one that continued from
+// the entry above it (see chain.ts). An entry with neither is written exactly
+// as it was before the markers existed.
 //
 // Entry ids are NOT stored — they are regenerated deterministically on parse
 // (`<sessionId>-<index>`) so a load-then-save round trip is byte-identical.
@@ -31,6 +36,11 @@ import type { Entry, Folder, Session } from "./session.ts";
 
 export const CALCULATIONS_DIR = "calculations";
 export const FOLDERS_FILE_NAME = "folders.json";
+
+// The glyphs that lead a starred entry and a chained one in the tape body.
+// Kept in step with the leading groups of `ENTRY_RE` below.
+const STAR_MARK = "⭐";
+const CHAIN_MARK = "↳";
 
 // ---------------------------------------------------------------------------
 // Front matter
@@ -64,8 +74,11 @@ function parseFrontmatter(text: string): {
 
 function renderEntry(entry: Entry): string[] {
   const at = new Date(entry.at).toISOString();
+  const marks =
+    (entry.starred ? `${STAR_MARK} ` : "") +
+    (entry.chained ? `${CHAIN_MARK} ` : "");
   const lines = [
-    `- \`${entry.expression}\` = \`${entry.result}\` _(at ${at})_`,
+    `- ${marks}\`${entry.expression}\` = \`${entry.result}\` _(at ${at})_`,
   ];
   if (entry.note) {
     for (const noteLine of entry.note.split("\n")) {
@@ -99,9 +112,10 @@ export function sessionToMarkdown(session: Session): string {
 
 // The timestamp marker is written `_(at …)_` (Prettier's emphasis style,
 // so committed example files survive `make fmt`); `*(at …)*` is accepted
-// on parse for compatibility.
+// on parse for compatibility. A leading ⭐ marks a starred entry and a
+// leading ↳ one that continued from the entry above.
 const ENTRY_RE =
-  /^- `(.+?)` = `(.+?)`(?: (?:\*\(at ([^)]+)\)\*|_\(at ([^)]+)\)_))?\s*$/;
+  /^- (⭐ )?(↳ )?`(.+?)` = `(.+?)`(?: (?:\*\(at ([^)]+)\)\*|_\(at ([^)]+)\)_))?\s*$/;
 
 // Parse a session file. Returns null when the file is not a calculation
 // document (wrong/missing `type:` or `id:`) so callers can skip foreign
@@ -149,14 +163,17 @@ export function parseSessionMarkdown(text: string): Session | null {
     const m = ENTRY_RE.exec(line);
     if (m) {
       flush();
-      const at = Date.parse(m[3] ?? m[4] ?? "");
+      const at = Date.parse(m[5] ?? m[6] ?? "");
       current = {
         // Deterministic id so parse → serialize is byte-idempotent.
         id: `${session.id}-${session.entries.length}`,
-        expression: m[1],
-        result: m[2],
+        expression: m[3],
+        result: m[4],
         at: Number.isNaN(at) ? session.createdAt : at,
       };
+      if (m[1]) current.starred = true;
+      // The first entry can carry no chain — there is nothing above it.
+      if (m[2] && session.entries.length > 0) current.chained = true;
       continue;
     }
     if (current && line.startsWith("  ")) {

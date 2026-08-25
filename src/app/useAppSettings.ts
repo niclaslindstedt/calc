@@ -1,5 +1,4 @@
 // SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0
-import { useCallback } from "react";
 
 import { useLocalStorageState } from "@niclaslindstedt/oss-framework/hooks";
 
@@ -88,80 +87,8 @@ export function useAppSettings() {
     { parse: parseSettings },
   );
 
-  const update = useCallback(
-    <K extends keyof AppSettings>(key: K, value: AppSettings[K]) =>
-      setSettings((prev) => ({ ...prev, [key]: value })),
-    [setSettings],
-  );
-
-  const toggleMode = useCallback(
-    (id: ModeId, enabled: boolean) =>
-      setSettings((prev) => {
-        const next = enabled
-          ? [...prev.enabledModes.filter((m) => m !== id), id]
-          : prev.enabledModes.filter((m) => m !== id);
-        // The switch never goes empty — the last enabled mode stays on.
-        return {
-          ...prev,
-          enabledModes: next.length ? next : prev.enabledModes,
-        };
-      }),
-    [setSettings],
-  );
-
-  const toggleKey = useCallback(
-    (modeId: ModeId, keyId: string) =>
-      setSettings((prev) => {
-        const hidden = prev.hiddenKeys[modeId] ?? [];
-        const next = hidden.includes(keyId)
-          ? hidden.filter((k) => k !== keyId)
-          : [...hidden, keyId];
-        return {
-          ...prev,
-          hiddenKeys: { ...prev.hiddenKeys, [modeId]: next },
-        };
-      }),
-    [setSettings],
-  );
-
-  // Create a custom mode from a base layout: `hidden` is the set of keys the
-  // user pressed away in the editor. The new mode starts enabled.
-  const createCustomMode = useCallback(
-    (name: string, baseId: CustomMode["baseId"], hidden: string[]) => {
-      const id = `c-${crypto.randomUUID().slice(0, 8)}`;
-      setSettings((prev) => ({
-        ...prev,
-        customModes: [...prev.customModes, { id, name: name.trim(), baseId }],
-        hiddenKeys: { ...prev.hiddenKeys, [id]: hidden },
-        enabledModes: [...prev.enabledModes, id],
-      }));
-      return id;
-    },
-    [setSettings],
-  );
-
-  const deleteCustomMode = useCallback(
-    (id: string) =>
-      setSettings((prev) => {
-        const hiddenKeys = { ...prev.hiddenKeys };
-        delete hiddenKeys[id];
-        const enabledModes = prev.enabledModes.filter((m) => m !== id);
-        return {
-          ...prev,
-          customModes: prev.customModes.filter((m) => m.id !== id),
-          hiddenKeys,
-          enabledModes: enabledModes.length ? enabledModes : ["basic"],
-        };
-      }),
-    [setSettings],
-  );
-
-  return {
-    settings,
-    update,
-    toggleMode,
-    toggleKey,
-    createCustomMode,
-    deleteCustomMode,
-  };
+  // The whole object at once: the Settings dialog stages every knob in a
+  // draft and hands it over on Save (see SettingsModal.tsx), so there is
+  // nothing here to update key by key.
+  return { settings, commit: setSettings };
 }

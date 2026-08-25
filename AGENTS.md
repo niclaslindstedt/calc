@@ -61,9 +61,10 @@ disk-save icon), and the modal siblings. State is hooks, not stores:
 
 Pure domain modules (unit-tested, DOM-free): `evaluator.ts` (tokenizer +
 recursive-descent parser over one shared grammar for all modes),
-`session.ts` (the Session/Entry/Folder model), `codec.ts` (markdown + YAML
-front matter serialization, filenames, directory layout), `modes.ts` (keypad
-layout definitions and custom-mode resolution).
+`session.ts` (the Session/Entry/Folder model), `chain.ts` (folds a run of
+`=`-chained calculations back into one bracketed expression), `codec.ts`
+(markdown + YAML front matter serialization, filenames, directory layout),
+`modes.ts` (keypad layout definitions and custom-mode resolution).
 
 Storage: `store.ts` builds a framework `FileStore` (folder / Dropbox /
 Drive) and binds it to sessions via `createSessionStore` — one markdown file
@@ -78,6 +79,7 @@ per session under `calculations/` (namespaces prefix `<slug>/`), plus a
 | New operator / function        | `src/app/evaluator.ts` + evaluator tests                                                     |
 | New keypad key / layout / mode | `src/app/modes.ts`                                                                           |
 | Session model change           | `src/app/session.ts` + `codec.ts` (+ migration note in docs/storage-format.md)               |
+| Expression-chain rule          | `src/app/chain.ts` + chain tests (keep its precedence table in step with `evaluator.ts`)     |
 | File-format change             | `src/app/codec.ts` + `tests/codec_test.ts` + `docs/storage-format.md` + `examples/`          |
 | New storage backend            | `src/app/store.ts` (FileStore factory)                                                       |
 | New screen / modal             | `src/app/<Name>.tsx`, wired in `App.tsx`                                                     |

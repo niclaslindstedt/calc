@@ -9,12 +9,13 @@ import {
   removeEntry,
   sessionTitle,
   setEntryNote,
+  toggleEntryStar,
 } from "../src/app/session.ts";
 
 describe("session model", () => {
   it("logs entries with a timestamp and bumps updatedAt", () => {
     const s0 = newSession(1000);
-    const s1 = appendEntry(s0, "1+1", "2", 2000);
+    const s1 = appendEntry(s0, "1+1", "2", { now: 2000 });
     expect(s1.entries).toHaveLength(1);
     expect(s1.entries[0].expression).toBe("1+1");
     expect(s1.entries[0].at).toBe(2000);
@@ -24,7 +25,7 @@ describe("session model", () => {
   });
 
   it("sets and clears entry notes", () => {
-    const s = appendEntry(newSession(0), "2*3", "6", 1);
+    const s = appendEntry(newSession(0), "2*3", "6", { now: 1 });
     const id = s.entries[0].id;
     const noted = setEntryNote(s, id, "  six  ", 2);
     expect(noted.entries[0].note).toBe("six");
@@ -32,8 +33,24 @@ describe("session model", () => {
     expect(cleared.entries[0].note).toBeUndefined();
   });
 
+  it("marks a chained entry only when told to", () => {
+    const plain = appendEntry(newSession(0), "1+1", "2", { now: 1 });
+    expect(plain.entries[0].chained).toBeUndefined();
+    const chained = appendEntry(plain, "2*3", "6", { now: 2, chained: true });
+    expect(chained.entries[1].chained).toBe(true);
+  });
+
+  it("toggles an entry's star off and on", () => {
+    const s = appendEntry(newSession(0), "2*3", "6", { now: 1 });
+    const id = s.entries[0].id;
+    const starred = toggleEntryStar(s, id, 2);
+    expect(starred.entries[0].starred).toBe(true);
+    expect(starred.updatedAt).toBe(2);
+    expect(toggleEntryStar(starred, id, 3).entries[0].starred).toBeUndefined();
+  });
+
   it("removes entries", () => {
-    const s = appendEntry(newSession(0), "2*3", "6", 1);
+    const s = appendEntry(newSession(0), "2*3", "6", { now: 1 });
     expect(removeEntry(s, s.entries[0].id, 2).entries).toHaveLength(0);
   });
 
@@ -66,6 +83,6 @@ describe("isDiscardable", () => {
     const s = newSession(0);
     expect(isDiscardable(s)).toBe(true);
     expect(isDiscardable({ ...s, title: "Named" })).toBe(false);
-    expect(isDiscardable(appendEntry(s, "1", "1", 1))).toBe(false);
+    expect(isDiscardable(appendEntry(s, "1", "1", { now: 1 }))).toBe(false);
   });
 });

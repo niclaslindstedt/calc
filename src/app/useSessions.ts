@@ -43,6 +43,7 @@ import {
   newSession,
   removeEntry,
   setEntryNote,
+  toggleEntryStar,
   type Folder,
   type Session,
 } from "./session.ts";
@@ -259,14 +260,19 @@ export function useSessions(namespaceSlug: string) {
 
   // ---- session actions ---------------------------------------------------
   const logEntry = useCallback(
-    (expression: string, result: string) =>
-      updateActive((s) => appendEntry(s, expression, result)),
+    (expression: string, result: string, chained: boolean) =>
+      updateActive((s) => appendEntry(s, expression, result, { chained })),
     [updateActive],
   );
 
   const noteEntry = useCallback(
     (entryId: string, note: string) =>
       updateActive((s) => setEntryNote(s, entryId, note)),
+    [updateActive],
+  );
+
+  const starEntry = useCallback(
+    (entryId: string) => updateActive((s) => toggleEntryStar(s, entryId)),
     [updateActive],
   );
 
@@ -457,6 +463,7 @@ export function useSessions(namespaceSlug: string) {
     refresh,
     logEntry,
     noteEntry,
+    starEntry,
     deleteEntry,
     retitleActive,
     setMode,
