@@ -38,6 +38,7 @@ import {
 import { error as logError, status } from "../output.ts";
 import {
   appendEntry,
+  clearEntries as clearSessionEntries,
   isDiscardable,
   newId,
   newSession,
@@ -281,6 +282,13 @@ export function useSessions(namespaceSlug: string) {
     [updateActive],
   );
 
+  // Wipe the tape but keep the session — a saved one writes the empty tape
+  // through like any other edit.
+  const clearEntries = useCallback(
+    () => updateActive((s) => clearSessionEntries(s)),
+    [updateActive],
+  );
+
   // The disk icon: persist the scratch session under a title (and optional
   // folder). On a saved session this renames it.
   const saveActive = useCallback(
@@ -465,6 +473,7 @@ export function useSessions(namespaceSlug: string) {
     noteEntry,
     starEntry,
     deleteEntry,
+    clearEntries,
     retitleActive,
     setMode,
     saveActive,

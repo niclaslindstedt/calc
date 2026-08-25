@@ -50,6 +50,15 @@ npm run dev
    button, or switch namespaces (separate workspaces) from the switcher on
    top.
 
+## Erasing
+
+The keypad has a single erase key, and it follows the display. While there
+are characters on it the key reads `⌫` — a tap takes one back, a press-and-
+hold wipes the expression. Once the display is empty it reads `C`: there is
+nothing left to erase, so a tap does nothing, and a press-and-hold offers to
+clear the session's tape instead (it confirms first — entries, notes and
+stars go together, and nothing brings them back).
+
 ## Modes
 
 The top-bar buttons switch the keypad layout: **basic** (`123`),

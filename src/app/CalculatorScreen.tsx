@@ -34,6 +34,9 @@ type Props = {
   onNoteEntry: (entryId: string, note: string) => void;
   onStarEntry: (entryId: string) => void;
   onDeleteEntry: (entryId: string) => void;
+  // Asked for by a long press on `C` with nothing left to erase. The screen
+  // only requests it — App owns the confirmation.
+  onClearHistory: () => void;
 };
 
 // How far a downward drag on the display must travel to latch the tape open.
@@ -61,6 +64,7 @@ export function CalculatorScreen({
   onNoteEntry,
   onStarEntry,
   onDeleteEntry,
+  onClearHistory,
 }: Props) {
   const [expression, setExpression] = useState("");
   const [error, setError] = useState<string | null>(null);
@@ -148,14 +152,26 @@ export function CalculatorScreen({
     }
   }, [expression, chainFrom, onLogEntry]);
 
+  // The erase key reads the display. With characters on it a tap takes one
+  // back and a hold takes them all; with the display empty there is nothing
+  // to erase, so the tap does nothing and the hold offers the tape instead.
   const onKey = useCallback(
     (key: KeyDef) => {
-      if (key.action === "clear") clear();
-      else if (key.action === "backspace") backspace();
-      else if (key.action === "equals") equals();
+      if (key.action === "clear") {
+        if (expression) backspace();
+      } else if (key.action === "equals") equals();
       else if (key.input) append(key.input);
     },
-    [clear, backspace, equals, append],
+    [expression, backspace, equals, append],
+  );
+
+  const onKeyLongPress = useCallback(
+    (key: KeyDef) => {
+      if (key.action !== "clear") return;
+      if (expression) clear();
+      else onClearHistory();
+    },
+    [expression, clear, onClearHistory],
   );
 
   // Hardware keyboard support.
@@ -224,7 +240,7 @@ export function CalculatorScreen({
         <div className="mt-auto">
           {session.entries.length === 0 ? (
             <p className="px-4 py-4 text-center text-xs text-muted">
-              Calculations that end with = land here.
+              No entries
             </p>
           ) : (
             session.entries.map((entry) => (
@@ -294,8 +310,9 @@ export function CalculatorScreen({
         mode={mode}
         hidden={hiddenKeys}
         keyFeedback={keyFeedback}
+        clearIsBackspace={expression.length > 0}
         onKey={onKey}
-        onBackspaceAlt={backspace}
+        onKeyLongPress={onKeyLongPress}
       />
     </div>
   );

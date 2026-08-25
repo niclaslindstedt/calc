@@ -83,6 +83,10 @@ and keep the session.
   offers its own expression or the whole chain folded into one bracketed
   expression. Left-swipe to reveal the note and delete actions. Every copy
   confirms with a brief label over the value it took.
+- **Erasing** — one key does all of it. With something on the display it
+  reads `⌫`: tap takes back a character, hold wipes the whole expression.
+  With the display empty it reads `C`, a tap does nothing (there is nothing
+  to erase), and a hold clears the session's tape after confirming.
 - **Modes** — the top-bar buttons switch the layout: basic (`123`),
   scientific (`sin`), programmer (`0x`). Settings → Layouts enables or
   disables modes, trims each mode's buttons, and creates new modes: pick a

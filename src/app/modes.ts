@@ -46,7 +46,11 @@ export type KeyDef = {
   // Text appended to the expression. `()` is the smart-paren key; absent for
   // action keys.
   input?: string;
-  action?: "clear" | "backspace" | "equals";
+  // `clear` is the erase key, and it reads the display: with characters typed
+  // it is a backspace (long press wipes them all), and once the display is
+  // empty it is `C` (an inert tap; long press clears the tape). See
+  // CalculatorScreen for the dispatch and Keypad for the face it wears.
+  action?: "clear" | "equals";
   tone?: KeyTone;
   // Grid columns this key spans (default 1).
   span?: number;
@@ -77,16 +81,12 @@ export function parseCustomModes(raw: unknown): CustomMode[] {
   );
 }
 
+// The one erase key every layout carries. It labels itself `C` or `⌫`
+// depending on whether anything has been typed — see the `action` note above.
 const CLEAR: KeyDef = {
   id: "clear",
   label: "C",
   action: "clear",
-  tone: "muted",
-};
-const BACKSPACE: KeyDef = {
-  id: "backspace",
-  label: "⌫",
-  action: "backspace",
   tone: "muted",
 };
 const EQUALS: KeyDef = {
@@ -152,9 +152,8 @@ const SCIENTIFIC: Mode = {
     { id: "pi", label: "π", input: "π", tone: "fn", optional: true },
     { id: "econst", label: "e", input: "e", tone: "fn", optional: true },
     { ...CLEAR, span: 2 },
-    PARENS,
+    { ...PARENS, span: 2 },
     { id: "mod", label: "%", input: "%", tone: "muted", optional: true },
-    BACKSPACE,
     digit("7"),
     digit("8"),
     digit("9"),
@@ -210,8 +209,7 @@ const PROGRAMMER: Mode = {
     digit("1"),
     digit("2"),
     digit("3"),
-    PARENS,
-    BACKSPACE,
+    { ...PARENS, span: 2 },
     { ...digit("0"), span: 2 },
     CLEAR,
     { ...EQUALS, span: 2 },

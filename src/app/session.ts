@@ -154,6 +154,14 @@ export function removeEntry(
   };
 }
 
+// Empty the tape but keep the session itself — its title, mode and folder
+// survive. This is what a long press on the keypad's `C` key asks for once
+// there are no typed characters left to erase.
+export function clearEntries(session: Session, now = Date.now()): Session {
+  if (session.entries.length === 0) return session;
+  return { ...session, entries: [], updatedAt: now };
+}
+
 // A scratch session with no entries and no title carries nothing worth
 // keeping — the UI discards it silently when switching away.
 export function isDiscardable(session: Session): boolean {

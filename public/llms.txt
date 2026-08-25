@@ -19,6 +19,9 @@
   the left gutter; tap an entry to copy its value, long-press to copy the
   expression (or, on a chained entry, the whole run folded into one
   bracketed expression), left-swipe for note/delete
+- Erase key: one key per layout — `⌫` (tap = backspace, hold = clear the
+  expression) while something is typed, `C` (tap = nothing, hold = clear the
+  tape) once the display is empty
 - Modes: basic / scientific / programmer, per-session, plus user-defined
   modes derived from a base layout; buttons can be hidden per mode
 - Sidebar: folders and namespaces for organizing sessions
