@@ -42,12 +42,12 @@ explains what it needs (a Chromium browser, or an app key baked into the
 build) instead of quietly disappearing. Connecting applies immediately; it is
 not staged behind the dialog's Save.
 
-| Backend      | Requirements                          | Notes                                                                                      |
-| ------------ | ------------------------------------- | ------------------------------------------------------------------------------------------ |
-| Device       | none                                  | The unconnected state: a tape lives in memory and the disk icon has nowhere to write.      |
-| Local folder | Chromium (File System Access API)     | The directory handle persists in IndexedDB; the browser re-asks permission after restarts. |
-| Dropbox      | `VITE_DROPBOX_APP_KEY` at build time  | PKCE redirect flow; tokens in localStorage.                                                |
-| Google Drive | `VITE_GOOGLE_CLIENT_ID` at build time | GIS popup tokens; re-prompts on expiry.                                                    |
+| Backend      | Requirements                          | Notes                                                                                                                             |
+| ------------ | ------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------- |
+| Device       | none                                  | The unconnected state: the working tape is kept on this device (IndexedDB) and the disk icon has nowhere to write named sessions. |
+| Local folder | Chromium (File System Access API)     | The directory handle persists in IndexedDB; the browser re-asks permission after restarts.                                        |
+| Dropbox      | `VITE_DROPBOX_APP_KEY` at build time  | PKCE redirect flow; tokens in localStorage.                                                                                       |
+| Google Drive | `VITE_GOOGLE_CLIENT_ID` at build time | GIS popup tokens; re-prompts on expiry.                                                                                           |
 
 The deploy workflows read the two OAuth identifiers from repository variables
 of the same name, so a fork that wants Dropbox or Drive sets

@@ -13,7 +13,9 @@
 
 ## Features
 
-- Sessions: scratch by default, saved with the disk icon, named like notes
+- Sessions: scratch by default, saved with the disk icon, named like notes;
+  the working tape is kept on the device (IndexedDB) so history survives a
+  reload with no backend connected
 - Display: result-first — the answer big on top, the expression under it,
   characters revealing one at a time as they are typed and operators drawn
   as bordered chips (`1 + 2`); a half-typed expression holds the last
@@ -36,9 +38,15 @@
   tape) once the display is empty
 - Modes: basic / scientific / programmer, per-session, plus user-defined
   modes derived from a base layout; buttons can be hidden per mode
+- Keyboard: digits, operators and function names type into the shared grammar
+  on any pad (`sqrt(2)+sin(0)` on the basic layout); Enter = `=`, Escape or
+  Delete clears
+- Brackets: one left open at the end closes itself — `sqrt(3` answers, and
+  the tape records `sqrt(3)`
 - Sidebar: folders and namespaces for organizing sessions
 - Storage: markdown files in a local folder or the cloud; localStorage holds
-  settings only
+  settings only, and the unsaved working tape is mirrored to IndexedDB so
+  history is not lost on reload
 - Themes, installable offline PWA
 
 ## Storage format

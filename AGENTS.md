@@ -10,7 +10,8 @@ Calc — a local-first calculator PWA built on
 `@niclaslindstedt/oss-framework` (Preact + Vite 8 + Tailwind v4). Sessions
 (calculator tapes with per-entry notes) save as markdown files with YAML
 front matter to a local folder, Dropbox, or Google Drive. localStorage holds
-settings only, never documents.
+settings only, never documents; the unsaved working tape is mirrored into
+IndexedDB (`scratch.ts`) so history survives a reload with no backend.
 
 ## Build and test commands
 
@@ -54,7 +55,9 @@ disk-save icon), and the modal siblings. State is hooks, not stores:
 - `useSessions(namespaceSlug)` — the document state: the active (possibly
   scratch) session, saved sessions + folders loaded from the storage
   backend, and every session/folder action. Debounced write-through for
-  saved sessions; scratch sessions are memory-only until the disk icon.
+  saved sessions; a scratch session is not a file until the disk icon, but
+  it is mirrored to the device (`scratch.ts`) and read back on the next
+  visit.
 - `useAppSettings()` — localStorage settings: gestures, key animation,
   enabled modes, per-mode hidden keys, custom modes.
 - `useNamespaces()` — the framework's namespace registry in localStorage.
@@ -71,8 +74,9 @@ or the first number salvaged out of text we cannot parse).
 Storage: `store.ts` builds a framework `FileStore` (folder / Dropbox /
 Drive) and binds it to sessions via `createSessionStore` — one markdown file
 per session under `calculations/` (namespaces prefix `<slug>/`), plus a
-`folders.json` registry. See `docs/architecture.md` and
-`docs/storage-format.md`.
+`folders.json` registry. `scratch.ts` is the device floor under that: the
+working tape as one IndexedDB record per namespace, in the same markdown the
+backends hold. See `docs/architecture.md` and `docs/storage-format.md`.
 
 ## Where new code goes
 
@@ -84,6 +88,7 @@ per session under `calculations/` (namespaces prefix `<slug>/`), plus a
 | Expression-chain rule          | `src/app/chain.ts` + chain tests (keep its precedence table in step with `evaluator.ts`)     |
 | File-format change             | `src/app/codec.ts` + `tests/codec_test.ts` + `docs/storage-format.md` + `examples/`          |
 | New storage backend            | `src/app/store.ts` (FileStore factory)                                                       |
+| Device-local persistence       | `src/app/scratch.ts` (IndexedDB) — never localStorage                                        |
 | New screen / modal             | `src/app/<Name>.tsx`, wired in `App.tsx`                                                     |
 | Settings key                   | `src/app/useAppSettings.ts` + Settings UI                                                    |
 | Build/deploy behavior          | `vite.config.ts` / `pwa-plugin.ts` / `.github/workflows/`                                    |
@@ -117,8 +122,9 @@ in `=`. No test-specific dependencies beyond vitest.
 - Every mode feeds the same evaluator grammar: never add a key whose stored
   expression text another mode cannot re-evaluate.
 - localStorage is for settings/pointers only (`calc:*` keys); session
-  documents go through the storage backend. Do not add document data to
-  localStorage.
+  documents go through the storage backend, and the one device-local
+  document — the unsaved working tape — goes through `scratch.ts`
+  (IndexedDB). Do not add document data to localStorage.
 - The serialize → parse → serialize round trip must stay byte-identical
   (`tests/codec_test.ts` enforces it); entry ids are derived on parse, never
   stored.

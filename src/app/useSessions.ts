@@ -2,9 +2,14 @@
 //
 // The app's document state: the active (possibly scratch) session, the saved
 // sessions and folders read from the storage backend, and the actions the UI
-// dispatches. A scratch session lives only in memory — it becomes a file the
-// moment the user saves it with the disk icon; saved sessions write through
-// (debounced) on every change.
+// dispatches. A scratch session is not a file — it becomes one the moment the
+// user saves it with the disk icon; saved sessions write through (debounced)
+// on every change.
+//
+// Not a file is not the same as not kept: the scratch tape is mirrored onto
+// the device as it changes (scratch.ts) and read back on the next visit, so a
+// history nobody clears outlives the tab it was typed in — with or without a
+// storage backend behind it.
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
@@ -36,6 +41,7 @@ import {
   type BackendId,
   type SessionStore,
 } from "./store.ts";
+import { clearScratch, readScratch, writeScratch } from "./scratch.ts";
 import { error as logError, status, warn } from "../output.ts";
 import {
   appendEntry,
@@ -169,14 +175,61 @@ export function useSessions(namespaceSlug: string) {
   }, [connected, storeEpoch, rebuildStore, refresh]);
 
   // Switching namespace resets the working session (each namespace is its
-  // own workspace); a scratch tape with content is intentionally dropped —
-  // it was never saved.
+  // own workspace); the tape left behind is not lost, it is the other
+  // namespace's own scratch record and comes back with it.
   const nsRef = useRef(namespaceSlug);
   useEffect(() => {
     if (nsRef.current === namespaceSlug) return;
     nsRef.current = namespaceSlug;
     setActive(newSession());
   }, [namespaceSlug]);
+
+  // ---- the scratch tape, kept on this device -----------------------------
+  // A scratch session is nobody's file, so without this the tape would last
+  // exactly as long as the tab: one reload and every calculation on it would
+  // be gone, backend or no backend. It is mirrored into IndexedDB instead and
+  // read back on the next visit, so a history the user never clears is never
+  // taken from them either. A saved session needs no device copy — its file
+  // in the storage backend is the durable one.
+
+  // The namespace whose device copy has been read, so the mirror below cannot
+  // overwrite — or delete — a tape it has not seen yet. It holds the slug
+  // rather than a flag because a namespace switch renders the new slug while
+  // the old namespace's tape is still the active one: a boolean would be true
+  // for that one render and write the outgoing tape into the incoming
+  // namespace's record.
+  const [scratchLoadedFor, setScratchLoadedFor] = useState<string | null>(null);
+  useEffect(() => {
+    let cancelled = false;
+    void (async () => {
+      const restored = await readScratch(namespaceSlug);
+      if (cancelled) return;
+      // Onto an untouched tape only: a calculation made while the read was in
+      // flight is the newer one, and the mirror below keeps it instead.
+      if (restored) {
+        setActive((prev) => (isDiscardable(prev) ? restored : prev));
+      }
+      setScratchLoadedFor(namespaceSlug);
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [namespaceSlug]);
+
+  // Every change to an unsaved tape lands on the device as it happens — the
+  // session only changes on a finished action (`=`, a committed note, a star,
+  // a rename), so there is nothing here worth debouncing and nothing left
+  // unwritten if the tab closes a moment later.
+  useEffect(() => {
+    if (scratchLoadedFor !== namespaceSlug) return;
+    // An empty untitled tape leaves no record behind, and neither does one
+    // that has become a file: clearing the history is meant to clear it.
+    if (activeIsSaved || isDiscardable(active)) {
+      void clearScratch(namespaceSlug);
+      return;
+    }
+    void writeScratch(namespaceSlug, active);
+  }, [active, activeIsSaved, namespaceSlug, scratchLoadedFor]);
 
   // Pick a local folder and switch to it. The framework persists the handle to
   // IndexedDB so the grant survives reloads. A dismissed picker or a declined

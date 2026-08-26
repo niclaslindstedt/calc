@@ -20,6 +20,10 @@
 //   primary    := number | constant | function "(" expression ")"
 //              | "(" expression ")"
 //
+// Brackets left open on the end are closed for the caller — `sin(2` reads as
+// `sin(2)` (closeParens below), so a calculator with no cursor never has to
+// go back for the keystroke that was never in doubt.
+//
 // `%` is the modulo operator, not percent — matching how the tape reads back
 // as plain text. Trig works in radians. Bitwise operators require integer
 // operands and evaluate over BigInt (64-bit range), so programmer-mode
@@ -331,10 +335,33 @@ class Parser {
   }
 }
 
-// Evaluate an infix expression. Throws EvalError on malformed input,
-// division by zero, or a non-finite result (overflow).
+// The `)`s an expression is short of, added on the end. A calculator display
+// has no cursor: brackets are opened left to right and there is never a way
+// back into the middle of one, so a trailing `sin(2` can only ever have meant
+// `sin(2)` — the run of closers that finishes it is the only reading there is.
+// Closing them for the user is what a calculator does; leaving `sin(2` to fail
+// would only ask for the one keystroke whose position was never in doubt.
+//
+// Only the tail is filled in. A `)` that arrives with nothing open (`(1+2))`)
+// is a genuine mistake rather than an omission, so the text is handed to the
+// parser untouched and it says so.
+export function closeParens(expression: string): string {
+  let depth = 0;
+  for (const ch of expression) {
+    if (ch === "(") depth += 1;
+    else if (ch === ")") {
+      depth -= 1;
+      if (depth < 0) return expression;
+    }
+  }
+  return depth > 0 ? expression + ")".repeat(depth) : expression;
+}
+
+// Evaluate an infix expression, closing any brackets left open on the end
+// (see closeParens). Throws EvalError on malformed input, division by zero,
+// or a non-finite result (overflow).
 export function evaluate(expression: string): number {
-  const value = new Parser(tokenize(expression)).parse();
+  const value = new Parser(tokenize(closeParens(expression))).parse();
   if (!Number.isFinite(value)) throw new EvalError("result is not finite");
   return value;
 }

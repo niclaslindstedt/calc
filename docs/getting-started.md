@@ -103,12 +103,21 @@ Settings → Layouts lets you:
 
 ## Keyboard
 
-Digits and operators type straight in (`*` and `x`-less spellings both
-work); `Enter` = `=`, `Backspace` deletes, and `C` or `Escape` clears — on the
-programmer pad `C` stays the hex digit its button spells, so use `Escape`
-there. `sqrt(`, `sin(`, `0xFF`, `1 << 8`, `5!` are all valid in any mode —
-layouts only decide which buttons are visible, not what the evaluator accepts.
+Digits, operators and names type straight in, and the operators land as the
+glyphs the keypad draws — a typed `*`, `/` and `-` go onto the display as `×`,
+`÷` and `−`, so an expression reads the same whichever way it was entered.
+`Enter` = `=`, `Backspace` deletes, and `Escape` or `Delete` clears. A
+shifted `C` clears as well, except on the programmer pad where `C` stays the
+hex digit its button spells; the unshifted `c` types, because it is the start
+of `cos(`, `ceil(` and `cbrt(`.
 
-Whatever you type lights the button that answered it: the cap dips, its glyph
+`sqrt(`, `sin(`, `0xFF`, `1 << 8`, `5!` are all valid in any mode, and a
+keyboard can type every one of them on any pad — layouts only decide which
+buttons are worth a thumb, not what the calculator accepts. A bracket left
+open at the end closes itself, so `sqrt(3` and `(25+3)*(5+1` answer as
+written and the tape records the finished expression.
+
+Whatever you type lights the button that answered it, where this pad has
+one: the cap dips, its glyph
 takes the theme accent, and a soft halo fades out of it — the same feedback a
 tap gives, so the pad still reads as the thing you are driving.
