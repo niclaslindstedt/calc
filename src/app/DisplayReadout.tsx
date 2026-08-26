@@ -33,12 +33,26 @@ const EXPRESSION_TEXT_SIZE: Record<DisplayTextSize, string> = {
 // The floor the display keeps for itself on the calculator screen. It grows
 // into whatever the tape leaves, but it must never shrink under the type it
 // was asked to draw — the readout is bottom-aligned and clipped, so a floor
-// set for the small size would cut the top off the big one.
+// short of the three lines cuts the top off the result and then eats into the
+// expression under it.
+//
+// So each step is the sum of what it draws, at the size it draws it: the
+// result (`leading-none`, so its own type size), the expression line (1.4em
+// of its own), the hex/error line (1.25rem), the two 0.25rem gaps between
+// them, and the 1rem of padding the display carries top and bottom.
+//
+//   s    1.5  + 1.225 + 1.25 + 0.5 + 2 = 6.475rem
+//   m    2.25 + 1.4   + 1.25 + 0.5 + 2 = 7.4rem
+//   l    3    + 1.75  + 1.25 + 0.5 + 2 = 8.5rem
+//   xl   3.75 + 2.1   + 1.25 + 0.5 + 2 = 9.6rem
+//
+// …rounded up to the next quarter rem, so a font whose metrics round the
+// other way still has somewhere to put the difference.
 export const DISPLAY_MIN_HEIGHT: Record<DisplayTextSize, string> = {
-  s: "min-h-[4.5rem]",
-  m: "min-h-[5.5rem]",
-  l: "min-h-[7rem]",
-  xl: "min-h-[8.5rem]",
+  s: "min-h-[6.5rem]",
+  m: "min-h-[7.5rem]",
+  l: "min-h-[8.75rem]",
+  xl: "min-h-[9.75rem]",
 };
 
 type Props = {

@@ -15,8 +15,9 @@ main.tsx
     ├── SidebarRails.tsx       the two collapse rails: the docked sidebar's
     │                          edge grip, and the one above the footer
     ├── SideMenuContent.tsx    namespaces, folders, saved sessions, footer
-    ├── CalculatorScreen.tsx   tape (always visible), the draggable seam,
-    │   │                      display, Keypad
+    ├── CalculatorScreen.tsx   tape (always visible, and a drag handle in
+    │   │                      its own right), the draggable seam, display,
+    │   │                      Keypad
     │   ├── DisplayReadout.tsx result on top, expression under it, error or
     │   │                      hex below; sized by the Appearance setting
     │   ├── RevealText.tsx     the expression's per-character reveal
