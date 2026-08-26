@@ -46,6 +46,7 @@ import { chainExpression } from "./chain.ts";
 import { ClipboardPill } from "./ClipboardPill.tsx";
 import { DISPLAY_MIN_HEIGHT, DisplayReadout } from "./DisplayReadout.tsx";
 import { evaluate, EvalError, formatHex, formatResult } from "./evaluator.ts";
+import { toggleSign } from "./expression.ts";
 import { HistoryEntryRow } from "./HistoryEntryRow.tsx";
 import { GrabHandleIcon } from "./icons.tsx";
 import { Keypad } from "./Keypad.tsx";
@@ -279,6 +280,13 @@ export function CalculatorScreen({
     setExpression((prev) => prev + text);
   }, []);
 
+  // The `±` key: it rewrites the value the display ends on rather than adding
+  // to the expression — see toggleSign.
+  const negate = useCallback(() => {
+    setError(null);
+    setExpression((prev) => toggleSign(prev));
+  }, []);
+
   const clear = useCallback(() => {
     setError(null);
     setExpression("");
@@ -334,9 +342,10 @@ export function CalculatorScreen({
       if (key.action === "clear") {
         if (expression) backspace();
       } else if (key.action === "equals") equals();
+      else if (key.action === "negate") negate();
       else if (key.input) append(key.input);
     },
-    [expression, backspace, equals, append],
+    [expression, backspace, equals, negate, append],
   );
 
   const onKeyLongPress = useCallback(
