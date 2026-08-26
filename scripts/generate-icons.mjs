@@ -1,8 +1,8 @@
 #!/usr/bin/env node
 // Generate the PWA install icons and the social-preview image from the same
-// geometry as public/icons/icon.svg — a bold equals sign filled with an amber
-// gradient on the app's dark surface (the single-glyph style shared with the
-// sibling notes, checklist, and contacts apps, in this app's own hue). Pure
+// geometry as public/icons/icon.svg — a bold division sign filled with the
+// family's green gradient on the app's dark surface (the single-glyph style
+// shared with the sibling notes, checklist, and contacts apps). Pure
 // Node (zlib + a minimal PNG encoder), so the pipeline needs no native image
 // dependencies. Rerun with `npm run icons` / `make icons` after changing the
 // mark.
@@ -15,15 +15,15 @@ const root = join(dirname(fileURLToPath(import.meta.url)), "..");
 const iconsDir = join(root, "public", "icons");
 mkdirSync(iconsDir, { recursive: true });
 
-// The app look's surface (see src/app/look.ts) and the mark's amber gradient.
+// The app look's surface (see src/app/look.ts) and the mark's green gradient.
 // Kept in lockstep with the <linearGradient> stops in public/icons/icon.svg.
 const BG = [11, 13, 16]; // #0b0d10
-const GRAD_TOP = [253, 224, 71]; // #fde047
-const GRAD_BOT = [245, 158, 11]; // #f59e0b
+const GRAD_TOP = [134, 239, 172]; // #86efac
+const GRAD_BOT = [74, 222, 128]; // #4ade80
 // The gradient runs top-to-bottom over the mark's vertical extent (unit
 // space), matching the userSpaceOnUse y1/y2 span in the SVG.
-const GRAD_Y0 = 0.3;
-const GRAD_Y1 = 0.7;
+const GRAD_Y0 = 0.2;
+const GRAD_Y1 = 0.8;
 
 // The mark's ink at unit-space height `y`, interpolated along the gradient.
 function markInk(y) {
@@ -108,21 +108,24 @@ function encodePng(width, height, rgba) {
 // Sub-pixel sample offsets, used on both axes (a 4×4 grid per pixel).
 const SAMPLES = [1 / 8, 3 / 8, 5 / 8, 7 / 8];
 
-// The equals sign: two rounded horizontal bars (unit space). Mirrors the
-// <rect> geometry in public/icons/icon.svg — bars from x=0.24 to x=0.76,
-// height 0.14, centred at y=0.385 and y=0.615, corner radius 0.055.
+// The division sign: a rounded horizontal bar between two dots (unit space).
+// Mirrors the geometry in public/icons/icon.svg — bar from x=0.24 to x=0.76,
+// height 0.14, centred at y=0.5, corner radius 0.055; dots of radius 0.08
+// centred at (0.5, 0.28) and (0.5, 0.72).
 const BAR_X0 = 0.24;
 const BAR_X1 = 0.76;
 const BAR_H = 0.14;
 const BAR_R = 0.055;
-const BAR_CY = [0.385, 0.615];
+const BAR_CY = 0.5;
+const DOT_R = 0.08;
+const DOT_CY = [0.28, 0.72];
 
-// Signed-distance test for one rounded bar centred at `cy`.
-function inBar(x, y, cy) {
+// Signed-distance test for the rounded bar.
+function inBar(x, y) {
   const hw = (BAR_X1 - BAR_X0) / 2 - BAR_R;
   const hh = BAR_H / 2 - BAR_R;
   const qx = Math.abs(x - (BAR_X0 + BAR_X1) / 2) - hw;
-  const qy = Math.abs(y - cy) - hh;
+  const qy = Math.abs(y - BAR_CY) - hh;
   const d =
     Math.hypot(Math.max(qx, 0), Math.max(qy, 0)) +
     Math.min(Math.max(qx, qy), 0) -
@@ -130,9 +133,11 @@ function inBar(x, y, cy) {
   return d <= 0;
 }
 
-// Whether unit-space point (x, y) lands on the solid equals mark.
+// Whether unit-space point (x, y) lands on the solid division mark.
 function inMark(x, y) {
-  return inBar(x, y, BAR_CY[0]) || inBar(x, y, BAR_CY[1]);
+  return (
+    inBar(x, y) || DOT_CY.some((cy) => Math.hypot(x - 0.5, y - cy) <= DOT_R)
+  );
 }
 
 // Render size×size RGBA. The mark carries its own margin inside the unit
@@ -201,7 +206,7 @@ function renderOg() {
     for (let px = 0; px < w; px++) {
       const i = (py * w + px) * 4;
       let [cr, cg, cb] = BG;
-      // The equals mark, drawn with the same gradient ink as the icons.
+      // The division mark, drawn with the same gradient ink as the icons.
       if (
         px >= markX &&
         px < markX + markSize &&
