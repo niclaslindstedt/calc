@@ -32,6 +32,26 @@ body {
   font-family: var(--app-font-family, "JetBrains Mono", monospace);
 }
 
+/* No native text selection anywhere. Copy is a first-class gesture here — the
+   display's clipboard bar, a tape entry's tap/long-press/right-click menu —
+   so the platform answering the same gestures with blue selection handles is
+   never what was meant: a tap that lands a hair above the keypad would paint
+   a selection across the tape ("No entries" included). The iOS callout is
+   suppressed for the same reason — a long press is already spoken for.
+   Fields where the user actually types (session title, entry notes, settings
+   inputs) opt back in below. */
+body {
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-touch-callout: none;
+}
+
+input,
+textarea {
+  -webkit-user-select: text;
+  user-select: text;
+}
+
 /* Installed iOS PWA edge-to-edge under the home indicator — the fix the
    sibling apps landed (contacts' `src/styles.css`). iOS only extends the page
    under the home indicator when the *root* element carries a fixed `100vh`
