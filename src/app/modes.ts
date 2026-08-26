@@ -50,10 +50,17 @@ export type KeyDef = {
   // it is a backspace (long press wipes them all), and once the display is
   // empty it is `C` (an inert tap; long press clears the tape). See
   // CalculatorScreen for the dispatch and Keypad for the face it wears.
-  action?: "clear" | "equals";
+  //
+  // `negate` flips the sign of the number the display is on — an edit to the
+  // expression rather than something appended to it (see toggleSign in
+  // expression.ts).
+  action?: "clear" | "equals" | "negate";
   tone?: KeyTone;
   // Grid columns this key spans (default 1).
   span?: number;
+  // Grid rows this key spans (default 1). A tall key claims its column in the
+  // rows below it, which those rows lay out around — see layoutRows.
+  rowSpan?: number;
   // Hideable in Settings → Layouts.
   optional?: boolean;
 };
@@ -102,36 +109,50 @@ const PARENS: KeyDef = {
   tone: "muted",
   optional: true,
 };
+const NEGATE: KeyDef = {
+  id: "neg",
+  label: "±",
+  action: "negate",
+  tone: "muted",
+  optional: true,
+};
 
 function digit(d: string): KeyDef {
   return { id: `d${d}`, label: d, input: d, tone: "digit" };
 }
 
+// The basic pad, four columns and six rows: a row of the extras that turn a
+// plain sum into an expression (sign, brackets, root), the digit block with
+// the operators down the right-hand edge, and `+` drawn tall over the last
+// two rows so the erase and `=` keys get the bottom row to themselves.
 const BASIC: Mode = {
   id: "basic",
   name: "Basic",
   shortName: "123",
   columns: 4,
   keys: [
-    CLEAR,
-    PARENS,
-    { id: "mod", label: "%", input: "%", tone: "muted", optional: true },
-    { id: "div", label: "÷", input: "÷", tone: "op" },
+    NEGATE,
+    { id: "lparen", label: "(", input: "(", tone: "muted", optional: true },
+    { id: "rparen", label: ")", input: ")", tone: "muted", optional: true },
+    { id: "sqrt", label: "√", input: "sqrt(", tone: "muted", optional: true },
     digit("7"),
     digit("8"),
     digit("9"),
-    { id: "mul", label: "×", input: "×", tone: "op" },
+    { id: "div", label: "÷", input: "÷", tone: "op" },
     digit("4"),
     digit("5"),
     digit("6"),
-    { id: "sub", label: "−", input: "−", tone: "op" },
+    { id: "mul", label: "×", input: "×", tone: "op" },
     digit("1"),
     digit("2"),
     digit("3"),
-    { id: "add", label: "+", input: "+", tone: "op" },
-    { ...digit("0"), span: 2 },
+    { id: "sub", label: "−", input: "−", tone: "op" },
+    digit("0"),
     { id: "dot", label: ".", input: ".", tone: "digit" },
-    EQUALS,
+    { id: "mod", label: "%", input: "%", tone: "muted", optional: true },
+    { id: "add", label: "+", input: "+", tone: "op", rowSpan: 2 },
+    CLEAR,
+    { ...EQUALS, span: 2 },
   ],
 };
 
@@ -249,8 +270,9 @@ export function visibleKeys(mode: Mode, hidden: readonly string[]): KeyDef[] {
   return mode.keys.filter((k) => !k.optional || !hidden.includes(k.id));
 }
 
-// A key with the width it actually occupies once the layout is packed.
-export type PlacedKey = KeyDef & { span: number };
+// A key with the width and height it actually occupies once the layout is
+// packed.
+export type PlacedKey = KeyDef & { span: number; rowSpan: number };
 
 // Pack a mode into rows of exactly `columns` width.
 //
@@ -261,44 +283,70 @@ export type PlacedKey = KeyDef & { span: number };
 // function row's remaining keys grow, while `7 8 9 ÷ ×` stays put. It also
 // means `=` can never be stranded alone next to four empty columns — a row
 // that loses everything else simply hands its width to the survivor.
+//
+// A key with a `rowSpan` (the basic pad's tall `+`) claims its column in the
+// rows beneath it as well. Those rows are laid out into what is left of the
+// grid, and a tall key is never the one widened by a trim — growing it would
+// steal a column from a row that has already been packed.
 export function layoutRows(
   mode: Mode,
   hidden: readonly string[] = [],
 ): PlacedKey[][] {
   const { columns } = mode;
   const span = (key: KeyDef) => Math.min(Math.max(key.span ?? 1, 1), columns);
+  const rowSpan = (key: KeyDef) => Math.max(key.rowSpan ?? 1, 1);
 
-  // 1. Rows as authored.
+  // 1. Rows as authored, with each tall key's column reserved in the rows it
+  //    reaches into. `taken[0]` is the row being filled.
   const authored: KeyDef[][] = [];
+  const taken: number[] = [];
+  const shift = () => taken.shift() ?? 0;
   let row: KeyDef[] = [];
-  let used = 0;
+  let used = shift();
+  const closeRow = () => {
+    authored.push(row);
+    row = [];
+    used = shift();
+  };
   for (const key of mode.keys) {
-    if (used + span(key) > columns) {
-      authored.push(row);
-      row = [];
-      used = 0;
-    }
+    if (used + span(key) > columns) closeRow();
     row.push(key);
     used += span(key);
+    for (let r = 0; r < rowSpan(key) - 1; r += 1) {
+      taken[r] = (taken[r] ?? 0) + span(key);
+    }
   }
   if (row.length > 0) authored.push(row);
 
   // 2. Drop the hidden keys and widen the rest back out to the full grid,
-  //    growing from the right so the leading keys keep their size.
+  //    growing from the right so the leading keys keep their size. A row that
+  //    empties out is not drawn at all, so what a tall key above it reaches
+  //    into is the next row that *is* — hence the same running reservation
+  //    rather than an index into the authored rows.
   const rows: PlacedKey[][] = [];
+  const reserved: number[] = [];
   for (const source of authored) {
     const kept = source
       .filter((key) => !key.optional || !hidden.includes(key.id))
-      .map((key) => ({ ...key, span: span(key) }));
+      .map((key) => ({ ...key, span: span(key), rowSpan: rowSpan(key) }));
     if (kept.length === 0) continue;
-    let leftover = columns - kept.reduce((sum, key) => sum + key.span, 0);
+    const free = columns - (reserved.shift() ?? 0);
+    let leftover = free - kept.reduce((sum, key) => sum + key.span, 0);
+    // Only the single-row keys grow: widening a tall one would take a column
+    // out of the rows below it, which are packed against the width it had.
+    const growable = kept.filter((key) => key.rowSpan === 1);
     for (
-      let i = kept.length - 1;
-      leftover > 0;
-      i = i === 0 ? kept.length - 1 : i - 1
+      let i = growable.length - 1;
+      leftover > 0 && growable.length > 0;
+      i = i === 0 ? growable.length - 1 : i - 1
     ) {
-      kept[i].span += 1;
+      growable[i].span += 1;
       leftover -= 1;
+    }
+    for (const key of kept) {
+      for (let r = 0; r < key.rowSpan - 1; r += 1) {
+        reserved[r] = (reserved[r] ?? 0) + key.span;
+      }
     }
     rows.push(kept);
   }

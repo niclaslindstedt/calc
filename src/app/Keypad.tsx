@@ -134,7 +134,19 @@ function KeypadKey({
       type="button"
       className={`${className}${hit ? " calc-key-hit" : ""}`}
       style={
-        keyDef.span > 1 ? { gridColumn: `span ${keyDef.span}` } : undefined
+        keyDef.span > 1 || keyDef.rowSpan > 1
+          ? {
+              ...(keyDef.span > 1
+                ? { gridColumn: `span ${keyDef.span}` }
+                : null),
+              // A tall key (the basic pad's `+`) takes its column in the row
+              // below too; the keys of that row are packed around it, so
+              // auto-placement flows them into what is left.
+              ...(keyDef.rowSpan > 1
+                ? { gridRow: `span ${keyDef.rowSpan}` }
+                : null),
+            }
+          : undefined
       }
       aria-pressed={ariaPressed}
       aria-disabled={ariaDisabled}

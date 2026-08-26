@@ -143,3 +143,100 @@ export function expressionSegments(text: string): ExpressionSegment[] {
   flush();
   return segments;
 }
+
+// The characters an operand can follow, so a `−` written after one of them is
+// a sign rather than a subtraction. An empty left-hand side counts too.
+const OPERAND_START = new Set([
+  "+",
+  "-",
+  "−",
+  "*",
+  "×",
+  "/",
+  "÷",
+  "%",
+  "^",
+  "&",
+  "|",
+  "<",
+  ">",
+  "(",
+]);
+
+// The characters a number, constant or literal is spelled with — `0x1F`, `π`
+// and `12.5` are each one operand, not several.
+const VALUE_CHARS = /[0-9.A-Za-zπ]/;
+
+// The minus at `i` reads as a sign rather than a subtraction: nothing, an
+// operator or an open bracket sits to its left, so it has no operand to take
+// anything away from.
+function signAt(text: string, i: number): boolean {
+  const before = text.slice(0, i).trimEnd();
+  return before === "" || OPERAND_START.has(before[before.length - 1]);
+}
+
+/**
+ * Where the value `text` ends on begins — the start of `34` in `12+34`, of
+ * `sqrt(9)` in `1+sqrt(9)`, of `0x1F` in `0x1F`. −1 when the expression does
+ * not end on a value at all (it is empty, or its last character is an
+ * operator or an open bracket).
+ *
+ * Brackets are matched back to their opener so a whole call counts as the one
+ * operand it evaluates to, and a name in front of that bracket goes with it.
+ */
+function operandStart(text: string): number {
+  // Factorials bind to the value on their left, so they are part of it.
+  let i = text.length;
+  while (i > 0 && text[i - 1] === "!") i -= 1;
+  if (i === 0) return -1;
+
+  if (text[i - 1] === ")") {
+    let depth = 0;
+    while (i > 0) {
+      const ch = text[i - 1];
+      if (ch === ")") depth += 1;
+      else if (ch === "(") depth -= 1;
+      i -= 1;
+      if (depth === 0) break;
+    }
+    // An unbalanced `)` is not a value; leave it to the evaluator to complain.
+    if (depth !== 0) return -1;
+    while (i > 0 && VALUE_CHARS.test(text[i - 1])) i -= 1;
+    return i;
+  }
+
+  if (!VALUE_CHARS.test(text[i - 1])) return -1;
+  while (i > 0 && VALUE_CHARS.test(text[i - 1])) i -= 1;
+  return i;
+}
+
+/**
+ * The expression with the sign of the value the display ends on flipped — the
+ * `±` key.
+ *
+ * It edits that value rather than appending to the expression: the value takes
+ * a `−` in front of it, and one that already carries a sign gives it back, so
+ * the key is its own undo. With no value to work on (an empty display, or one
+ * that ends on an operator) the sign goes down on its own, ready for the
+ * digits about to be typed.
+ *
+ * The result stays inside the one grammar every mode shares: a leading `−` is
+ * the evaluator's unary minus, and the display already reads a sign as welded
+ * to the value that follows it (see expressionSegments above), so `12+−5`
+ * sets as `12 [+] −5`.
+ */
+export function toggleSign(text: string): string {
+  const at = operandStart(text);
+  if (at >= 0) {
+    const before = text[at - 1];
+    if ((before === "-" || before === "−") && signAt(text, at - 1)) {
+      return text.slice(0, at - 1) + text.slice(at);
+    }
+    return text.slice(0, at) + "−" + text.slice(at);
+  }
+  const last = text[text.length - 1];
+  if ((last === "-" || last === "−") && signAt(text, text.length - 1)) {
+    return text.slice(0, -1);
+  }
+  return text + "−";
+}

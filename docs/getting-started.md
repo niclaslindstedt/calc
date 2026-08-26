@@ -86,6 +86,13 @@ The top-bar buttons switch the keypad layout: **basic** (`123`),
 result). The active session remembers its mode — reopening it resumes the
 layout you left it in.
 
+The basic pad holds the digits with the operators down its right-hand edge —
+`+` is drawn tall across the bottom two rows — and a row of `±`, `(`, `)` and
+`√` above them, with the erase key and `=` along the foot. `±` signs the value
+the display ends on (`12+34` becomes `12+−34`) and pressing it again takes the
+sign back off; with nothing typed yet it lays the sign down for the number you
+are about to enter.
+
 Settings → Layouts lets you:
 
 - enable/disable modes in the top bar,

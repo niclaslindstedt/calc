@@ -116,7 +116,11 @@ and keep the session.
   With the display empty it reads `C`, a tap does nothing (there is nothing
   to erase), and a hold clears the session's tape after confirming.
 - **Modes** — the top-bar buttons switch the layout: basic (`123`),
-  scientific (`sin`), programmer (`0x`). Settings → Layouts enables or
+  scientific (`sin`), programmer (`0x`). The basic pad is the digits with the
+  operators down its right-hand edge (`+` drawn tall over the bottom two
+  rows), a row of `±`, `(`, `)` and `√` above them, and erase and `=` along
+  the foot. `±` flips the sign of the value the display ends on — press it
+  again and the sign comes back off. Settings → Layouts enables or
   disables modes, trims each mode's buttons, and creates new modes: pick a
   base layout, press the buttons you want gone, name it.
 - **Folders & namespaces** — the sidebar's folder button creates folders

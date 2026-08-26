@@ -85,8 +85,20 @@ describe("custom modes", () => {
 });
 
 describe("layoutRows", () => {
-  const rowWidths = (rows: ReturnType<typeof layoutRows>) =>
-    rows.map((row) => row.reduce((sum, key) => sum + key.span, 0));
+  // What each row actually claims of the grid: its own keys, plus the columns
+  // a tall key from a row above is still holding.
+  const rowWidths = (rows: ReturnType<typeof layoutRows>) => {
+    const carried: number[] = [];
+    return rows.map((row, i) => {
+      const width = row.reduce((sum, key) => sum + key.span, carried[i] ?? 0);
+      for (const key of row) {
+        for (let r = 1; r < key.rowSpan; r += 1) {
+          carried[i + r] = (carried[i + r] ?? 0) + key.span;
+        }
+      }
+      return width;
+    });
+  };
 
   it("flows every built-in layout into full rows as authored", () => {
     for (const id of BUILTIN_MODE_IDS) {
@@ -101,7 +113,45 @@ describe("layoutRows", () => {
       expect(rows.flat().map((k) => k.span)).toEqual(
         mode.keys.map((k) => k.span ?? 1),
       );
+      expect(rows.flat().map((k) => k.rowSpan)).toEqual(
+        mode.keys.map((k) => k.rowSpan ?? 1),
+      );
     }
+  });
+
+  it("lays the basic pad out as the six rows it is drawn in", () => {
+    expect(layoutRows(MODES.basic).map((row) => row.map((k) => k.id))).toEqual([
+      ["neg", "lparen", "rparen", "sqrt"],
+      ["d7", "d8", "d9", "div"],
+      ["d4", "d5", "d6", "mul"],
+      ["d1", "d2", "d3", "sub"],
+      ["d0", "dot", "mod", "add"],
+      ["clear", "equals"],
+    ]);
+  });
+
+  it("packs a row around the tall key reaching into it", () => {
+    const rows = layoutRows(MODES.basic);
+    const tall = rows[4].find((k) => k.id === "add");
+    expect(tall?.rowSpan).toBe(2);
+    // `+` holds the fourth column of the bottom row, so erase and `=` have
+    // three columns between them rather than four.
+    expect(rows[5].map((k) => k.span)).toEqual([1, 2]);
+  });
+
+  it("never widens a tall key when its row is trimmed", () => {
+    // `%` leaves the row `+` is drawn tall in; growing `+` would take a column
+    // out of the bottom row, which is already packed against it.
+    const rows = layoutRows(MODES.basic, ["mod"]);
+    expect(rows[4].map((k) => [k.id, k.span])).toEqual([
+      ["d0", 1],
+      ["dot", 2],
+      ["add", 1],
+    ]);
+    expect(rows[5].map((k) => [k.id, k.span])).toEqual([
+      ["clear", 1],
+      ["equals", 2],
+    ]);
   });
 
   it("never leaves `=` alone on a narrow row", () => {
