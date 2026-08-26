@@ -35,10 +35,16 @@ The cloud backends only appear when the build was given
 
 ## Nothing is saved / my session disappeared
 
-A tape is scratch by default — it lives in memory until the disk icon saves
-it, and an untouched scratch tape is dropped when you open another session.
-Connect a backend (Settings → Storage) and press the disk icon; the session
-then appears in the sidebar and writes through on every change.
+A tape is scratch by default — it is not a file until the disk icon saves it.
+The tape you are working on is still kept on the device (IndexedDB) and comes
+back when you return, so an ordinary reload loses nothing; what does end it is
+clearing the tape yourself, or opening another session, which puts the scratch
+tape away. Private-browsing windows may refuse the device copy, and clearing
+site data takes it with everything else.
+
+For a tape that survives all of that — and syncs — connect a backend
+(Settings → Storage) and press the disk icon; the session then appears in the
+sidebar and writes through to the backend on every change.
 
 ## A session file didn't show up in the sidebar
 

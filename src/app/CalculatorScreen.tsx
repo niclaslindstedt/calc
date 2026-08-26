@@ -45,7 +45,13 @@ import {
 import { chainExpression } from "./chain.ts";
 import { ClipboardPill } from "./ClipboardPill.tsx";
 import { DISPLAY_MIN_HEIGHT, DisplayReadout } from "./DisplayReadout.tsx";
-import { evaluate, EvalError, formatHex, formatResult } from "./evaluator.ts";
+import {
+  closeParens,
+  evaluate,
+  EvalError,
+  formatHex,
+  formatResult,
+} from "./evaluator.ts";
 import { toggleSign } from "./expression.ts";
 import { HistoryEntryRow } from "./HistoryEntryRow.tsx";
 import { GrabHandleIcon } from "./icons.tsx";
@@ -88,8 +94,8 @@ const KEYSTROKE_ALIASES: Record<string, string> = {
  * cap for it — a mode that hides `%` still accepts a typed one, it just has
  * nothing to light.
  *
- * `typesHexC` mirrors the keydown handler's own reading of `c`: on a hex pad
- * it is the hex digit, everywhere else it is Clear.
+ * `typesHexC` mirrors the keydown handler's own reading of a shifted `C`: on
+ * a hex pad it is the hex digit, everywhere else it is Clear.
  */
 function keyIdForKeystroke(
   mode: Mode,
@@ -99,8 +105,10 @@ function keyIdForKeystroke(
   const byAction = (action: KeyDef["action"]) =>
     mode.keys.find((k) => k.action === action)?.id ?? null;
   if (key === "Enter" || key === "=") return byAction("equals");
-  if (key === "Backspace" || key === "Escape") return byAction("clear");
-  if (!typesHexC && (key === "c" || key === "C")) return byAction("clear");
+  if (key === "Backspace" || key === "Escape" || key === "Delete") {
+    return byAction("clear");
+  }
+  if (!typesHexC && key === "C") return byAction("clear");
   const input = KEYSTROKE_ALIASES[key] ?? key;
   const match =
     mode.keys.find((k) => k.input === input) ??
@@ -308,7 +316,10 @@ export function CalculatorScreen({
   }, [expression, chainFrom]);
 
   const equals = useCallback(() => {
-    const expr = expression.trim();
+    // Brackets still open are closed here rather than at evaluation time, so
+    // what the tape records is the whole expression the answer came from —
+    // `sin(2)`, re-evaluable in any mode, not the `sin(2` that was typed.
+    const expr = closeParens(expression.trim());
     if (!expr) return;
     try {
       const result = formatResult(evaluate(expr));
@@ -365,10 +376,17 @@ export function CalculatorScreen({
     [mode],
   );
 
-  // Hardware keyboard support. Every keystroke the calculator answers also
-  // lights the cap that answered it (`pressedKeyId`), so typing is felt on the
-  // pad the way tapping is. Auto-repeat keeps refreshing it, so a held key
-  // stays lit; the release clears it.
+  // Hardware keyboard support. A keyboard types into the one grammar every
+  // mode shares rather than into the pad in front of it: letters go through,
+  // so `sqrt(2)+sin(0)` types on the basic pad exactly as it does on the
+  // scientific one. The layouts stay layouts — what a pad shows is which keys
+  // are worth a thumb, not which expressions the calculator understands.
+  //
+  // Every keystroke the calculator answers also lights the cap that answered
+  // it (`pressedKeyId`), so typing is felt on the pad the way tapping is —
+  // where there is a cap for it; a typed name that no key on this pad spells
+  // simply lands on the display. Auto-repeat keeps refreshing the light, so a
+  // held key stays lit; the release clears it.
   const [pressedKeyId, setPressedKeyId] = useState<string | null>(null);
   useEffect(() => {
     const onKeydown = (e: KeyboardEvent) => {
@@ -382,14 +400,15 @@ export function CalculatorScreen({
         return;
       }
       if (e.metaKey || e.ctrlKey || e.altKey) return;
-      // `C` is the calculator's clear the world over, so the desktop keyboard
-      // gets it too — except on a pad that spends `C` as a hex digit, where
-      // typing one has to keep meaning what the cap says. Escape clears on
-      // every pad regardless.
-      if (typesHexC ? false : e.key === "c" || e.key === "C") {
+      // `C` is the calculator's clear the world over, so a shifted one still
+      // is — except on a pad that spends `C` as a hex digit, where typing one
+      // has to keep meaning what the cap says. The unshifted `c` cannot be:
+      // it opens `cos(`, `ceil(` and `cbrt(`. Escape and Delete clear on
+      // every pad regardless, so the plain key is never the only way.
+      if (!typesHexC && e.key === "C") {
         clear();
         e.preventDefault();
-      } else if (/^[0-9a-fA-Fx.+\-*/%^()!&|~<>]$/.test(e.key)) {
+      } else if (/^[0-9a-zA-Zπ.+\-*/%^()!&|~<>]$/.test(e.key)) {
         append(e.key);
         e.preventDefault();
       } else if (e.key === "Enter" || e.key === "=") {
@@ -397,7 +416,7 @@ export function CalculatorScreen({
         e.preventDefault();
       } else if (e.key === "Backspace") {
         backspace();
-      } else if (e.key === "Escape") {
+      } else if (e.key === "Escape" || e.key === "Delete") {
         clear();
       } else {
         return;

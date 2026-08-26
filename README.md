@@ -79,10 +79,12 @@ and keep the session.
   blanking the headline; the hex spelling and any error read on a thin line
   below.
 - **Sessions** — the left sidebar lists saved sessions. A new tape is
-  scratch: it lives in memory until you press the disk icon, which names it
+  scratch: it is not a file until you press the disk icon, which names it
   (notes-style: the title field is selected, ready to be overwritten) and
-  writes it to storage. Opening a session resumes its tape _and_ the mode it
-  was last used with.
+  writes it to storage. Not a file is not the same as not kept — the tape you
+  are working on stays on this device and is still there when you come back,
+  backend or no backend, until you clear it yourself. Opening a session
+  resumes its tape _and_ the mode it was last used with.
 - **Tape** — always in view above the display, showing the last few entries.
   It scrolls at any size. Each entry reads result-first with the expression
   under it and a star in the left gutter for the rows worth finding again.
@@ -103,6 +105,11 @@ and keep the session.
   tape has entries to scroll, the list keeps the drag until it reaches one of
   its ends. Clicking the handle toggles, and the arrow keys step it. Swiping
   the display down and up steps the tape open and shut (Settings → General).
+- **Brackets** — a bracket left open at the end closes itself. `sqrt(3`,
+  `sin(2` and `(25+3)*(5+1` all answer as written, and what the tape records
+  is the finished expression (`sqrt(3)`), so it re-reads and re-evaluates
+  like every other entry. A `)` that never had an opener is still an error —
+  that one is a mistake, not an omission.
 - **Clipboard** — press and hold the display to raise a twin pill over it:
   **Copy** takes the expression (or the number) currently on the display,
   **Paste** puts the clipboard on it. Paste reads what it can — an
@@ -126,11 +133,17 @@ and keep the session.
 - **Folders & namespaces** — the sidebar's folder button creates folders
   (one level, like the notes sibling app); the namespace switcher on top
   swaps whole workspaces, each with its own directory in storage.
-- **Keyboard** — digits and operators type straight in; `Enter` is `=`,
-  `Backspace` deletes, and `C` or `Escape` clears (on the programmer pad `C`
-  is the hex digit, so `Escape` clears there). Every keystroke lights the
-  button that answered it — the cap dips, its glyph takes the accent, and a
-  soft halo fades out — so typing is felt on the pad the way tapping is.
+- **Keyboard** — digits, operators and names type straight in. A keyboard
+  types into the calculator rather than into the pad in front of it, so
+  `sqrt(2)+sin(0)` works on the basic pad exactly as it does on the
+  scientific one — the layouts decide which keys are worth a thumb, not which
+  expressions the calculator understands. `Enter` is `=`, `Backspace`
+  deletes, and `Escape` or `Delete` clears; a shifted `C` clears too, except
+  on the programmer pad where `C` is the hex digit. (Plain `c` types, since
+  it opens `cos(`, `ceil(` and `cbrt(`.) Every keystroke lights the button
+  that answered it — the cap dips, its glyph takes the accent, and a soft
+  halo fades out — so typing is felt on the pad the way tapping is; a typed
+  name this pad has no cap for simply lands on the display.
 - **Opening the sidebar** — on a phone it is one of two, your pick in
   Settings → General: the draggable floating button (drag it to either edge,
   at any height), or an inward swipe from the edge the button rests against.
@@ -152,8 +165,9 @@ and keep the session.
   which is where a backend is connected. Changes are staged and applied with Save;
   Cancel puts everything back. The footer also carries an About entry with
   the build identifier.
-- **Storage** — Settings → Storage picks between _Device_ (tapes stay in
-  memory), a local _Folder_, _Dropbox_, and Google _Drive_. Every option is
+- **Storage** — Settings → Storage picks between _Device_ (the working tape
+  stays on this device and nothing else leaves it), a local _Folder_,
+  _Dropbox_, and Google _Drive_. Every option is
   listed whether or not this browser and build can reach it, and picking an
   unreachable one says what it needs. Connecting or disconnecting applies at
   once — it is not staged behind Save.

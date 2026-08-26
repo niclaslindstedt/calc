@@ -2,6 +2,7 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  closeParens,
   evaluate,
   EvalError,
   formatHex,
@@ -26,6 +27,18 @@ describe("evaluate", () => {
     expect(evaluate("-5 + 3")).toBe(-2);
     expect(evaluate("-(2 * (3 + 1))")).toBe(-8);
     expect(evaluate("--4")).toBe(4);
+  });
+
+  it("closes brackets left open on the end", () => {
+    expect(evaluate("sqrt(9")).toBe(3);
+    expect(evaluate("sin(0")).toBe(0);
+    expect(evaluate("(25 + 3) * (5 + 1")).toBe(168);
+    expect(evaluate("2 * (3 + (4 - 1")).toBe(12);
+  });
+
+  it("still refuses a closer that never opened", () => {
+    expect(() => evaluate("(1 + 2))")).toThrow(EvalError);
+    expect(() => evaluate(")")).toThrow(EvalError);
   });
 
   it("treats % as modulo", () => {
@@ -80,7 +93,7 @@ describe("evaluate", () => {
   it("raises readable errors on malformed input", () => {
     expect(() => evaluate("")).toThrow(EvalError);
     expect(() => evaluate("1 +")).toThrow(EvalError);
-    expect(() => evaluate("(1 + 2")).toThrow(EvalError);
+    expect(() => evaluate("sqrt()")).toThrow(EvalError);
     expect(() => evaluate("1..2")).toThrow(EvalError);
     expect(() => evaluate("1 $ 2")).toThrow(EvalError);
     expect(() => evaluate("bogus(1)")).toThrow(EvalError);
@@ -113,9 +126,33 @@ describe("formatHex", () => {
   });
 });
 
+describe("closeParens", () => {
+  it("adds the closers an expression is short of", () => {
+    expect(closeParens("sin(2")).toBe("sin(2)");
+    expect(closeParens("sqrt(3")).toBe("sqrt(3)");
+    expect(closeParens("(25+3)*(5+1")).toBe("(25+3)*(5+1)");
+    expect(closeParens("2*(3+(4-1")).toBe("2*(3+(4-1))");
+  });
+
+  it("leaves a balanced expression exactly as it is", () => {
+    expect(closeParens("(1+2)*3")).toBe("(1+2)*3");
+    expect(closeParens("12+34")).toBe("12+34");
+    expect(closeParens("")).toBe("");
+  });
+
+  it("hands a stray closer to the parser untouched", () => {
+    expect(closeParens("(1+2))")).toBe("(1+2))");
+    expect(closeParens(")(")).toBe(")(");
+  });
+});
+
 describe("isEvaluable", () => {
   it("mirrors evaluate without throwing", () => {
     expect(isEvaluable("1 + 1")).toBe(true);
     expect(isEvaluable("1 +")).toBe(false);
+  });
+
+  it("counts an expression with its brackets left open", () => {
+    expect(isEvaluable("sqrt(3")).toBe(true);
   });
 });

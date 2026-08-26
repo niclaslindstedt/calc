@@ -688,8 +688,10 @@ export function SettingsModal({
 
               {picked === "none" ? (
                 <p className="text-xs text-muted">
-                  Tapes live in memory only. The disk icon has nothing to write
-                  to until a backend is connected — pick one above.
+                  The tape you are working on stays on this device and is still
+                  there the next time you open Calc — it only goes when you
+                  clear it. The disk icon has nothing to keep named sessions in
+                  until a backend is connected — pick one above.
                 </p>
               ) : null}
 

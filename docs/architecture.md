@@ -43,16 +43,21 @@ imports hooks from `"react"` (the sibling apps' convention).
 
 ## State
 
-| Hook               | Owns                                                                                                                                                                                                  | Persistence                    |
-| ------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------ |
-| `useSessions(ns)`  | Active session (scratch or saved), saved list, folders, actions                                                                                                                                       | Storage backend (markdown)     |
-| `useAppSettings()` | Gestures, key animation, sidebar open mode, display and keypad text sizes, enabled modes, hidden keys, custom modes — read here, staged as a draft in the Settings dialog and committed whole on Save | localStorage `calc:settings`   |
-| `useNamespaces()`  | Namespace registry + active slug                                                                                                                                                                      | localStorage `calc:namespaces` |
-| `App` appearance   | Theme / fonts / UI style (`ThemeAppearance`)                                                                                                                                                          | localStorage `calc:appearance` |
+| Hook               | Owns                                                                                                                                                                                                  | Persistence                                                        |
+| ------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------ |
+| `useSessions(ns)`  | Active session (scratch or saved), saved list, folders, actions                                                                                                                                       | Storage backend (markdown); the scratch tape mirrored to IndexedDB |
+| `useAppSettings()` | Gestures, key animation, sidebar open mode, display and keypad text sizes, enabled modes, hidden keys, custom modes — read here, staged as a draft in the Settings dialog and committed whole on Save | localStorage `calc:settings`                                       |
+| `useNamespaces()`  | Namespace registry + active slug                                                                                                                                                                      | localStorage `calc:namespaces`                                     |
+| `App` appearance   | Theme / fonts / UI style (`ThemeAppearance`)                                                                                                                                                          | localStorage `calc:appearance`                                     |
 
-A **scratch** session exists only in memory — it becomes a file when the
-disk icon saves it. A **saved** session writes through on every change,
-debounced 800 ms (`useSessions.persistSession`).
+A **scratch** session is not a file — it becomes one when the disk icon
+saves it. It is not lost when the tab closes either: `scratch.ts` mirrors it
+into IndexedDB on every change and `useSessions` reads it back on the next
+visit, so a tape nobody clears keeps its history indefinitely, with or
+without a storage backend behind it. Clearing the tape (or saving it as a
+file) drops the device copy. A **saved** session writes through to the
+backend on every change, debounced 800 ms
+(`useSessions.persistSession`).
 
 ## Domain modules (pure, tested)
 
@@ -60,7 +65,9 @@ debounced 800 ms (`useSessions.persistSession`).
   shared by every mode: arithmetic, `%` (modulo), `^` (right-assoc power),
   postfix `!`, functions (`sqrt`, trig, `ln`/`log`, …), constants (`π`,
   `e`), hex/binary literals, and BigInt-exact bitwise operators with C-like
-  precedence. Modes are presentation only — any stored expression
+  precedence. Brackets left open on the end are closed for the caller
+  (`closeParens`), so `sin(2` evaluates as `sin(2)` and the tape records the
+  finished expression. Modes are presentation only — any stored expression
   re-evaluates identically anywhere.
 - `session.ts` — `Session` / `Entry` / `Folder` model and pure operations.
 - `chain.ts` — folds a run of calculations that each built on the last
@@ -84,6 +91,8 @@ debounced 800 ms (`useSessions.persistSession`).
 
 ## Storage
 
+`scratch.ts` keeps the working tape on the device (IndexedDB, best-effort:
+a private window or a denied quota simply reads back as "nothing there").
 `store.ts` composes the framework's byte-level `FileStore` transports —
 `createFolderFileStore` (File System Access), `createDropboxFileStore`,
 `createGdriveFileStore` — and binds them with `createSessionStore`: one
@@ -112,8 +121,11 @@ Both collapse flags are per-device layout choices — a wide desktop and a
 small laptop want different answers — so they ride localStorage rather than
 the appearance store.
 
-The folder backend's directory handle lives in IndexedDB
-(framework-managed).
+IndexedDB holds the two things localStorage must not: the folder backend's
+directory handle (framework-managed, `oss:folder-handles`) and the scratch
+tape (`calc:scratch`, one markdown record per namespace slug — the same
+document format the backends write, so there is one codec and one round
+trip).
 
 Settings → Storage drives all of this from one picker (Device / Folder /
 Dropbox / Drive). Connecting swaps the `FileStore` behind `useSessions`,
