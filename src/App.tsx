@@ -414,10 +414,6 @@ export function App() {
         onConfirm={() => {
           sessions.clearEntries();
           setClearHistoryOpen(false);
-          defaultToastStore.push({
-            message: "History cleared",
-            kind: "success",
-          });
         }}
         onCancel={() => setClearHistoryOpen(false)}
       />
