@@ -6,4 +6,7 @@ type: Added
 in on the basic pad exactly as it does on the scientific one. The keyboard
 types into the one grammar every mode shares, so a layout decides which keys
 are worth a thumb, not which expressions the calculator understands. A typed
-name the current pad has no cap for simply lands on the display.
+name the current pad has no cap for simply lands on the display, and typed
+operators land as the glyphs the keys draw — `*`, `/` and `-` go on the
+display as `×`, `÷` and `−`, so the operator chips frame a multiplication
+sign rather than an asterisk.

@@ -103,8 +103,10 @@ Settings → Layouts lets you:
 
 ## Keyboard
 
-Digits, operators and names type straight in (`*` and `x`-less spellings both
-work); `Enter` = `=`, `Backspace` deletes, and `Escape` or `Delete` clears. A
+Digits, operators and names type straight in, and the operators land as the
+glyphs the keypad draws — a typed `*`, `/` and `-` go onto the display as `×`,
+`÷` and `−`, so an expression reads the same whichever way it was entered.
+`Enter` = `=`, `Backspace` deletes, and `Escape` or `Delete` clears. A
 shifted `C` clears as well, except on the programmer pad where `C` stays the
 hex digit its button spells; the unshifted `c` types, because it is the start
 of `cos(`, `ceil(` and `cbrt(`.

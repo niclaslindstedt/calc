@@ -81,8 +81,11 @@ type Props = {
 };
 
 // Hardware keys whose glyph on the pad is not the character they type. The
-// evaluator takes either spelling, so the keyboard appends the ASCII one and
-// this only exists to find the cap it belongs to.
+// evaluator takes either spelling, but only one of them is the calculator's:
+// a typed `*` goes onto the display as the `×` the keypad would have put
+// there, so an expression reads the same whichever way it was entered and the
+// operator chips (expression.ts) frame a multiplication sign rather than an
+// asterisk. Doubles as the lookup for the cap a keystroke lights.
 const KEYSTROKE_ALIASES: Record<string, string> = {
   "*": "×",
   "/": "÷",
@@ -409,7 +412,7 @@ export function CalculatorScreen({
         clear();
         e.preventDefault();
       } else if (/^[0-9a-zA-Zπ.+\-*/%^()!&|~<>]$/.test(e.key)) {
-        append(e.key);
+        append(KEYSTROKE_ALIASES[e.key] ?? e.key);
         e.preventDefault();
       } else if (e.key === "Enter" || e.key === "=") {
         equals();

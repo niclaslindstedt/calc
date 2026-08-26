@@ -133,8 +133,12 @@ and keep the session.
 - **Folders & namespaces** — the sidebar's folder button creates folders
   (one level, like the notes sibling app); the namespace switcher on top
   swaps whole workspaces, each with its own directory in storage.
-- **Keyboard** — digits, operators and names type straight in. A keyboard
-  types into the calculator rather than into the pad in front of it, so
+- **Keyboard** — digits, operators and names type straight in, and the
+  operators land as the glyphs the keys draw: a typed `*`, `/` and `-` go on
+  the display as `×`, `÷` and `−`, so an expression reads the same — and its
+  operator chips frame the same signs — whichever way it was entered. A
+  keyboard types into the calculator rather than into the pad in front of it,
+  so
   `sqrt(2)+sin(0)` works on the basic pad exactly as it does on the
   scientific one — the layouts decide which keys are worth a thumb, not which
   expressions the calculator understands. `Enter` is `=`, `Backspace`
