@@ -92,14 +92,17 @@ and keep the session.
   Left-swipe — or right-click, on a desktop pointer — reveals the note and
   delete actions. Every copy confirms with a brief label over the value it
   took.
-- **Resizing the tape** — the hairline between the tape and the display is a
-  handle: drag it and the tape takes whatever share you leave it at. Drag it
-  nearly shut and the tape falls back to its resting height; drag it far
-  enough that the display and keys no longer fit and the tape takes the whole
-  screen, the handle parked at the bottom to pull back up. Clicking it
-  toggles, and the arrow keys step it. On a phone, swipe down the tape to
-  open it the whole way, or swipe the display down and up to step it open and
-  shut (Settings → General).
+- **Resizing the tape** — drag the tape itself, or the hairline handle
+  between it and the display, and the tape takes whatever share you leave it
+  at. Drag it nearly shut and the tape falls back to its resting height; drag
+  it past the point where the display and the keys still fit and the
+  calculator slides off the bottom rather than being squeezed, until the tape
+  has the whole screen with the handle parked at the bottom — a drag up
+  anywhere on the tape brings the calculator back. Let go with the calculator
+  half covered and the tape settles on whichever end is nearer. Where the
+  tape has entries to scroll, the list keeps the drag until it reaches one of
+  its ends. Clicking the handle toggles, and the arrow keys step it. Swiping
+  the display down and up steps the tape open and shut (Settings → General).
 - **Clipboard** — press and hold the display to raise a twin pill over it:
   **Copy** takes the expression (or the number) currently on the display,
   **Paste** puts the clipboard on it. Paste reads what it can — an

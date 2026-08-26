@@ -20,9 +20,10 @@
   answer, dimmed. Result/expression and keypad label sizes are both settings
   (Settings > Appearance)
 - Tape: always visible above the display (last few entries) and scrollable;
-  the hairline below it is a drag handle — the tape takes whatever share of
-  the screen it is left at, up to the whole of it once the calculator no
-  longer fits. Entries read result-first with a star in the left gutter; tap
+  the tape itself and the hairline below it are both drag handles — the tape
+  takes whatever share of the screen it is left at, up to the whole of it,
+  the calculator sliding out under it rather than shrinking past the floor
+  its type and rows need. Entries read result-first with a star in the left gutter; tap
   an entry to copy its value, long-press to copy the expression (or, on a
   chained entry, the whole run folded into one bracketed expression),
   left-swipe or right-click for note/delete
