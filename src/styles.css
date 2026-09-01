@@ -155,59 +155,145 @@ textarea {
   margin-inline-end: 0;
 }
 
-/* Keypad press feedback (Keypad.tsx). A key answering a press dips under the
-   finger, its glyph takes the theme accent, and a soft accent halo blooms out
-   of the cap and fades. It is driven by state rather than `:active` for one
-   reason: a key typed on a hardware keyboard has no `:active` to match, and a
-   press should be felt on the pad whether it came from the screen or the
-   keyboard. */
-@keyframes calc-key-dip {
-  from {
-    transform: scale(0.93);
-  }
-  to {
-    transform: scale(1);
+/* ── The keypad slab (Keypad.tsx) ───────────────────────────────────────────
+   The pad is one rounded box rather than a tray of separate caps. The grid
+   paints the theme's line colour and holds its cells a single pixel apart, so
+   the gaps *are* the rules between the keys, and clipping the box rounds the
+   four corner keys into it. Two consequences the keys have to respect: every
+   cap is square-cornered (its own radius would cut a notch out of the slab),
+   and every cap is opaque (anything see-through, or scaled down under the
+   finger, shows the line colour behind it). */
+.calc-pad {
+  background: var(--color-line);
+  /* The hairline around the outside, drawn where there is no gap to carry it.
+     Outside the box, so it survives the corner clipping. */
+  box-shadow: 0 0 0 1px var(--color-line);
+}
+
+/* A key's fill and glyph, per tone below. Every tone is mixed from the theme's
+   own tokens, so the pad's hierarchy — digits lightest, everything that isn't
+   an operator a step darker — moves with the theme instead of being pinned to
+   the amber-on-black look the app boots in. */
+.calc-key {
+  background: var(--calc-key-bg);
+  color: var(--calc-key-fg);
+  /* What a press flashes. The accent, unless the key has a colour of its own. */
+  --calc-key-hit-color: var(--color-accent);
+  transition: filter 120ms ease;
+}
+
+/* `hover:` only ever matches a device that can actually hover, so this costs a
+   phone nothing. */
+@media (hover: hover) {
+  .calc-key:hover {
+    filter: brightness(1.15);
   }
 }
 
-@keyframes calc-key-halo {
+/* The digits: the lightest keys on the pad, because they are what the thumb is
+   aiming at. Mixed toward the theme's foreground rather than taken from a
+   surface slot — no surface is far enough from the page on the pure-black look
+   to read as the grey this wants, and mixing keeps the step in both
+   directions (on a light theme the same mix lands a mid grey under near-black
+   glyphs). */
+.calc-key-digit {
+  --calc-key-bg: color-mix(
+    in oklab,
+    var(--color-surface-3) 68%,
+    var(--color-fg)
+  );
+  --calc-key-fg: var(--color-fg-bright);
+}
+
+/* Operators: dark, with a whisper of the accent in the fill so the column
+   reads as one run under its accent glyphs. */
+.calc-key-op {
+  --calc-key-bg: color-mix(
+    in oklab,
+    var(--color-surface-3) 86%,
+    var(--color-accent)
+  );
+  --calc-key-fg: var(--color-accent);
+}
+
+/* The rest of the non-digit keys — functions, and the trimmings (brackets,
+   sign, modulo) a step quieter again. */
+.calc-key-fn {
+  --calc-key-bg: color-mix(
+    in oklab,
+    var(--color-surface-3) 92%,
+    var(--color-fg)
+  );
+  --calc-key-fg: var(--color-fg);
+}
+
+.calc-key-muted {
+  --calc-key-bg: var(--color-surface-3);
+  --calc-key-fg: var(--color-muted);
+}
+
+/* `=`, the one solid key: the accent itself, punched out in the page colour. */
+.calc-key-accent {
+  --calc-key-bg: var(--color-accent);
+  --calc-key-fg: var(--color-page-bg);
+}
+
+/* Erase (`C` / `⌫`) — the only key on the pad that takes something away, so it
+   wears the theme's danger colour: a tinted fill under a red glyph, and its
+   press answers in red rather than in the accent. */
+.calc-key-danger {
+  --calc-key-bg: color-mix(
+    in oklab,
+    var(--color-surface-3) 66%,
+    var(--color-danger)
+  );
+  --calc-key-fg: var(--color-danger);
+  --calc-key-hit-color: var(--color-danger);
+}
+
+/* Keypad press feedback (Keypad.tsx). A key answering a press lights, takes an
+   inline of its hit colour just inside the rules it shares with its
+   neighbours, and washes that colour out of itself as it lets go. It is driven
+   by state rather than `:active` for one reason: a key typed on a hardware
+   keyboard has no `:active` to match, and a press should be felt on the pad
+   whether it came from the screen or the keyboard — `:active` only carries the
+   half of it the "key feedback" setting turns on. */
+.calc-key-press:active {
+  filter: brightness(1.3);
+  box-shadow: inset 0 0 0 1px
+    color-mix(in oklab, var(--calc-key-hit-color) 55%, transparent);
+}
+
+@keyframes calc-key-wash {
   from {
-    box-shadow: 0 0 0 0
-      color-mix(in oklab, var(--color-accent) 55%, transparent);
     opacity: 1;
   }
   to {
-    box-shadow: 0 0 0 0.7rem
-      color-mix(in oklab, var(--color-accent) 0%, transparent);
     opacity: 0;
   }
 }
 
-.calc-key-hit {
-  animation: calc-key-dip 200ms cubic-bezier(0.22, 1, 0.36, 1);
-}
-
-/* The halo rides a pseudo-element so it never fights the cap's own drop-edge
-   box-shadow — the raised-key look the "key feedback" setting turns on. */
+/* The wash rides a pseudo-element so it lies over the cap's own fill without
+   replacing it — a key is opaque or the slab shows through it. */
 .calc-key-hit::after {
   content: "";
   position: absolute;
   inset: 0;
-  border-radius: inherit;
   pointer-events: none;
-  animation: calc-key-halo 380ms cubic-bezier(0.22, 1, 0.36, 1) forwards;
+  background: color-mix(in oklab, var(--calc-key-hit-color) 28%, transparent);
+  animation: calc-key-wash 380ms cubic-bezier(0.22, 1, 0.36, 1) forwards;
 }
 
 /* Only the glyph takes the accent, so the pad never flashes a block of colour
-   under the thumb. The `=` key is already accent-on-accent and would erase its
-   own label, so it sits the recolour out and keeps the dip and the halo. */
-.calc-key-hit:not(.calc-key-accent) {
+   under the thumb. The `=` key is already accent-on-accent and the erase key
+   already red, so they sit the recolour out and keep the wash. */
+.calc-key-hit:not(.calc-key-accent):not(.calc-key-danger) {
   color: var(--color-accent);
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .calc-key-hit,
   .calc-key-hit::after {
     animation: none;
+    opacity: 0;
   }
 }

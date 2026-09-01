@@ -440,7 +440,7 @@ export function SettingsModal({
               />
               <ToggleRow
                 label="Key press animation"
-                hint="Keys travel down when pressed."
+                hint="Keys light up when pressed."
                 checked={draft.keyFeedback}
                 onChange={(next) => update("keyFeedback", next)}
               />
@@ -533,7 +533,7 @@ export function SettingsModal({
                 Press a highlighted button to remove it from the layout; press a
                 dimmed one to bring it back. Plain buttons are always shown.
               </p>
-              <div className="rounded-xl border border-line bg-page-bg">
+              <div>
                 <Keypad
                   mode={editing}
                   hidden={draft.hiddenKeys[editing.id] ?? []}
@@ -556,7 +556,7 @@ export function SettingsModal({
               <p className="mb-1 text-xs text-muted">
                 Press the buttons you want to remove, then name your mode.
               </p>
-              <div className="rounded-xl border border-line bg-page-bg">
+              <div>
                 <Keypad
                   mode={MODES[draftBase]}
                   hidden={draftHidden}
@@ -649,7 +649,7 @@ export function SettingsModal({
                     keep their size — only the text grows.
                   </p>
                 </div>
-                <div className="rounded-xl border border-line bg-page-bg">
+                <div>
                   <Keypad
                     mode={MODES.basic}
                     hidden={draft.hiddenKeys.basic ?? []}
