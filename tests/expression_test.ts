@@ -2,12 +2,23 @@
 import { describe, expect, it } from "vitest";
 
 import { evaluate } from "../src/app/evaluator.ts";
-import { expressionSegments, toggleSign } from "../src/app/expression.ts";
+import {
+  expressionSegments,
+  parenClass,
+  toggleSign,
+} from "../src/app/expression.ts";
 
 // Shorthand: the reading, with chipped operators bracketed.
 function read(text: string): string {
   return expressionSegments(text)
     .map((s) => (s.op ? `[${s.text}]` : s.text))
+    .join("");
+}
+
+// The same reading as depths, one digit per character of the source.
+function depths(text: string): string {
+  return expressionSegments(text)
+    .map((s) => String(s.depth).repeat(s.text.length))
     .join("");
 }
 
@@ -51,7 +62,14 @@ describe("expressionSegments", () => {
   });
 
   it("reproduces the input exactly, with the right offsets", () => {
-    for (const text of ["", "1+2", "-5×(3-1)", "5 xor 3!", "sin(π)÷2"]) {
+    for (const text of [
+      "",
+      "1+2",
+      "-5×(3-1)",
+      "5 xor 3!",
+      "sin(π)÷2",
+      "((1+2)×(3-4))",
+    ]) {
       const segments = expressionSegments(text);
       expect(segments.map((s) => s.text).join("")).toBe(text);
       for (const segment of segments) {
@@ -60,6 +78,39 @@ describe("expressionSegments", () => {
         ).toBe(segment.text);
       }
     }
+  });
+});
+
+describe("bracket depth", () => {
+  it("counts a bracket with what it holds, not with what surrounds it", () => {
+    expect(depths("1+2")).toBe("000");
+    expect(depths("(1+2)")).toBe("11111");
+    expect(depths("2×(3+1)")).toBe("0011111");
+    // The name in front of a call stays outside — it is not inside the
+    // brackets, the argument is.
+    expect(depths("sin(30)")).toBe("0001111");
+  });
+
+  it("steps a level for every nested group", () => {
+    expect(depths("((1))")).toBe("12221");
+    expect(depths("1+(2×(3-(4+5)))")).toBe("001112223333321");
+    // Siblings, not nesting: the second group is back at the first's level.
+    expect(depths("(1+2)×(3-4)")).toBe("11111011111");
+  });
+
+  it("holds the floor when a bracket closes one that never opened", () => {
+    expect(depths(")1")).toBe("00");
+    expect(depths("(1))+2")).toBe("111000");
+  });
+
+  it("colours three levels and then starts over", () => {
+    expect(parenClass(0)).toBe("");
+    expect(parenClass(1)).toBe("calc-paren-1");
+    expect(parenClass(2)).toBe("calc-paren-2");
+    expect(parenClass(3)).toBe("calc-paren-3");
+    // Deeper than the app ever draws, but a colour beats no colour — and the
+    // one it repeats is never the group's own parent.
+    expect(parenClass(4)).toBe("calc-paren-1");
   });
 });
 

@@ -4,8 +4,9 @@
 // own inline-block so a newly arrived one can slide in from the right while
 // the text already on the line settles left of it — the readout "types" the
 // way the keypad is pressed. Operators arrive whole instead, as one chipped
-// glyph (expression.ts decides which runs those are, ExpressionText.tsx draws
-// the still version of the same thing).
+// glyph, and anything inside a bracket takes that group's colour
+// (expression.ts decides which runs those are and how deep they sit,
+// ExpressionText.tsx draws the still version of the same thing).
 //
 // The whole trick is identity: characters are keyed by where they landed, so
 // an append mounts one new span and leaves the rest alone (no restart of an
@@ -20,7 +21,7 @@
 
 import { useRef } from "react";
 
-import { expressionSegments } from "./expression.ts";
+import { expressionSegments, parenClass } from "./expression.ts";
 
 // The beat between characters of the same arrival. One keypress brings one
 // character, so this only shows on a paste or on a revealed result — fast
@@ -73,10 +74,13 @@ export function RevealText({ text, className }: Props) {
     index: number,
     content: string,
     chip: boolean,
+    depth: number,
   ) => (
     <span
       key={key}
-      className={chip ? "calc-char calc-op" : "calc-char"}
+      className={`${chip ? "calc-char calc-op" : "calc-char"} ${parenClass(
+        depth,
+      )}`}
       style={{ animationDelay: `${delays.current[index] ?? 0}ms` }}
     >
       {content}
@@ -96,6 +100,7 @@ export function RevealText({ text, className }: Props) {
                 segment.start,
                 segment.text,
                 true,
+                segment.depth,
               )
             : Array.from(segment.text, (char, offset) =>
                 glyph(
@@ -103,6 +108,7 @@ export function RevealText({ text, className }: Props) {
                   segment.start + offset,
                   char,
                   false,
+                  segment.depth,
                 ),
               ),
         )}

@@ -233,7 +233,7 @@ export function HistoryEntryRow({
             </span>
             <ExpressionText
               text={entry.expression}
-              className="block truncate font-mono text-sm text-muted"
+              className="calc-expression-soft block truncate font-mono text-sm text-muted"
             />
           </button>
         </div>

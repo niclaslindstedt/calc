@@ -73,8 +73,11 @@ and keep the session.
   underneath it. Characters reveal one at a time as they are typed, sliding
   in from the right while the line settles left of them, and operators set
   as bordered accent chips with room either side — `1 + 2` reads as two
-  values with an operation between them, the way it sits on the keypad. An
-  expression
+  values with an operation between them, the way it sits on the keypad.
+  Brackets colour what they hold: everything inside a `(` takes a colour of
+  its own, a group nested in it takes the next, so `2×(3+(4−1))` shows what
+  is being counted together without tracing the brackets by eye. Three
+  colours cover it, all of them from the current theme. An expression
   mid-thought (`12+`) keeps the last real answer up, dimmed, rather than
   blanking the headline; the hex spelling and any error read on a thin line
   below.

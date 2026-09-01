@@ -22,7 +22,8 @@ main.tsx
     │   │                      hex below; sized by the Appearance setting
     │   ├── RevealText.tsx     the expression's per-character reveal
     │   ├── ExpressionText     the same expression, still — operators as
-    │   │                      chips (expression.ts splits them out)
+    │   │                      chips, brackets coloured by depth
+    │   │                      (expression.ts splits them out)
     │   ├── HistoryEntryRow    tap=copy value, long-press=copy expression
     │   │                      or chain, star gutter, left-swipe or
     │   │                      right-click=note/delete
@@ -82,7 +83,11 @@ backend on every change, debounced 800 ms
 - `expression.ts` — how an expression is read rather than stored: the split
   into values and the operators between them, which the display and the tape
   draw as bordered chips. Only operators with an operand on their left are
-  chipped, so the `−` in `−5` stays welded to its number.
+  chipped, so the `−` in `−5` stays welded to its number. Each segment also
+  carries its bracket depth, and `parenClass()` turns that into the class
+  (`.calc-paren-1…3` in `styles.css`, mapped to theme colours) that paints a
+  whole bracketed group — brackets, digits and chips alike — in one colour,
+  the next level in the next.
 - `paste.ts` — what the clipboard has to offer the display: text the shared
   grammar already understands pastes verbatim, text it cannot parse gives up
   its first number instead (`Total: $1,234.56` → `1234.56`, either locale's
