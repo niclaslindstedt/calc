@@ -690,8 +690,9 @@ export function SettingsModal({
                 <p className="text-xs text-muted">
                   The tape you are working on stays on this device and is still
                   there the next time you open Calc — it only goes when you
-                  clear it. The disk icon has nothing to keep named sessions in
-                  until a backend is connected — pick one above.
+                  clear it. Naming a session has nothing to keep it in until a
+                  backend is connected — pick one above, and the named tape is
+                  written to it right away.
                 </p>
               ) : null}
 

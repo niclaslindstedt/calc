@@ -64,8 +64,8 @@ npm run dev
 ```
 
 Open the printed URL, type `12 × 4.5` and press `=` — the calculation lands
-on the tape above the display. Press the disk icon in the top bar to name
-and keep the session.
+on the tape above the display. Name the session in the top bar and it is
+kept: every calculation from then on is saved as you make it.
 
 ## Usage
 
@@ -79,9 +79,11 @@ and keep the session.
   blanking the headline; the hex spelling and any error read on a thin line
   below.
 - **Sessions** — the left sidebar lists saved sessions. A new tape is
-  scratch: it is not a file until you press the disk icon, which names it
-  (notes-style: the title field is selected, ready to be overwritten) and
-  writes it to storage. Not a file is not the same as not kept — the tape you
+  scratch: it is not a file until you name it. There is no save button —
+  typing a title in the top bar writes the session to storage, and every
+  calculation after that is saved as you press `=`. The status beside the
+  mode buttons says where the tape stands (_Unsaved_, _Saving…_, _Saved_,
+  _Save failed_). Not a file is not the same as not kept — the tape you
   are working on stays on this device and is still there when you come back,
   backend or no backend, until you clear it yourself. Opening a session
   resumes its tape _and_ the mode it was last used with.
@@ -217,7 +219,7 @@ folder: f-shopping
 - **"Local folder…" is missing from Settings → Storage** — the File System
   Access API is Chromium-only; use a cloud backend elsewhere.
 - **Nothing saves** — a scratch session is intentional: connect a backend in
-  Settings → Storage, then press the disk icon.
+  Settings → Storage, then name the session in the top bar.
 
 ## Documentation
 

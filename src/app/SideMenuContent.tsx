@@ -322,8 +322,8 @@ export function SideMenuContent({
 
         {sessions.length === 0 && !creatingFolder ? (
           <p className="px-2 py-4 text-xs text-muted">
-            Saved sessions appear here. Press the disk icon to keep the current
-            tape.
+            Saved sessions appear here. Name the current tape in the top bar and
+            it is kept from then on.
           </p>
         ) : null}
       </div>

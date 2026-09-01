@@ -13,7 +13,7 @@
 
 ## Features
 
-- Sessions: scratch by default, saved with the disk icon, named like notes;
+- Sessions: scratch by default, saved by naming them (no save button);
   the working tape is kept on the device (IndexedDB) so history survives a
   reload with no backend connected
 - Display: result-first — the answer big on top, the expression under it,

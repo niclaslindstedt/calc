@@ -45,12 +45,14 @@ npm run dev
    from the one above, the long press offers the whole run folded into one
    expression instead. The star in the left gutter highlights the rows worth
    finding again.
-3. Press the **disk icon** in the top bar. If no storage backend is
-   connected yet, Settings → Storage opens — pick a local folder (Chromium)
-   or a cloud backend. The session gets a suggested name with the title
-   field selected, ready to overwrite — exactly how notes are named in the
-   sibling notes app.
-4. The saved session appears in the left sidebar. Organize with the folder
+3. **Name the session** in the top bar. That is the save: the tape becomes a
+   markdown file the moment it has a title, and every calculation after it is
+   written through as you press `=`. The status beside the mode buttons says
+   where the tape stands — _Unsaved_, _Saving…_, _Saved_. Connect a backend
+   first in Settings → Storage (a local folder on Chromium, or Dropbox /
+   Google Drive); name it before that and the tape waits on the device and is
+   written out as soon as you connect one.
+4. The named session appears in the left sidebar. Organize with the folder
    button, or switch namespaces (separate workspaces) from the switcher on
    top.
 
