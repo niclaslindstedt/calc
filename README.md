@@ -73,7 +73,10 @@ and keep the session.
   underneath it. Characters reveal one at a time as they are typed, sliding
   in from the right while the line settles left of them, and operators set
   as bordered accent chips with room either side — `1 + 2` reads as two
-  values with an operation between them, the way it sits on the keypad. An
+  values with an operation between them, the way it sits on the keypad. A
+  square root reads as the key that typed it: `sqrt(9)` is stored as the word
+  the evaluator parses but set as an accented `√(9)`, in the display and on
+  the tape alike. An
   expression
   mid-thought (`12+`) keeps the last real answer up, dimmed, rather than
   blanking the headline; the hex spelling and any error read on a thin line
