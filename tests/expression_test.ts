@@ -2,7 +2,11 @@
 import { describe, expect, it } from "vitest";
 
 import { evaluate } from "../src/app/evaluator.ts";
-import { expressionSegments, toggleSign } from "../src/app/expression.ts";
+import {
+  expressionSegments,
+  parenClass,
+  toggleSign,
+} from "../src/app/expression.ts";
 
 // Shorthand: the reading, with chipped operators bracketed. Segments that draw
 // something other than what they store (`sqrt` → `√`) report the glyph, so the
@@ -10,6 +14,13 @@ import { expressionSegments, toggleSign } from "../src/app/expression.ts";
 function read(text: string): string {
   return expressionSegments(text)
     .map((s) => (s.op ? `[${s.text}]` : (s.display ?? s.text)))
+    .join("");
+}
+
+// The same reading as depths, one digit per character of the source.
+function depths(text: string): string {
+  return expressionSegments(text)
+    .map((s) => String(s.depth).repeat(s.text.length))
     .join("");
 }
 
@@ -58,7 +69,13 @@ describe("expressionSegments", () => {
   it("keeps the source text under the symbol it draws", () => {
     const segments = expressionSegments("1+sqrt(9)");
     const fn = segments.find((s) => s.display !== undefined);
-    expect(fn).toEqual({ start: 2, text: "sqrt", op: false, display: "√" });
+    expect(fn).toEqual({
+      start: 2,
+      text: "sqrt",
+      op: false,
+      depth: 0,
+      display: "√",
+    });
     expect(segments.map((s) => s.text).join("")).toBe("1+sqrt(9)");
   });
 
@@ -84,6 +101,7 @@ describe("expressionSegments", () => {
       "-5×(3-1)",
       "5 xor 3!",
       "sin(π)÷2",
+      "((1+2)×(3-4))",
       "sqrt(9)+sqrt(16)",
     ]) {
       const segments = expressionSegments(text);
@@ -94,6 +112,43 @@ describe("expressionSegments", () => {
         ).toBe(segment.text);
       }
     }
+  });
+});
+
+describe("bracket depth", () => {
+  it("counts a bracket with what it holds, not with what surrounds it", () => {
+    expect(depths("1+2")).toBe("000");
+    expect(depths("(1+2)")).toBe("11111");
+    expect(depths("2×(3+1)")).toBe("0011111");
+    // The name in front of a call stays outside — it is not inside the
+    // brackets, the argument is. A symbol function is a name like any other:
+    // the `√` colours with what surrounds the call, its argument with the
+    // brackets holding it.
+    expect(depths("sin(30)")).toBe("0001111");
+    expect(depths("sqrt(9)")).toBe("0000111");
+    expect(depths("(1+sqrt(4))")).toBe("11111112221");
+  });
+
+  it("steps a level for every nested group", () => {
+    expect(depths("((1))")).toBe("12221");
+    expect(depths("1+(2×(3-(4+5)))")).toBe("001112223333321");
+    // Siblings, not nesting: the second group is back at the first's level.
+    expect(depths("(1+2)×(3-4)")).toBe("11111011111");
+  });
+
+  it("holds the floor when a bracket closes one that never opened", () => {
+    expect(depths(")1")).toBe("00");
+    expect(depths("(1))+2")).toBe("111000");
+  });
+
+  it("colours three levels and then starts over", () => {
+    expect(parenClass(0)).toBe("");
+    expect(parenClass(1)).toBe("calc-paren-1");
+    expect(parenClass(2)).toBe("calc-paren-2");
+    expect(parenClass(3)).toBe("calc-paren-3");
+    // Deeper than the app ever draws, but a colour beats no colour — and the
+    // one it repeats is never the group's own parent.
+    expect(parenClass(4)).toBe("calc-paren-1");
   });
 });
 

@@ -22,7 +22,8 @@ main.tsx
     │   │                      hex below; sized by the Appearance setting
     │   ├── RevealText.tsx     the expression's per-character reveal
     │   ├── ExpressionText     the same expression, still — operators as
-    │   │                      chips, `sqrt(` as an accented `√(`
+    │   │                      chips, `sqrt(` as an accented `√(`,
+    │   │                      brackets coloured by depth
     │   │                      (expression.ts splits them out)
     │   ├── HistoryEntryRow    tap=copy value, long-press=copy expression
     │   │                      or chain, star gutter, left-swipe or
@@ -93,7 +94,11 @@ delete the file.
   chipped, so the `−` in `−5` stays welded to its number. It also names the
   functions written as a symbol — a stored `sqrt(9)` reads as an accented
   `√(9)` — replacing the name only, so the bracket and the argument still
-  show the call the entry re-evaluates to.
+  show the call the entry re-evaluates to. Each segment carries its bracket
+  depth as well, and `parenClass()` turns that into the class
+  (`.calc-paren-1…3` in `styles.css`, mapped to theme colours) that paints a
+  whole bracketed group — brackets, digits, chips and symbols alike — in one
+  colour, the next level in the next.
 - `paste.ts` — what the clipboard has to offer the display: text the shared
   grammar already understands pastes verbatim, text it cannot parse gives up
   its first number instead (`Total: $1,234.56` → `1234.56`, either locale's

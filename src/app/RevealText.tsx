@@ -5,7 +5,8 @@
 // the text already on the line settles left of it — the readout "types" the
 // way the keypad is pressed. Operators arrive whole instead, as one chipped
 // glyph, and so does a function with a symbol — `sqrt(` lands as an accented
-// `√` and its bracket (expression.ts decides which runs those are,
+// `√` and its bracket. Anything inside a bracket takes that group's colour
+// (expression.ts decides which runs those are and how deep they sit,
 // ExpressionText.tsx draws the still version of the same thing).
 //
 // The whole trick is identity: characters are keyed by where they landed, so
@@ -21,7 +22,7 @@
 
 import { useRef } from "react";
 
-import { expressionSegments } from "./expression.ts";
+import { expressionSegments, parenClass } from "./expression.ts";
 
 // The beat between characters of the same arrival. One keypress brings one
 // character, so this only shows on a paste or on a revealed result — fast
@@ -69,9 +70,9 @@ export function RevealText({ text, className }: Props) {
   }
 
   const gen = generation.current;
-  // `extra` is the treatment the segment asked for — the operator chip, or
-  // the accent a symbol function is set in — on top of the per-character
-  // animation every glyph carries.
+  // `extra` is the treatment the segment asked for — the operator chip, the
+  // accent a symbol function is set in, the colour of the bracket group it
+  // sits inside — on top of the per-character animation every glyph carries.
   const glyph = (
     key: string,
     index: number,
@@ -92,6 +93,10 @@ export function RevealText({ text, className }: Props) {
       {/* The split-up glyphs are decoration; screen readers get the string. */}
       <span aria-hidden="true">
         {expressionSegments(text).map((segment) => {
+          // The colour of the group this segment sits in, which every glyph
+          // of it wears — empty out in the open, where the line's own ink
+          // stands.
+          const nest = parenClass(segment.depth);
           // An operator reveals as one piece: it is a single glyph on the
           // keypad, so it should not type itself in letter by letter. A
           // symbol function is one keypress and one glyph too, however many
@@ -101,20 +106,21 @@ export function RevealText({ text, className }: Props) {
               `${gen}:${segment.start}`,
               segment.start,
               segment.text,
-              "calc-op",
+              `calc-op ${nest}`.trim(),
             );
           if (segment.display)
             return glyph(
               `${gen}:${segment.start}`,
               segment.start,
               segment.display,
-              "calc-fn",
+              `calc-fn ${nest}`.trim(),
             );
           return Array.from(segment.text, (char, offset) =>
             glyph(
               `${gen}:${segment.start + offset}`,
               segment.start + offset,
               char,
+              nest,
             ),
           );
         })}

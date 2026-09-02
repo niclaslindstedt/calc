@@ -97,6 +97,13 @@ the display ends on (`12+34` becomes `12+−34`) and pressing it again takes the
 sign back off; with nothing typed yet it lays the sign down for the number you
 are about to enter.
 
+Brackets are colour-coded on the display and the tape: everything between a
+`(` and its `)` — the brackets themselves, the numbers, the operators —
+shares one colour, and a group nested inside it takes the next, up to three
+levels deep. `2×(3+(4−1))` reads at a glance instead of being counted
+bracket by bracket. The colours come from the theme, so they change with
+Settings → Appearance.
+
 Settings → Layouts lets you:
 
 - enable/disable modes in the top bar,

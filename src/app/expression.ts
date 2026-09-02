@@ -16,7 +16,8 @@
 //     stays welded to it — a chipped `[−] 5` would read as a subtraction
 //     with its left half missing.
 //   - brackets are structure, not arithmetic, so `(` and `)` stay plain: they
-//     already group the eye, and boxing them would double the framing.
+//     already group the eye, and boxing them would double the framing. They
+//     colour what they hold instead — see `depth` below.
 //   - a function that has a symbol is set with it: `sqrt(9)` is stored as the
 //     word the evaluator parses but reads as `√(9)`, drawn in the accent so
 //     the name stands out of the digits the way an operator does. The bracket
@@ -34,6 +35,13 @@ export type ExpressionSegment = {
   text: string;
   /** True when the segment is an operator — the chipped kind. */
   op: boolean;
+  /**
+   * How many brackets this segment sits inside: 0 out in the open, 1 in the
+   * first group, and so on. A bracket itself carries the depth of the group
+   * it opens or closes, so `(` and `)` colour with what they hold. Runs are
+   * cut at every bracket so no segment straddles two depths.
+   */
+  depth: number;
   /**
    * What to draw in place of `text`, when the two differ — the `√` a stored
    * `sqrt` reads as. Absent on every segment that is set as it is stored, so
@@ -97,9 +105,14 @@ function isWordChar(ch: string | undefined): boolean {
  */
 export function expressionSegments(text: string): ExpressionSegment[] {
   const segments: ExpressionSegment[] = [];
-  // The open plain run, flushed whenever an operator interrupts it.
+  // The open plain run, flushed whenever an operator or a bracket interrupts
+  // it. `runDepth` is the nesting the run opened at — the same for all of it,
+  // because a bracket always ends the run it lands in.
   let runStart = 0;
   let run = "";
+  let runDepth = 0;
+  // How many brackets are open at this point in the text.
+  let depth = 0;
   // True while the next thing the expression needs is a value — at the start,
   // after an infix operator, and inside a freshly opened bracket. An infix
   // character landing here has nothing to work on, so it is a sign instead.
@@ -107,14 +120,20 @@ export function expressionSegments(text: string): ExpressionSegment[] {
 
   const flush = () => {
     if (run === "") return;
-    segments.push({ start: runStart, text: run, op: false });
+    segments.push({ start: runStart, text: run, op: false, depth: runDepth });
     run = "";
+  };
+
+  // Start the next plain run here, at whatever depth we are now standing at.
+  const openRun = (start: number) => {
+    runStart = start;
+    runDepth = depth;
   };
 
   const takeOp = (start: number, op: string, postfix: boolean) => {
     flush();
-    segments.push({ start, text: op, op: true });
-    runStart = start + op.length;
+    segments.push({ start, text: op, op: true, depth });
+    openRun(start + op.length);
     expectOperand = !postfix;
   };
 
@@ -148,8 +167,16 @@ export function expressionSegments(text: string): ExpressionSegment[] {
     );
     if (fn) {
       flush();
-      segments.push({ start: i, text: fn, op: false, display: SYMBOL_FNS[fn] });
-      runStart = i + fn.length;
+      // The name stands outside the call's brackets, so it keeps the depth it
+      // is written at — the argument, not the name, is what the `(` holds.
+      segments.push({
+        start: i,
+        text: fn,
+        op: false,
+        depth,
+        display: SYMBOL_FNS[fn],
+      });
+      openRun(i + fn.length);
       // The call still wants its argument, and the `(` about to be read says
       // so too — a `-` right after it is a sign, not a subtraction.
       expectOperand = true;
@@ -169,18 +196,48 @@ export function expressionSegments(text: string): ExpressionSegment[] {
       continue;
     }
 
-    if (run === "") runStart = i;
+    // Brackets step the depth and stand alone at it, so the group they hold
+    // can be coloured as one piece. An unbalanced `)` has no group to close;
+    // it stays at the floor rather than driving the depth negative.
+    if (ch === "(" || ch === ")") {
+      flush();
+      if (ch === "(") depth += 1;
+      segments.push({ start: i, text: ch, op: false, depth });
+      if (ch === ")") depth = Math.max(0, depth - 1);
+      openRun(i + 1);
+      expectOperand = ch === "(";
+      i += 1;
+      continue;
+    }
+
+    if (run === "") openRun(i);
     run += ch;
-    // Whitespace decides nothing — `1 - 2` still subtracts. An opening
-    // bracket, or a sign kept as one, still leaves a value outstanding.
+    // Whitespace decides nothing — `1 - 2` still subtracts. A sign kept as one
+    // still leaves a value outstanding.
     if (ch.trim() !== "") {
-      expectOperand = ch === "(" || SIGN_CHARS.has(ch);
+      expectOperand = SIGN_CHARS.has(ch);
     }
     i += 1;
   }
 
   flush();
   return segments;
+}
+
+// How many bracket colours the theme carries (`--calc-paren-1…3` in
+// styles.css). Three is enough to read by: what matters is that a group never
+// wears its parent's colour, and nothing sane nests deeper than this anyway —
+// past it the colours start over rather than running out.
+export const PAREN_COLORS = 3;
+
+/**
+ * The class that paints a segment at nesting `depth` — "" out in the open,
+ * where the expression keeps the display's own ink. Defined in styles.css,
+ * which maps each one to a theme colour.
+ */
+export function parenClass(depth: number): string {
+  if (depth <= 0) return "";
+  return `calc-paren-${((depth - 1) % PAREN_COLORS) + 1}`;
 }
 
 // The characters an operand can follow, so a `−` written after one of them is
