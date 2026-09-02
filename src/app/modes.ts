@@ -38,7 +38,7 @@ export type CustomMode = {
   baseId: BuiltinModeId;
 };
 
-export type KeyTone = "digit" | "op" | "fn" | "muted" | "accent";
+export type KeyTone = "digit" | "op" | "fn" | "muted" | "accent" | "danger";
 
 export type KeyDef = {
   id: string;
@@ -94,7 +94,9 @@ const CLEAR: KeyDef = {
   id: "clear",
   label: "C",
   action: "clear",
-  tone: "muted",
+  // The pad's one destructive key, so it wears the theme's danger colour —
+  // see the `calc-key-danger` tone in styles.css.
+  tone: "danger",
 };
 const EQUALS: KeyDef = {
   id: "equals",
