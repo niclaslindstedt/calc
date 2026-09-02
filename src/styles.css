@@ -133,10 +133,12 @@ textarea {
   margin-inline: 0.24em;
   padding-inline: 0.32em;
   padding-block: 0.04em;
-  border: 1px solid color-mix(in oklab, var(--color-accent) 45%, transparent);
-  border-radius: 0.32em;
-  background: color-mix(in oklab, var(--color-accent) 12%, transparent);
   color: var(--color-accent);
+  /* Frame and fill follow the chip's own ink, so a chip inside a bracket
+     takes that group's colour along with the digits around it (below). */
+  border: 1px solid color-mix(in oklab, currentColor 45%, transparent);
+  border-radius: 0.32em;
+  background: color-mix(in oklab, currentColor 12%, transparent);
   /* The chip must not grow the line it sits on — the display's readout is
      bottom-aligned inside a clipped box, so a taller line would push the
      expression's top edge out of view. */
@@ -168,6 +170,75 @@ textarea {
   color: var(--color-accent);
   font-weight: 600;
   padding-inline-end: 0.04em;
+}
+
+/* Brackets, by colour. `2×(3+(4−1))` says nothing about where one group ends
+   and the next begins when it is all one ink, so each depth takes a colour of
+   its own and everything it holds — the brackets, the digits, the operator
+   chips between them — wears it. What is inside is then read at a glance
+   rather than counted.
+
+   The colours are theme tokens rather than fixed hexes, so every preset (and
+   a custom palette) dresses the calculator in its own syntax colours: link,
+   pipe and path are the three the framework carries that are distinct from
+   each other, from `accent` (the ink of a chip out in the open) and from the
+   page's own text. Three is the whole set — expression.ts starts them over
+   past that, so a fourth level of nesting never lands on no colour at all. */
+:root {
+  --calc-paren-1: var(--color-link);
+  --calc-paren-2: var(--color-pipe);
+  --calc-paren-3: var(--color-path);
+}
+
+/* The rose-pine pair spell `link` and `pipe` with the same violet, so the
+   default mapping would give two nested groups the one colour. Both borrow
+   `meta` for the level that would have repeated. */
+:root[data-theme="rosePine"] {
+  --calc-paren-2: var(--color-meta);
+  --calc-paren-3: var(--color-path);
+}
+
+:root[data-theme="rosePineDawn"] {
+  --calc-paren-1: var(--color-flag);
+  --calc-paren-2: var(--color-pipe);
+  --calc-paren-3: var(--color-meta);
+}
+
+/* Mixed against the ink the line already carries, at full strength by
+   default: the tape sets `--calc-paren-strength` below 100% so its small
+   print stays as quiet as the rest of the row while still reading in
+   colour. These sit after `.calc-op` and `.calc-fn` so a chip — or a `√` —
+   inside a bracket takes the group's colour rather than the accent. */
+.calc-paren-1 {
+  color: color-mix(
+    in oklab,
+    var(--calc-paren-1) var(--calc-paren-strength, 100%),
+    currentColor
+  );
+}
+
+.calc-paren-2 {
+  color: color-mix(
+    in oklab,
+    var(--calc-paren-2) var(--calc-paren-strength, 100%),
+    currentColor
+  );
+}
+
+.calc-paren-3 {
+  color: color-mix(
+    in oklab,
+    var(--calc-paren-3) var(--calc-paren-strength, 100%),
+    currentColor
+  );
+}
+
+/* The tape's expression line is a caption under its result — dimmed on
+   purpose — so the bracket colours are pulled back toward that dim ink. The
+   display, where the expression is the thing being written, keeps them
+   whole. */
+.calc-expression-soft {
+  --calc-paren-strength: 66%;
 }
 
 /* ── The keypad slab (Keypad.tsx) ───────────────────────────────────────────

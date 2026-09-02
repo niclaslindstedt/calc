@@ -76,8 +76,11 @@ kept: every calculation from then on is saved as you make it.
   values with an operation between them, the way it sits on the keypad. A
   square root reads as the key that typed it: `sqrt(9)` is stored as the word
   the evaluator parses but set as an accented `√(9)`, in the display and on
-  the tape alike. An
-  expression
+  the tape alike. Brackets colour what they hold: everything inside a `(`
+  takes a colour of its own, a group nested in it takes the next, so
+  `2×(3+(4−1))` shows what is being counted together without tracing the
+  brackets by eye. Three colours cover it, all of them from the current
+  theme. An expression
   mid-thought (`12+`) keeps the last real answer up, dimmed, rather than
   blanking the headline; the hex spelling and any error read on a thin line
   below.
