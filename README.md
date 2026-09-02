@@ -117,7 +117,10 @@ kept: every calculation from then on is saved as you make it.
   `sin(2` and `(25+3)*(5+1` all answer as written, and what the tape records
   is the finished expression (`sqrt(3)`), so it re-reads and re-evaluates
   like every other entry. A `)` that never had an opener is still an error —
-  that one is a mistake, not an omission.
+  that one is a mistake, not an omission. The `×` in front of a bracket is
+  optional the same way: `5(6+6)` is 60, and so are `2π`, `(1+2)(3+4)` and
+  `3sqrt(9)` — a product written the way it is on paper. It multiplies
+  exactly where a typed `×` would, so the two spellings always agree.
 - **Clipboard** — press and hold the display to raise a twin pill over it:
   **Copy** takes the expression (or the number) currently on the display,
   **Paste** puts the clipboard on it. Paste reads what it can — an

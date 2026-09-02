@@ -81,6 +81,23 @@ describe("chainExpression", () => {
     expect(chainExpression(entries, 1)).toBe("sqrt(16)*3");
   });
 
+  it("folds a step that continued with a bracket rather than an operator", () => {
+    const entries = tape([["1+2"], ["3(4)", true]]);
+    expect(chainExpression(entries, 1)).toBe("(1+2)(4)");
+  });
+
+  it("folds a step that continued with a constant or a function", () => {
+    expect(chainExpression(tape([["1+2"], ["3sqrt(4)", true]]), 1)).toBe(
+      "(1+2)sqrt(4)",
+    );
+    expect(chainExpression(tape([["2*3"], ["6pi", true]]), 1)).toBe("2*3pi");
+  });
+
+  it("brackets an implicit product before a tighter operator", () => {
+    const entries = tape([["2(3+4)"], ["14^2", true]]);
+    expect(chainExpression(entries, 1)).toBe("(2(3+4))^2");
+  });
+
   it("gives up when the stored text no longer starts with the previous result", () => {
     const entries = tape([["1+2"], ["9*2", true]]);
     expect(chainExpression(entries, 1)).toBeNull();
@@ -109,6 +126,8 @@ describe("chainExpression", () => {
       [["8/2"], ["4!", true]],
       [["0-2"], ["-2*3", true]],
       [["1+2"], ["3^2", true], ["9-1", true]],
+      [["1+2"], ["3(4)", true], ["12+1", true]],
+      [["2(3+4)"], ["14^2", true]],
     ];
     for (const steps of runs) {
       const entries = tape(steps);
@@ -139,6 +158,20 @@ describe("topLevelPrecedence", () => {
     expect(topLevelPrecedence("-2")).toBe(7);
     expect(topLevelPrecedence("4-2")).toBe(5);
     expect(topLevelPrecedence("-2*3")).toBe(6);
+  });
+
+  it("reports a term for a product written with no sign", () => {
+    expect(topLevelPrecedence("5(6+6)")).toBe(6);
+    expect(topLevelPrecedence("(1+2)(3+4)")).toBe(6);
+    expect(topLevelPrecedence("(1+2)3")).toBe(6);
+    expect(topLevelPrecedence("2π")).toBe(6);
+    expect(topLevelPrecedence("3sqrt(9)")).toBe(6);
+    // A function's own bracket is its argument list, not a second factor —
+    // `sqrt(9)` is one atom where `π(9)` is a product.
+    expect(topLevelPrecedence("sqrt(9)")).toBe(10);
+    expect(topLevelPrecedence("π(9)")).toBe(6);
+    // Inside a bracket it decides nothing — the group is already an atom.
+    expect(topLevelPrecedence("(5(6+6))")).toBe(10);
   });
 
   it("forces brackets on text it cannot read", () => {

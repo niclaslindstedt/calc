@@ -126,7 +126,10 @@ of `cos(`, `ceil(` and `cbrt(`.
 keyboard can type every one of them on any pad — layouts only decide which
 buttons are worth a thumb, not what the calculator accepts. A bracket left
 open at the end closes itself, so `sqrt(3` and `(25+3)*(5+1` answer as
-written and the tape records the finished expression.
+written and the tape records the finished expression. So is the `×` in front
+of a bracket: `5(6+6)` is 60, and `2π`, `(1+2)(3+4)` and `3sqrt(9)` all
+multiply too. An omitted `×` binds exactly where a typed one does, so
+`2^3(4)` and `2^3*4` are the same 32.
 
 Whatever you type lights the button that answered it, where this pad has
 one: the cap dips, its glyph

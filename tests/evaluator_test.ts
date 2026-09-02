@@ -51,6 +51,43 @@ describe("evaluate", () => {
     expect(evaluate("-2 ^ 2")).toBe(-4);
   });
 
+  it("multiplies a value written straight onto a bracket", () => {
+    expect(evaluate("5(6+6)")).toBe(60);
+    expect(evaluate("(1+2)(3+4)")).toBe(21);
+    expect(evaluate("(1+2)3")).toBe(9);
+    expect(evaluate("2(3)(4)")).toBe(24);
+    expect(evaluate("3(4")).toBe(12);
+  });
+
+  it("multiplies a value written straight onto a name", () => {
+    expect(evaluate("2π")).toBeCloseTo(Math.PI * 2);
+    expect(evaluate("2pi")).toBeCloseTo(Math.PI * 2);
+    expect(evaluate("3sqrt(9)")).toBe(9);
+    expect(evaluate("sqrt(9)3")).toBe(9);
+    expect(evaluate("(1+1)e")).toBeCloseTo(Math.E * 2);
+  });
+
+  it("binds an implicit × exactly where an explicit one binds", () => {
+    expect(evaluate("2+3(4)")).toBe(evaluate("2+3*4"));
+    expect(evaluate("2^3(4)")).toBe(evaluate("2^3*4"));
+    expect(evaluate("2(3)^2")).toBe(evaluate("2*(3)^2"));
+    expect(evaluate("1/2(3)")).toBe(evaluate("1/2*3"));
+    expect(evaluate("-2(3)")).toBe(-6);
+    expect(evaluate("3!(2)")).toBe(12);
+  });
+
+  it("reads a sign after a value as an operator, never as a product", () => {
+    expect(evaluate("2-3")).toBe(-1);
+    expect(() => evaluate("2~3")).toThrow(EvalError);
+  });
+
+  it("refuses two literals side by side", () => {
+    // Only whitespace can separate them, and no key types it — `1 000` is a
+    // mis-spaced number in a hand-edited file, not `1 × 000`.
+    expect(() => evaluate("1 000")).toThrow(EvalError);
+    expect(() => evaluate("2 3")).toThrow(EvalError);
+  });
+
   it("evaluates scientific functions and constants", () => {
     expect(evaluate("sqrt(9)")).toBe(3);
     expect(evaluate("abs(-4.2)")).toBe(4.2);

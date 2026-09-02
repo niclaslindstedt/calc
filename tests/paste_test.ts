@@ -20,6 +20,12 @@ describe("pasteCandidate", () => {
       text: "sqrt(16)",
       kind: "expression",
     });
+    // A product written the way it is on paper is inside the grammar too, so
+    // it comes over whole rather than giving up its first number.
+    expect(pasteCandidate("2(3+4)")).toEqual({
+      text: "2(3+4)",
+      kind: "expression",
+    });
     expect(pasteCandidate("0xFF")).toEqual({
       text: "0xFF",
       kind: "expression",

@@ -11,11 +11,15 @@
 // `(1+2)*2` — by substituting each step's leading result with the expression
 // that produced it. Parentheses go in only where the grammar needs them to
 // preserve the value: `(1+2)*2`, but `1+2+4` (same precedence, left
-// associative) and `2*3+4` (the inner binds tighter already).
+// associative) and `2*3+4` (the inner binds tighter already). A step that
+// continues with a bracket rather than an operator is the same substitution —
+// `1+2 = 3`, then `3(4)`, folds to `(1+2)(4)`, because juxtaposition is
+// multiplication in the grammar (evaluator.ts).
 //
 // Pure and DOM-free (tests/chain_test.ts). The precedence table below mirrors
 // the grammar in evaluator.ts — the two must move together.
 
+import { isConstantName } from "./evaluator.ts";
 import type { Entry } from "./session.ts";
 
 // Binding strength, loosest first. `ATOM` is a value that needs no parens in
@@ -68,6 +72,9 @@ export function topLevelPrecedence(expression: string): number {
     if (ch === " " || ch === "\t") {
       i += 1;
     } else if (ch === "(") {
+      // A group opening where a value is already in hand is multiplied by it
+      // — `5(6+6)` binds as loosely as `5×(6+6)` does.
+      if (!expectValue) note(P_TERM);
       depth += 1;
       expectValue = true;
       i += 1;
@@ -81,6 +88,8 @@ export function topLevelPrecedence(expression: string): number {
       expectValue = true;
       i += 2;
     } else if (/[0-9.]/.test(ch)) {
+      // `(1+2)3` — a literal after a value is the same implicit product.
+      if (!expectValue) note(P_TERM);
       while (i < expression.length && /[0-9a-fA-FxX.]/.test(expression[i])) {
         i += 1;
       }
@@ -90,13 +99,18 @@ export function topLevelPrecedence(expression: string): number {
       while (j < expression.length && /[a-zA-Z0-9π]/.test(expression[j])) {
         j += 1;
       }
-      if (expression.slice(i, j).toLowerCase() === "xor") {
+      const word = expression.slice(i, j).toLowerCase();
+      if (word === "xor") {
         note(P_XOR);
         expectValue = true;
       } else {
-        // A constant or a function name; a function's argument list is a
-        // parenthesized group, so either way this reads as an atom.
-        expectValue = false;
+        // A constant or a function name; either way this reads as an atom —
+        // one that a value in front of it multiplies (`2π`, `3sqrt(9)`).
+        if (!expectValue) note(P_TERM);
+        // A function is not a value until its argument list closes, so the
+        // `(` about to be read is that list rather than a second factor. A
+        // constant is a value already, and a bracket after it opens one.
+        expectValue = !isConstantName(word);
       }
       i = j;
     } else if (ch === "!") {
@@ -142,6 +156,13 @@ function contextAfter(
   // `^` is right-associative, so even an equally-binding left operand needs
   // brackets: `2^3^2` means `2^(3^2)`.
   if (ch === "^") return { precedence: P_POWER, rightAssociative: true };
+  // Implicit multiplication: a bracket, a function call or a constant written
+  // straight after the value multiplies it, so the step used the result as an
+  // operand after all. A digit does not — that is the result being edited into
+  // a longer number, which is no chain at all.
+  if (ch === "(" || /[a-zA-Zπ]/.test(ch)) {
+    return { precedence: P_TERM, rightAssociative: false };
+  }
   if (ch in BINARY_CHARS) {
     return { precedence: BINARY_CHARS[ch], rightAssociative: false };
   }
