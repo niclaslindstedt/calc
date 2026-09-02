@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0
 //
 // The scratch tape, kept on this device. A scratch session is not a file —
-// it becomes one only when the disk icon names it — so nothing in store.ts
+// it becomes one only when the user names it — so nothing in store.ts
 // would remember it: closing the tab would take the tape with it, and a
 // calculator whose history evaporates is not a history at all. This module
 // is the floor under that: whatever the working tape holds is mirrored here

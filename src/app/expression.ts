@@ -10,14 +10,19 @@
 // (RevealText.tsx, ExpressionText.tsx) only decide what a segment looks like,
 // never where one ends.
 //
-// Two rules keep the reading honest rather than merely decorative:
+// Three rules keep the reading honest rather than merely decorative:
 //   - only operators with an operand on their left become chips. A leading
 //     `−` (or the `~` in `~5`) is a sign on the number that follows, so it
 //     stays welded to it — a chipped `[−] 5` would read as a subtraction
 //     with its left half missing.
 //   - brackets are structure, not arithmetic, so `(` and `)` stay plain: they
 //     already group the eye, and boxing them would double the framing. They
-//     colour instead — see `depth` below.
+//     colour what they hold instead — see `depth` below.
+//   - a function that has a symbol is set with it: `sqrt(9)` is stored as the
+//     word the evaluator parses but reads as `√(9)`, drawn in the accent so
+//     the name stands out of the digits the way an operator does. The bracket
+//     stays plain and stays where it is — the symbol replaces the name only,
+//     so the reading still shows the call it will evaluate.
 //
 // Segments carry their `start` index because the display animates by
 // character position (RevealText.tsx keys and delays glyphs by where they
@@ -26,6 +31,7 @@
 export type ExpressionSegment = {
   /** Index into the source expression where this segment begins. */
   start: number;
+  /** The source text this segment covers, verbatim. */
   text: string;
   /** True when the segment is an operator — the chipped kind. */
   op: boolean;
@@ -36,6 +42,13 @@ export type ExpressionSegment = {
    * cut at every bracket so no segment straddles two depths.
    */
   depth: number;
+  /**
+   * What to draw in place of `text`, when the two differ — the `√` a stored
+   * `sqrt` reads as. Absent on every segment that is set as it is stored, so
+   * a renderer can fall back to `text` and a caller reading the source can
+   * ignore this field entirely.
+   */
+  display?: string;
 };
 
 // Operators spelled with two characters. Tried before the single-character
@@ -71,6 +84,15 @@ const SIGN_CHARS = new Set(["-", "−", "~"]);
 // The word operator. Matched only on both-side word boundaries, so the `xor`
 // inside a hex literal or a function name is left alone.
 const WORD_OPS = ["xor"];
+
+// Functions written as a symbol rather than a name. Keyed by the spelling
+// evaluator.ts parses, valued by the glyph the keypad draws for it, so the
+// tape reads back the key that was pressed. Only names immediately followed
+// by their `(` are matched — a bare `sqrt` is not a call, and `sqrtx` is a
+// different name.
+const SYMBOL_FNS: Record<string, string> = {
+  sqrt: "√",
+};
 
 function isWordChar(ch: string | undefined): boolean {
   return ch !== undefined && /[0-9A-Za-z_.π]/.test(ch);
@@ -134,6 +156,31 @@ export function expressionSegments(text: string): ExpressionSegment[] {
     if (word) {
       takeOp(i, word, false);
       i += word.length;
+      continue;
+    }
+
+    const fn = Object.keys(SYMBOL_FNS).find(
+      (name) =>
+        text.startsWith(name, i) &&
+        !isWordChar(text[i - 1]) &&
+        text[i + name.length] === "(",
+    );
+    if (fn) {
+      flush();
+      // The name stands outside the call's brackets, so it keeps the depth it
+      // is written at — the argument, not the name, is what the `(` holds.
+      segments.push({
+        start: i,
+        text: fn,
+        op: false,
+        depth,
+        display: SYMBOL_FNS[fn],
+      });
+      openRun(i + fn.length);
+      // The call still wants its argument, and the `(` about to be read says
+      // so too — a `-` right after it is a sign, not a subtraction.
+      expectOperand = true;
+      i += fn.length;
       continue;
     }
 

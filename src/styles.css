@@ -157,6 +157,21 @@ textarea {
   margin-inline-end: 0;
 }
 
+/* Functions the keypad draws as a symbol (expression.ts's SYMBOL_FNS): the
+   stored `sqrt(` is set as `√(`, the glyph accented so the operation stands
+   out of the digits it wraps. No chip — the bracket beside it is plain, and a
+   box around one half of `√(` would frame a call that isn't closed until its
+   `)`. Sized in `em` so it serves the display and the tape's small print
+   alike, and slightly heavier because a single stroke has to read at 0.875rem
+   next to a mono digit. */
+.calc-fn {
+  display: inline-block;
+  white-space: pre;
+  color: var(--color-accent);
+  font-weight: 600;
+  padding-inline-end: 0.04em;
+}
+
 /* Brackets, by colour. `2×(3+(4−1))` says nothing about where one group ends
    and the next begins when it is all one ink, so each depth takes a colour of
    its own and everything it holds — the brackets, the digits, the operator
@@ -192,8 +207,8 @@ textarea {
 /* Mixed against the ink the line already carries, at full strength by
    default: the tape sets `--calc-paren-strength` below 100% so its small
    print stays as quiet as the rest of the row while still reading in
-   colour. These sit after `.calc-op` so a chip inside a bracket takes the
-   group's colour rather than the accent. */
+   colour. These sit after `.calc-op` and `.calc-fn` so a chip — or a `√` —
+   inside a bracket takes the group's colour rather than the accent. */
 .calc-paren-1 {
   color: color-mix(
     in oklab,

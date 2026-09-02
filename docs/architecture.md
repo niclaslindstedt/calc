@@ -22,7 +22,8 @@ main.tsx
     │   │                      hex below; sized by the Appearance setting
     │   ├── RevealText.tsx     the expression's per-character reveal
     │   ├── ExpressionText     the same expression, still — operators as
-    │   │                      chips, brackets coloured by depth
+    │   │                      chips, `sqrt(` as an accented `√(`,
+    │   │                      brackets coloured by depth
     │   │                      (expression.ts splits them out)
     │   ├── HistoryEntryRow    tap=copy value, long-press=copy expression
     │   │                      or chain, star gutter, left-swipe or
@@ -51,14 +52,21 @@ imports hooks from `"react"` (the sibling apps' convention).
 | `useNamespaces()`  | Namespace registry + active slug                                                                                                                                                                      | localStorage `calc:namespaces`                                     |
 | `App` appearance   | Theme / fonts / UI style (`ThemeAppearance`)                                                                                                                                                          | localStorage `calc:appearance`                                     |
 
-A **scratch** session is not a file — it becomes one when the disk icon
-saves it. It is not lost when the tab closes either: `scratch.ts` mirrors it
-into IndexedDB on every change and `useSessions` reads it back on the next
-visit, so a tape nobody clears keeps its history indefinitely, with or
-without a storage backend behind it. Clearing the tape (or saving it as a
-file) drops the device copy. A **saved** session writes through to the
-backend on every change, debounced 800 ms
-(`useSessions.persistSession`).
+A **scratch** session is not a file — it becomes one when it is named. There
+is no save button: typing a title in the top bar writes the tape to the
+backend there and then, and from that point every calculation writes through
+as `=` is pressed (`useSessions.logEntry` persists immediately); the slower
+edits — a note, a star, a deleted row, a mode switch — debounce 800 ms
+(`useSessions.persistSession`). Every write, save or delete, is chained onto
+one queue so a burst of calculations reaches the backend in the order it was
+made. A scratch session is not lost when the tab closes either: `scratch.ts`
+mirrors it into IndexedDB on every change and `useSessions` reads it back on
+the next visit, so a tape nobody clears keeps its history indefinitely, with
+or without a storage backend behind it. Clearing the tape (or naming it, so
+it becomes a file) drops the device copy. Naming a tape with no backend
+connected keeps it on the device and writes it out as soon as one is
+connected. Clearing the name of a session that is already a file does not
+delete the file.
 
 ## Domain modules (pure, tested)
 
@@ -83,11 +91,14 @@ backend on every change, debounced 800 ms
 - `expression.ts` — how an expression is read rather than stored: the split
   into values and the operators between them, which the display and the tape
   draw as bordered chips. Only operators with an operand on their left are
-  chipped, so the `−` in `−5` stays welded to its number. Each segment also
-  carries its bracket depth, and `parenClass()` turns that into the class
+  chipped, so the `−` in `−5` stays welded to its number. It also names the
+  functions written as a symbol — a stored `sqrt(9)` reads as an accented
+  `√(9)` — replacing the name only, so the bracket and the argument still
+  show the call the entry re-evaluates to. Each segment carries its bracket
+  depth as well, and `parenClass()` turns that into the class
   (`.calc-paren-1…3` in `styles.css`, mapped to theme colours) that paints a
-  whole bracketed group — brackets, digits and chips alike — in one colour,
-  the next level in the next.
+  whole bracketed group — brackets, digits, chips and symbols alike — in one
+  colour, the next level in the next.
 - `paste.ts` — what the clipboard has to offer the display: text the shared
   grammar already understands pastes verbatim, text it cannot parse gives up
   its first number instead (`Total: $1,234.56` → `1234.56`, either locale's

@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0
 //
-// Root component: theme, sidebar shell, top bar (session title, mode
-// buttons, the disk-save icon), the calculator screen, and the modal
-// siblings (settings, namespaces, PWA update toast, toasts).
+// Root component: theme, sidebar shell, top bar (session title, mode buttons,
+// save status), the calculator screen, and the modal siblings (settings,
+// namespaces, PWA update toast, toasts).
 
 import { useEffect, useMemo, useRef, useState } from "react";
 
@@ -37,7 +37,6 @@ import { CalculatorScreen } from "./app/CalculatorScreen.tsx";
 import { APP_LOOK } from "./app/look.ts";
 import { MODES, resolveMode } from "./app/modes.ts";
 import { cacheIdForBase } from "./app/pwa.ts";
-import { nextSessionTitle } from "./app/session.ts";
 import { SettingsModal, type SettingsTab } from "./app/SettingsModal.tsx";
 import {
   SIDEBAR_PANEL_WIDTH,
@@ -64,26 +63,6 @@ function parseAppearance(raw: string): ThemeAppearance {
   } catch {
     return APP_LOOK;
   }
-}
-
-// A floppy-disk save glyph — the one icon the framework set lacks.
-function DiskIcon({ className }: { className?: string }) {
-  return (
-    <svg
-      viewBox="0 0 24 24"
-      className={className ?? "h-5 w-5"}
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      aria-hidden="true"
-    >
-      <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z" />
-      <path d="M17 21v-8H7v8" />
-      <path d="M7 3v5h8" />
-    </svg>
-  );
 }
 
 export function App() {
@@ -196,7 +175,6 @@ export function App() {
 
   // ---- title editing ----------------------------------------------------
   const [titleDraft, setTitleDraft] = useState(sessions.active.title);
-  const titleRef = useRef<HTMLInputElement>(null);
   const activeId = sessions.active.id;
   useEffect(() => {
     setTitleDraft(sessions.active.title);
@@ -211,26 +189,43 @@ export function App() {
     }
   };
 
-  // The disk icon: name-and-keep the current tape (notes-style — the title
-  // field is focused and selected right after, ready to be renamed).
-  const saveNow = () => {
-    if (!sessions.connected) {
-      setSettingsTab("storage");
-      setSettingsOpen(true);
-      return;
-    }
-    const title =
-      titleDraft.trim() ||
-      sessions.active.title.trim() ||
-      nextSessionTitle(sessions.saved);
-    sessions.saveActive(title);
-    setTitleDraft(title);
-    defaultToastStore.push({ message: `Saved “${title}”`, kind: "success" });
-    window.setTimeout(() => {
-      titleRef.current?.focus();
-      titleRef.current?.select();
-    }, 0);
-  };
+  // ---- save status ------------------------------------------------------
+  // There is no save button: naming a session is what saves it, and every
+  // calculation after that writes through. So the top bar says where the tape
+  // stands instead of offering to put it somewhere — including the one state
+  // the user has to act on (a failed write) and the one they have to learn
+  // (an unnamed tape is kept on this device only).
+  const saveStatus = (() => {
+    if (sessions.saveState === "error")
+      return {
+        label: "Save failed",
+        tone: "text-danger",
+        hint: "The last write to the storage backend failed. The tape is still on this device — the next calculation tries again.",
+      };
+    if (!sessions.activeIsNamed && !sessions.activeIsSaved)
+      return {
+        label: "Unsaved",
+        tone: "text-muted",
+        hint: "Name this session to save it. Every calculation is written through from then on; until then the tape is kept on this device only.",
+      };
+    if (!sessions.connected)
+      return {
+        label: "This device",
+        tone: "text-muted",
+        hint: "No storage backend is connected (Settings → Storage). The named tape is kept on this device and is written to storage as soon as you connect one.",
+      };
+    if (sessions.saveState === "saving")
+      return {
+        label: "Saving…",
+        tone: "text-muted",
+        hint: "Writing to storage",
+      };
+    return {
+      label: "Saved",
+      tone: "text-muted",
+      hint: "Saved to storage after every calculation",
+    };
+  })();
 
   return (
     <div className="relative flex h-[var(--app-height,100svh)] overflow-hidden bg-page-bg text-fg">
@@ -316,10 +311,9 @@ export function App() {
         {/* Top bar */}
         <header className="flex shrink-0 items-center gap-2 border-b border-line px-3 py-2 pt-[max(0.5rem,env(safe-area-inset-top))]">
           <input
-            ref={titleRef}
             type="text"
             value={titleDraft}
-            placeholder="Untitled session"
+            placeholder="Name to save…"
             aria-label="Session title"
             className="min-w-0 grow bg-transparent text-sm font-medium text-fg-bright outline-none placeholder:text-muted"
             onInput={(e) => setTitleDraft(e.currentTarget.value)}
@@ -360,25 +354,13 @@ export function App() {
             ))}
           </div>
 
-          <button
-            type="button"
-            className={`shrink-0 rounded-lg p-1.5 transition-colors ${
-              sessions.activeIsSaved && sessions.saveState !== "error"
-                ? "text-muted hover:text-fg-bright"
-                : "text-accent"
-            } hover:bg-surface-2`}
-            aria-label="Save session"
-            title={
-              sessions.saveState === "error"
-                ? "Save failed — try again"
-                : sessions.activeIsSaved
-                  ? "Saved"
-                  : "Save session"
-            }
-            onClick={saveNow}
+          <span
+            className={`shrink-0 text-xs ${saveStatus.tone}`}
+            title={saveStatus.hint}
+            aria-live="polite"
           >
-            <DiskIcon />
-          </button>
+            {saveStatus.label}
+          </span>
         </header>
 
         <div className="min-h-0 grow">

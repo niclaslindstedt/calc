@@ -4,7 +4,8 @@
 // own inline-block so a newly arrived one can slide in from the right while
 // the text already on the line settles left of it — the readout "types" the
 // way the keypad is pressed. Operators arrive whole instead, as one chipped
-// glyph, and anything inside a bracket takes that group's colour
+// glyph, and so does a function with a symbol — `sqrt(` lands as an accented
+// `√` and its bracket. Anything inside a bracket takes that group's colour
 // (expression.ts decides which runs those are and how deep they sit,
 // ExpressionText.tsx draws the still version of the same thing).
 //
@@ -69,18 +70,18 @@ export function RevealText({ text, className }: Props) {
   }
 
   const gen = generation.current;
+  // `extra` is the treatment the segment asked for — the operator chip, the
+  // accent a symbol function is set in, the colour of the bracket group it
+  // sits inside — on top of the per-character animation every glyph carries.
   const glyph = (
     key: string,
     index: number,
     content: string,
-    chip: boolean,
-    depth: number,
+    extra?: string,
   ) => (
     <span
       key={key}
-      className={`${chip ? "calc-char calc-op" : "calc-char"} ${parenClass(
-        depth,
-      )}`}
+      className={extra ? `calc-char ${extra}` : "calc-char"}
       style={{ animationDelay: `${delays.current[index] ?? 0}ms` }}
     >
       {content}
@@ -91,27 +92,38 @@ export function RevealText({ text, className }: Props) {
     <span className={className}>
       {/* The split-up glyphs are decoration; screen readers get the string. */}
       <span aria-hidden="true">
-        {expressionSegments(text).map((segment) =>
-          segment.op
-            ? // An operator reveals as one piece: it is a single glyph on the
-              // keypad, so it should not type itself in letter by letter.
-              glyph(
-                `${gen}:${segment.start}`,
-                segment.start,
-                segment.text,
-                true,
-                segment.depth,
-              )
-            : Array.from(segment.text, (char, offset) =>
-                glyph(
-                  `${gen}:${segment.start + offset}`,
-                  segment.start + offset,
-                  char,
-                  false,
-                  segment.depth,
-                ),
-              ),
-        )}
+        {expressionSegments(text).map((segment) => {
+          // The colour of the group this segment sits in, which every glyph
+          // of it wears — empty out in the open, where the line's own ink
+          // stands.
+          const nest = parenClass(segment.depth);
+          // An operator reveals as one piece: it is a single glyph on the
+          // keypad, so it should not type itself in letter by letter. A
+          // symbol function is one keypress and one glyph too, however many
+          // characters the word behind it is stored as.
+          if (segment.op)
+            return glyph(
+              `${gen}:${segment.start}`,
+              segment.start,
+              segment.text,
+              `calc-op ${nest}`.trim(),
+            );
+          if (segment.display)
+            return glyph(
+              `${gen}:${segment.start}`,
+              segment.start,
+              segment.display,
+              `calc-fn ${nest}`.trim(),
+            );
+          return Array.from(segment.text, (char, offset) =>
+            glyph(
+              `${gen}:${segment.start + offset}`,
+              segment.start + offset,
+              char,
+              nest,
+            ),
+          );
+        })}
       </span>
       <span className="sr-only">{text}</span>
     </span>

@@ -45,12 +45,14 @@ npm run dev
    from the one above, the long press offers the whole run folded into one
    expression instead. The star in the left gutter highlights the rows worth
    finding again.
-3. Press the **disk icon** in the top bar. If no storage backend is
-   connected yet, Settings → Storage opens — pick a local folder (Chromium)
-   or a cloud backend. The session gets a suggested name with the title
-   field selected, ready to overwrite — exactly how notes are named in the
-   sibling notes app.
-4. The saved session appears in the left sidebar. Organize with the folder
+3. **Name the session** in the top bar. That is the save: the tape becomes a
+   markdown file the moment it has a title, and every calculation after it is
+   written through as you press `=`. The status beside the mode buttons says
+   where the tape stands — _Unsaved_, _Saving…_, _Saved_. Connect a backend
+   first in Settings → Storage (a local folder on Chromium, or Dropbox /
+   Google Drive); name it before that and the tape waits on the device and is
+   written out as soon as you connect one.
+4. The named session appears in the left sidebar. Organize with the folder
    button, or switch namespaces (separate workspaces) from the switcher on
    top.
 
@@ -88,7 +90,9 @@ layout you left it in.
 
 The basic pad holds the digits with the operators down its right-hand edge —
 `+` is drawn tall across the bottom two rows — and a row of `±`, `(`, `)` and
-`√` above them, with the erase key and `=` along the foot. `±` signs the value
+`√` above them, with the erase key and `=` along the foot. `√` types the
+`sqrt(` the evaluator parses, and the display and the tape both set it back as
+an accented `√(` — the key you pressed is the glyph you read. `±` signs the value
 the display ends on (`12+34` becomes `12+−34`) and pressing it again takes the
 sign back off; with nothing typed yet it lays the sign down for the number you
 are about to enter.
