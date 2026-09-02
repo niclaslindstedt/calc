@@ -155,6 +155,21 @@ textarea {
   margin-inline-end: 0;
 }
 
+/* Functions the keypad draws as a symbol (expression.ts's SYMBOL_FNS): the
+   stored `sqrt(` is set as `√(`, the glyph accented so the operation stands
+   out of the digits it wraps. No chip — the bracket beside it is plain, and a
+   box around one half of `√(` would frame a call that isn't closed until its
+   `)`. Sized in `em` so it serves the display and the tape's small print
+   alike, and slightly heavier because a single stroke has to read at 0.875rem
+   next to a mono digit. */
+.calc-fn {
+  display: inline-block;
+  white-space: pre;
+  color: var(--color-accent);
+  font-weight: 600;
+  padding-inline-end: 0.04em;
+}
+
 /* ── The keypad slab (Keypad.tsx) ───────────────────────────────────────────
    The pad is one rounded box rather than a tray of separate caps. The grid
    paints the theme's line colour and holds its cells a single pixel apart, so

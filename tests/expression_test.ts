@@ -4,10 +4,12 @@ import { describe, expect, it } from "vitest";
 import { evaluate } from "../src/app/evaluator.ts";
 import { expressionSegments, toggleSign } from "../src/app/expression.ts";
 
-// Shorthand: the reading, with chipped operators bracketed.
+// Shorthand: the reading, with chipped operators bracketed. Segments that draw
+// something other than what they store (`sqrt` → `√`) report the glyph, so the
+// string is what the tape shows rather than what the file holds.
 function read(text: string): string {
   return expressionSegments(text)
-    .map((s) => (s.op ? `[${s.text}]` : s.text))
+    .map((s) => (s.op ? `[${s.text}]` : (s.display ?? s.text)))
     .join("");
 }
 
@@ -35,6 +37,31 @@ describe("expressionSegments", () => {
     expect(read("(1+2)×3")).toBe("(1[+]2)[×]3");
   });
 
+  it("sets a symbol function as its symbol, bracket and all left in place", () => {
+    expect(read("sqrt(9)")).toBe("√(9)");
+    expect(read("1+sqrt(9)")).toBe("1[+]√(9)");
+    expect(read("sqrt(2)×sqrt(8)")).toBe("√(2)[×]√(8)");
+    // The argument still reads as an argument: a sign inside the call is a
+    // sign, not a subtraction with a missing left half.
+    expect(read("sqrt(-4)")).toBe("√(-4)");
+  });
+
+  it("only symbolises a name that is calling something", () => {
+    // No bracket: not a call, so nothing is replaced.
+    expect(read("sqrt")).toBe("sqrt");
+    expect(read("sqrt+1")).toBe("sqrt[+]1");
+    // Part of a longer name, or of a literal.
+    expect(read("mysqrt(9)")).toBe("mysqrt(9)");
+    expect(read("0xsqrt(9)")).toBe("0xsqrt(9)");
+  });
+
+  it("keeps the source text under the symbol it draws", () => {
+    const segments = expressionSegments("1+sqrt(9)");
+    const fn = segments.find((s) => s.display !== undefined);
+    expect(fn).toEqual({ start: 2, text: "sqrt", op: false, display: "√" });
+    expect(segments.map((s) => s.text).join("")).toBe("1+sqrt(9)");
+  });
+
   it("chips the two-character and word operators whole", () => {
     expect(read("1<<8")).toBe("1[<<]8");
     expect(read("64>>2")).toBe("64[>>]2");
@@ -51,7 +78,14 @@ describe("expressionSegments", () => {
   });
 
   it("reproduces the input exactly, with the right offsets", () => {
-    for (const text of ["", "1+2", "-5×(3-1)", "5 xor 3!", "sin(π)÷2"]) {
+    for (const text of [
+      "",
+      "1+2",
+      "-5×(3-1)",
+      "5 xor 3!",
+      "sin(π)÷2",
+      "sqrt(9)+sqrt(16)",
+    ]) {
       const segments = expressionSegments(text);
       expect(segments.map((s) => s.text).join("")).toBe(text);
       for (const segment of segments) {

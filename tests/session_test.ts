@@ -5,8 +5,8 @@ import {
   appendEntry,
   clearEntries,
   isDiscardable,
+  isNamed,
   newSession,
-  nextSessionTitle,
   removeEntry,
   repeatedEntry,
   sessionTitle,
@@ -86,14 +86,13 @@ describe("titles", () => {
     expect(sessionTitle(s)).toBe("Untitled session");
   });
 
-  it("suggests numbered titles that skip existing ones", () => {
-    expect(nextSessionTitle([])).toBe("Session");
-    const s1 = { ...newSession(0), title: "Session" };
-    expect(nextSessionTitle([s1])).toBe("Session 2");
-    const s5 = { ...newSession(0), title: "Session 5" };
-    expect(nextSessionTitle([s1, s5])).toBe("Session 6");
-    const named = { ...newSession(0), title: "Groceries" };
-    expect(nextSessionTitle([named])).toBe("Session");
+  it("counts a session as named — and so as saved — only with a real title", () => {
+    const s = newSession(0);
+    expect(isNamed(s)).toBe(false);
+    expect(isNamed({ ...s, title: "   " })).toBe(false);
+    expect(isNamed({ ...s, title: "Groceries" })).toBe(true);
+    // A tape with entries is still unnamed until it is given a title.
+    expect(isNamed(appendEntry(s, "1+1", "2", { now: 1 }))).toBe(false);
   });
 });
 

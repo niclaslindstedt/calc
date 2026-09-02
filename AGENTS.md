@@ -49,15 +49,16 @@ Run a single test file: `npx vitest run tests/evaluator_test.ts`.
 ## Architecture summary
 
 One Preact app, no router. `src/main.tsx` renders `src/App.tsx`, which owns
-the theme, the sidebar shell, the top bar (session title, mode buttons, the
-disk-save icon), and the modal siblings. State is hooks, not stores:
+the theme, the sidebar shell, the top bar (session title, mode buttons, save
+status), and the modal siblings. State is hooks, not stores:
 
 - `useSessions(namespaceSlug)` — the document state: the active (possibly
   scratch) session, saved sessions + folders loaded from the storage
-  backend, and every session/folder action. Debounced write-through for
-  saved sessions; a scratch session is not a file until the disk icon, but
-  it is mirrored to the device (`scratch.ts`) and read back on the next
-  visit.
+  backend, and every session/folder action. A session becomes a file the
+  moment it is named — there is no save button — after which `=` writes it
+  through immediately and slower edits debounce; an unnamed tape is not a
+  file, but it is mirrored to the device (`scratch.ts`) and read back on the
+  next visit.
 - `useAppSettings()` — localStorage settings: gestures, key animation,
   enabled modes, per-mode hidden keys, custom modes.
 - `useNamespaces()` — the framework's namespace registry in localStorage.
