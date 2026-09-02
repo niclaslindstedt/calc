@@ -13,7 +13,7 @@
 //   andExpr    := shiftExpr ("&" shiftExpr)*
 //   shiftExpr  := additive (("<<" | ">>") additive)*
 //   additive   := term (("+" | "-") term)*
-//   term       := unary (("*" | "/" | "%") unary)*
+//   term       := unary (("*" | "/" | "%")? unary)*   omitted sign = ×
 //   unary      := ("-" | "~") unary | power
 //   power      := postfix ("^" unary)?           right-associative
 //   postfix    := primary "!"*
@@ -22,7 +22,9 @@
 //
 // Brackets left open on the end are closed for the caller — `sin(2` reads as
 // `sin(2)` (closeParens below), so a calculator with no cursor never has to
-// go back for the keystroke that was never in doubt.
+// go back for the keystroke that was never in doubt. The `×` between a value
+// and a bracket is treated the same way: `5(6+6)` is the product it is
+// written as on paper, and so are `2π`, `(1+2)(3+4)` and `3sqrt(9)`.
 //
 // `%` is the modulo operator, not percent — matching how the tape reads back
 // as plain text. Trig works in radians. Bitwise operators require integer
@@ -63,6 +65,16 @@ const FUNCTIONS: Record<string, (x: number) => number> = {
   ceil: Math.ceil,
 };
 
+/**
+ * Whether `word` is one of the constants the tokenizer reads as a value in its
+ * own right (`π`, `e`, `tau`) rather than as the name of a call. The split
+ * matters wherever a name meets a bracket: `sqrt(3)` is one call, `π(3)` is a
+ * constant times a group — chain.ts reads expressions by the same rule.
+ */
+export function isConstantName(word: string): boolean {
+  return word.toLowerCase() in CONSTANTS;
+}
+
 type Op =
   | "+"
   | "-"
@@ -78,8 +90,15 @@ type Op =
   | "~"
   | "!";
 
+// The operators of the term level, where implicit multiplication also lives.
+const TERM_OPS: readonly Op[] = ["*", "/", "%"];
+
 type Token =
-  | { kind: "number"; value: number }
+  // `constant` marks a value written as a name (`π`, `e`, `tau`) rather than
+  // as a literal. It parses exactly like a literal; the flag matters only to
+  // implicit multiplication, which reads `2π` as a product but two literals
+  // in a row as a mis-spaced number (see impliesMultiplication).
+  | { kind: "number"; value: number; constant?: true }
   | { kind: "op"; op: Op }
   | { kind: "func"; name: string }
   | { kind: "lparen" }
@@ -120,7 +139,7 @@ function tokenize(input: string): Token[] {
       if (word === "xor") {
         tokens.push({ kind: "op", op: "xor" });
       } else if (word in CONSTANTS) {
-        tokens.push({ kind: "number", value: CONSTANTS[word] });
+        tokens.push({ kind: "number", value: CONSTANTS[word], constant: true });
       } else if (word in FUNCTIONS) {
         tokens.push({ kind: "func", name: word });
       } else {
@@ -253,13 +272,50 @@ class Parser {
       this.binaryLevel(["xor"], () =>
         this.binaryLevel(["&"], () =>
           this.binaryLevel(["<<", ">>"], () =>
-            this.binaryLevel(["+", "-"], () =>
-              this.binaryLevel(["*", "/", "%"], () => this.unary()),
-            ),
+            this.binaryLevel(["+", "-"], () => this.term()),
           ),
         ),
       ),
     );
+  }
+
+  // Multiplication and division, including the multiplication written with no
+  // sign at all: `5(6+6)`, `2π`, `(1+2)(3+4)`, `3sqrt(9)`. Juxtaposition is
+  // handled here, at the level an explicit `×` sits on, so the two spellings
+  // can never disagree — `2^3(4)` is `(2^3)×4` exactly as `2^3*4` is, and
+  // `1/2(3)` is `1/2×3`. Every mode shares this grammar, so an expression
+  // written on one pad re-evaluates the same on any other.
+  private term(): number {
+    let left = this.unary();
+    for (;;) {
+      const tok = this.peek();
+      if (tok?.kind === "op" && TERM_OPS.includes(tok.op)) {
+        this.pos += 1;
+        left = this.apply(tok.op, left, this.unary());
+      } else if (this.impliesMultiplication(tok)) {
+        left = this.apply("*", left, this.unary());
+      } else {
+        return left;
+      }
+    }
+  }
+
+  // Whether `tok` opens a value that the one just parsed multiplies. A
+  // bracketed group, a function call and a constant all do; a sign does not —
+  // `2-3` is a subtraction and `2~3` is nothing at all, so neither `-` nor `~`
+  // may start an implicit right-hand side.
+  //
+  // The one juxtaposition that is not a product is two literals in a row.
+  // Only whitespace can separate them, and nothing in the calculator can type
+  // it — so a `1 000` reaching here came from a hand-edited file, where it is
+  // a mis-spaced number rather than `1 × 000`. Saying so beats answering 0.
+  private impliesMultiplication(tok: Token | undefined): boolean {
+    if (tok === undefined) return false;
+    if (tok.kind === "func" || tok.kind === "lparen") return true;
+    if (tok.kind !== "number") return false;
+    if (tok.constant) return true;
+    const previous = this.tokens[this.pos - 1];
+    return previous?.kind !== "number" || previous.constant === true;
   }
 
   private unary(): number {

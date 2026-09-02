@@ -42,7 +42,8 @@
   on any pad (`sqrt(2)+sin(0)` on the basic layout); Enter = `=`, Escape or
   Delete clears
 - Brackets: one left open at the end closes itself — `sqrt(3` answers, and
-  the tape records `sqrt(3)`
+  the tape records `sqrt(3)`. The `×` in front of one is optional too:
+  `5(6+6)`, `2π` and `(1+2)(3+4)` multiply
 - Sidebar: folders and namespaces for organizing sessions
 - Storage: markdown files in a local folder or the cloud; localStorage holds
   settings only, and the unsaved working tape is mirrored to IndexedDB so

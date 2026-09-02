@@ -74,10 +74,13 @@ delete the file.
   shared by every mode: arithmetic, `%` (modulo), `^` (right-assoc power),
   postfix `!`, functions (`sqrt`, trig, `ln`/`log`, …), constants (`π`,
   `e`), hex/binary literals, and BigInt-exact bitwise operators with C-like
-  precedence. Brackets left open on the end are closed for the caller
-  (`closeParens`), so `sin(2` evaluates as `sin(2)` and the tape records the
-  finished expression. Modes are presentation only — any stored expression
-  re-evaluates identically anywhere.
+  precedence. Multiplication may be written by juxtaposition alone —
+  `5(6+6)`, `2π`, `(1+2)(3+4)`, `3sqrt(9)` — binding at the same level an
+  explicit `×` does, so the two spellings never disagree. Brackets left open
+  on the end are closed for the caller (`closeParens`), so `sin(2` evaluates
+  as `sin(2)` and the tape records the finished expression. Modes are
+  presentation only — any stored expression re-evaluates identically
+  anywhere.
 - `session.ts` — `Session` / `Entry` / `Folder` model and pure operations.
 - `chain.ts` — folds a run of calculations that each built on the last
   result back into one expression (`1+2 = 3`, `3*2 = 6` → `(1+2)*2`),
