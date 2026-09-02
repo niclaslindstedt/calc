@@ -3,9 +3,10 @@
 // The session domain model. A session is one calculator tape: every
 // calculation that ended with `=` appends an Entry, and an entry can carry a
 // free-text note explaining it and a star marking it as important. Sessions
-// are scratch (in memory only) until the user saves them with the disk icon;
-// saved sessions live as markdown files in the chosen storage backend (see
-// codec.ts for the file format).
+// are scratch (in memory only) until the user names one — naming is what
+// saves it — after which it lives as a markdown file in the chosen storage
+// backend (see codec.ts for the file format) and every later calculation
+// writes through.
 
 import { DEFAULT_MODE, type ModeId } from "./modes.ts";
 
@@ -70,18 +71,11 @@ export function sessionTitle(session: Session): string {
   return session.title.trim() || "Untitled session";
 }
 
-const NUMBERED_TITLE_RE = /^Session(?: (\d+))?$/;
-
-// Suggest "Session", "Session 2", "Session 3", … skipping titles already in
-// use — the default offered by the save dialog so a quick save needs no
-// typing but never collides.
-export function nextSessionTitle(sessions: readonly Session[]): string {
-  let max = 0;
-  for (const s of sessions) {
-    const m = NUMBERED_TITLE_RE.exec(s.title.trim());
-    if (m) max = Math.max(max, m[1] ? Number.parseInt(m[1], 10) : 1);
-  }
-  return max === 0 ? "Session" : `Session ${max + 1}`;
+// A named session is a saved one: the title is the whole gesture, so this is
+// the test the app persists by. An unnamed tape stays scratch — kept on the
+// device (scratch.ts), never written to the storage backend.
+export function isNamed(session: Session): boolean {
+  return session.title.trim() !== "";
 }
 
 export function appendEntry(

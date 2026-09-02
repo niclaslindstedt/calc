@@ -2,9 +2,10 @@
 //
 // The app's document state: the active (possibly scratch) session, the saved
 // sessions and folders read from the storage backend, and the actions the UI
-// dispatches. A scratch session is not a file — it becomes one the moment the
-// user saves it with the disk icon; saved sessions write through (debounced)
-// on every change.
+// dispatches. A scratch session is not a file — it becomes one the moment it
+// is named, and from then on every change writes through: a calculation lands
+// on the backend as soon as `=` is pressed, the slower edits (a note, a star,
+// a deleted row) are debounced.
 //
 // Not a file is not the same as not kept: the scratch tape is mirrored onto
 // the device as it changes (scratch.ts) and read back on the next visit, so a
@@ -47,6 +48,7 @@ import {
   appendEntry,
   clearEntries as clearSessionEntries,
   isDiscardable,
+  isNamed,
   newId,
   newSession,
   removeEntry,
@@ -82,6 +84,7 @@ export function useSessions(namespaceSlug: string) {
 
   const savedIds = useMemo(() => new Set(saved.map((s) => s.id)), [saved]);
   const activeIsSaved = savedIds.has(active.id);
+  const activeIsNamed = isNamed(active);
 
   // ---- store (re)construction -------------------------------------------
   const rebuildStore = useCallback(() => {
@@ -168,10 +171,19 @@ export function useSessions(namespaceSlug: string) {
   }, []);
 
   // Rebuild the store and reload whenever the connection, the backend or the
-  // namespace moves.
+  // namespace moves. `listedEpoch` catches up once that load has landed —
+  // until then `saved` still describes the store we just left, which is why
+  // the promotion below waits for it.
+  const [listedEpoch, setListedEpoch] = useState(-1);
   useEffect(() => {
     rebuildStore();
-    void refresh();
+    let cancelled = false;
+    void refresh().then(() => {
+      if (!cancelled) setListedEpoch(storeEpoch);
+    });
+    return () => {
+      cancelled = true;
+    };
   }, [connected, storeEpoch, rebuildStore, refresh]);
 
   // Switching namespace resets the working session (each namespace is its
@@ -328,51 +340,141 @@ export function useSessions(namespaceSlug: string) {
   }, []);
 
   // ---- persistence -------------------------------------------------------
-  const persistTimer = useRef<number | null>(null);
-  const persistSession = useCallback(
-    (session: Session, currentFolders: readonly Folder[]) => {
+  // Every backend write goes through one queue rather than being fired off in
+  // parallel: two calculations a few hundred milliseconds apart must land in
+  // the order they were made (or the older tape wins), and a delete must not
+  // overtake a save that would put the file straight back. `pendingWrites`
+  // counts what is still in flight, so the status only reads "saved" once the
+  // last write has landed.
+  const writeQueue = useRef<Promise<void>>(Promise.resolve());
+  const pendingWrites = useRef(0);
+  // A debounced write and the session it is holding, so deleting that session
+  // can drop it instead of letting it recreate the file it just removed.
+  const persistTimer = useRef<{ handle: number; sessionId: string } | null>(
+    null,
+  );
+
+  const enqueueWrite = useCallback(
+    (op: (store: SessionStore) => Promise<void>) => {
       const store = storeRef.current;
       if (!store) return;
-      if (persistTimer.current !== null) {
-        window.clearTimeout(persistTimer.current);
-      }
-      persistTimer.current = window.setTimeout(() => {
-        persistTimer.current = null;
-        setSaveState("saving");
-        store
-          .saveSession(session, currentFolders)
-          .then(() => setSaveState("saved"))
-          .catch((err: unknown) => {
-            logError(
-              `Saving failed: ${err instanceof Error ? err.message : String(err)}`,
-            );
-            setSaveState("error");
-          });
-      }, SAVE_DEBOUNCE_MS);
+      pendingWrites.current += 1;
+      setSaveState("saving");
+      writeQueue.current = writeQueue.current
+        .then(() => op(store))
+        .then(() => {
+          pendingWrites.current -= 1;
+          if (pendingWrites.current === 0) setSaveState("saved");
+        })
+        .catch((err: unknown) => {
+          pendingWrites.current -= 1;
+          logError(
+            `Saving failed: ${err instanceof Error ? err.message : String(err)}`,
+          );
+          setSaveState("error");
+        });
     },
     [],
   );
 
-  // Update the active session; when it's a saved one, mirror the change into
-  // the saved list and schedule the write-through.
+  const cancelPendingWrite = useCallback((sessionId?: string) => {
+    const pending = persistTimer.current;
+    if (!pending) return;
+    if (sessionId !== undefined && pending.sessionId !== sessionId) return;
+    window.clearTimeout(pending.handle);
+    persistTimer.current = null;
+  }, []);
+
+  const persistNow = useCallback(
+    (session: Session, currentFolders: readonly Folder[]) =>
+      enqueueWrite((store) => store.saveSession(session, currentFolders)),
+    [enqueueWrite],
+  );
+
+  // Write a named session through. A calculation asks for `immediate`: `=` is
+  // the moment the tape gained something worth keeping, so it goes to the
+  // backend right away. The slower edits (typing a note, starring a row)
+  // debounce, and a pending debounce is always superseded by whatever comes
+  // next — the session is written whole, so the newer copy contains the older.
+  const persistSession = useCallback(
+    (
+      session: Session,
+      currentFolders: readonly Folder[],
+      immediate = false,
+    ) => {
+      if (!storeRef.current) return;
+      cancelPendingWrite();
+      if (immediate) {
+        persistNow(session, currentFolders);
+        return;
+      }
+      persistTimer.current = {
+        sessionId: session.id,
+        handle: window.setTimeout(() => {
+          persistTimer.current = null;
+          persistNow(session, currentFolders);
+        }, SAVE_DEBOUNCE_MS),
+      };
+    },
+    [cancelPendingWrite, persistNow],
+  );
+
+  // Update the active session. A named session is a file: the change is
+  // mirrored into the saved list (adding it there the first time — naming is
+  // what saves a tape) and written through. An unnamed tape, or a named one
+  // with no backend to write to, stays scratch and rides the device mirror
+  // above instead.
   const updateActive = useCallback(
-    (fn: (session: Session) => Session) => {
+    (fn: (session: Session) => Session, { immediate = false } = {}) => {
       setActive((prev) => {
         const next = fn(prev);
-        if (savedIds.has(next.id)) {
-          setSaved((list) => list.map((s) => (s.id === next.id ? next : s)));
-          persistSession(next, folders);
-        }
+        if (next === prev) return prev;
+        if (!storeRef.current) return next;
+        if (!isNamed(next) && !savedIds.has(next.id)) return next;
+        setSaved((list) =>
+          list.some((s) => s.id === next.id)
+            ? list.map((s) => (s.id === next.id ? next : s))
+            : [next, ...list],
+        );
+        persistSession(next, folders, immediate);
         return next;
       });
     },
     [savedIds, folders, persistSession],
   );
 
+  // A tape named while nothing was connected is still meant to be a file —
+  // there was simply nowhere to put it, and it has been riding the device
+  // mirror since. The first store that turns up takes it, so connecting
+  // storage never leaves an already-named session behind.
+  useEffect(() => {
+    if (!connected || !storeRef.current) return;
+    // Only once the backend's own listing is in: promoting against a stale
+    // `saved` would write the session, then find it missing from the fresh
+    // listing and write it a second time.
+    if (listedEpoch !== storeEpoch) return;
+    if (!activeIsNamed || activeIsSaved) return;
+    setSaved((list) => [active, ...list]);
+    persistSession(active, folders, true);
+  }, [
+    connected,
+    storeEpoch,
+    listedEpoch,
+    active,
+    activeIsNamed,
+    activeIsSaved,
+    folders,
+    persistSession,
+  ]);
+
   // ---- session actions ---------------------------------------------------
+  // `=`. On a named session this is a save: the calculation is written to the
+  // backend as it is made, not eight hundred milliseconds later.
   const logEntry = useCallback(
     (expression: string, result: string, chained: boolean) =>
-      updateActive((s) => appendEntry(s, expression, result, { chained })),
+      updateActive((s) => appendEntry(s, expression, result, { chained }), {
+        immediate: true,
+      }),
     [updateActive],
   );
 
@@ -399,39 +501,6 @@ export function useSessions(namespaceSlug: string) {
     [updateActive],
   );
 
-  // The disk icon: persist the scratch session under a title (and optional
-  // folder). On a saved session this renames it.
-  const saveActive = useCallback(
-    (title: string, folderId?: string) => {
-      const session: Session = {
-        ...active,
-        title: title.trim(),
-        folderId: folderId ?? active.folderId,
-        updatedAt: Date.now(),
-      };
-      setActive(session);
-      setSaved((list) =>
-        savedIds.has(session.id)
-          ? list.map((s) => (s.id === session.id ? session : s))
-          : [session, ...list],
-      );
-      const store = storeRef.current;
-      if (store) {
-        setSaveState("saving");
-        store
-          .saveSession(session, folders)
-          .then(() => setSaveState("saved"))
-          .catch((err: unknown) => {
-            logError(
-              `Saving failed: ${err instanceof Error ? err.message : String(err)}`,
-            );
-            setSaveState("error");
-          });
-      }
-    },
-    [active, savedIds, folders],
-  );
-
   // Open a saved session; a discardable scratch tape is silently dropped.
   const openSession = useCallback(
     (id: string) => {
@@ -448,15 +517,19 @@ export function useSessions(namespaceSlug: string) {
     );
   }, []);
 
-  // The top-bar title edit: a scratch session just holds the title in
-  // memory; a saved session writes the rename through (updateActive handles
-  // both, and the store reconciles the renamed file on the next save).
+  // The top-bar title edit — and the app's only save gesture. Naming a scratch
+  // tape turns it into a file there and then; renaming a saved one writes the
+  // rename through (the store reconciles the renamed file, deleting the stale
+  // path). Clearing the name of a session that is already a file does not
+  // delete it: the file stays, under the fallback `session-<id6>.md` stem.
   const retitleActive = useCallback(
     (title: string) =>
-      updateActive((s) =>
-        s.title === title.trim()
-          ? s
-          : { ...s, title: title.trim(), updatedAt: Date.now() },
+      updateActive(
+        (s) =>
+          s.title === title.trim()
+            ? s
+            : { ...s, title: title.trim(), updatedAt: Date.now() },
+        { immediate: true },
       ),
     [updateActive],
   );
@@ -471,52 +544,37 @@ export function useSessions(namespaceSlug: string) {
     [updateActive],
   );
 
-  const deleteSession = useCallback((id: string) => {
-    setSaved((list) => list.filter((s) => s.id !== id));
-    const store = storeRef.current;
-    if (store)
-      void store.removeSession(id).catch((err: unknown) => {
-        logError(
-          `Saving failed: ${err instanceof Error ? err.message : String(err)}`,
-        );
-        setSaveState("error");
-      });
-    setActive((prev) => (prev.id === id ? newSession() : prev));
-  }, []);
+  const deleteSession = useCallback(
+    (id: string) => {
+      setSaved((list) => list.filter((s) => s.id !== id));
+      // A debounced write still holding this session would put the file back.
+      cancelPendingWrite(id);
+      enqueueWrite((store) => store.removeSession(id));
+      setActive((prev) => (prev.id === id ? newSession() : prev));
+    },
+    [cancelPendingWrite, enqueueWrite],
+  );
 
   const moveSession = useCallback(
     (id: string, folderId: string | undefined) => {
-      const store = storeRef.current;
       setSaved((list) =>
         list.map((s) => {
           if (s.id !== id) return s;
           const next = { ...s, folderId, updatedAt: Date.now() };
-          if (store)
-            void store.saveSession(next, folders).catch((err: unknown) => {
-              logError(
-                `Saving failed: ${err instanceof Error ? err.message : String(err)}`,
-              );
-              setSaveState("error");
-            });
+          persistNow(next, folders);
           return next;
         }),
       );
       setActive((prev) => (prev.id === id ? { ...prev, folderId } : prev));
     },
-    [folders],
+    [folders, persistNow],
   );
 
   // ---- folder actions ----------------------------------------------------
-  const persistFolders = useCallback((next: Folder[]) => {
-    const store = storeRef.current;
-    if (store)
-      void store.saveFolders(next).catch((err: unknown) => {
-        logError(
-          `Saving failed: ${err instanceof Error ? err.message : String(err)}`,
-        );
-        setSaveState("error");
-      });
-  }, []);
+  const persistFolders = useCallback(
+    (next: Folder[]) => enqueueWrite((store) => store.saveFolders(next)),
+    [enqueueWrite],
+  );
 
   const createFolder = useCallback(
     (name: string) => {
@@ -576,6 +634,7 @@ export function useSessions(namespaceSlug: string) {
     folders,
     active,
     activeIsSaved,
+    activeIsNamed,
     saveState,
     loadError,
     refresh,
@@ -586,7 +645,6 @@ export function useSessions(namespaceSlug: string) {
     clearEntries,
     retitleActive,
     setMode,
-    saveActive,
     openSession,
     newScratch,
     deleteSession,

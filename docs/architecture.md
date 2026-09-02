@@ -51,14 +51,21 @@ imports hooks from `"react"` (the sibling apps' convention).
 | `useNamespaces()`  | Namespace registry + active slug                                                                                                                                                                      | localStorage `calc:namespaces`                                     |
 | `App` appearance   | Theme / fonts / UI style (`ThemeAppearance`)                                                                                                                                                          | localStorage `calc:appearance`                                     |
 
-A **scratch** session is not a file — it becomes one when the disk icon
-saves it. It is not lost when the tab closes either: `scratch.ts` mirrors it
-into IndexedDB on every change and `useSessions` reads it back on the next
-visit, so a tape nobody clears keeps its history indefinitely, with or
-without a storage backend behind it. Clearing the tape (or saving it as a
-file) drops the device copy. A **saved** session writes through to the
-backend on every change, debounced 800 ms
-(`useSessions.persistSession`).
+A **scratch** session is not a file — it becomes one when it is named. There
+is no save button: typing a title in the top bar writes the tape to the
+backend there and then, and from that point every calculation writes through
+as `=` is pressed (`useSessions.logEntry` persists immediately); the slower
+edits — a note, a star, a deleted row, a mode switch — debounce 800 ms
+(`useSessions.persistSession`). Every write, save or delete, is chained onto
+one queue so a burst of calculations reaches the backend in the order it was
+made. A scratch session is not lost when the tab closes either: `scratch.ts`
+mirrors it into IndexedDB on every change and `useSessions` reads it back on
+the next visit, so a tape nobody clears keeps its history indefinitely, with
+or without a storage backend behind it. Clearing the tape (or naming it, so
+it becomes a file) drops the device copy. Naming a tape with no backend
+connected keeps it on the device and writes it out as soon as one is
+connected. Clearing the name of a session that is already a file does not
+delete the file.
 
 ## Domain modules (pure, tested)
 
