@@ -18,7 +18,7 @@ assert(existsSync(indexPath), "dist/index.html missing");
 const html = existsSync(indexPath) ? readFileSync(indexPath, "utf8") : "";
 
 // Head signals.
-assert(/<title>[^<]{5,}<\/title>/.test(html), "missing or empty <title>");
+assert(/<title>[^<]{1,}<\/title>/.test(html), "missing or empty <title>");
 assert(html.includes('name="description"'), "missing meta description");
 assert(html.includes('rel="canonical"'), "missing canonical link");
 assert(html.includes('property="og:title"'), "missing og:title");

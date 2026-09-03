@@ -63,7 +63,7 @@ function channelName(base: string): { name: string; short_name: string } {
   if (base === "/branch/")
     return { name: "Calc (branch)", short_name: "Calc br" };
   return {
-    name: "Calc — a local-first calculator",
+    name: "Calc",
     short_name: "Calc",
   };
 }
