@@ -4,7 +4,7 @@
 // save status), the calculator screen, and the modal siblings (settings,
 // namespaces, PWA update toast, toasts).
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 
 import {
   ConfirmDialog,
@@ -12,7 +12,6 @@ import {
   defaultToastStore,
 } from "@niclaslindstedt/oss-framework/components";
 import {
-  useDesktopPointer,
   useLocalStorageState,
   useMediaQuery,
 } from "@niclaslindstedt/oss-framework/hooks";
@@ -24,6 +23,7 @@ import {
 import { UpdateToast, usePwaUpdate } from "@niclaslindstedt/oss-framework/pwa";
 import {
   Sidebar,
+  SidebarCollapseRail,
   useEdgeSwipeOpen,
   usePersistentMenuPosition,
   useSidebarInset,
@@ -40,14 +40,8 @@ import { MODES, resolveMode } from "./app/modes.ts";
 import { cacheIdForBase } from "./app/pwa.ts";
 import { SettingsModal, type SettingsTab } from "./app/SettingsModal.tsx";
 import { storageName } from "./app/store.ts";
-import {
-  SIDEBAR_PANEL_WIDTH,
-  SIDEBAR_RAIL_WIDTH,
-  SidebarCollapseRail,
-} from "./app/SidebarRails.tsx";
 import { SideMenuContent } from "./app/SideMenuContent.tsx";
 import { useAppSettings } from "./app/useAppSettings.ts";
-import { useEdgeHover } from "./app/useEdgeHover.ts";
 import { useNamespaces } from "./app/useNamespaces.ts";
 import { useSessions } from "./app/useSessions.ts";
 
@@ -117,22 +111,6 @@ export function App() {
   // A collapsed sidebar occupies nothing, so the overlays that inset past it
   // (the toasts) must stop reserving its width.
   useSidebarInset(sidebarDocked, menuPosition.side);
-  // The collapse rail gives its pixels back to the app and only materialises
-  // when the pointer comes to that edge looking for it. A click-through
-  // element can never match `:hover`, so the cursor is tracked against the
-  // rail's own box instead. A device that can't hover would never see it at
-  // all — and, once collapsed, would have no way back — so there it stays up.
-  const railRef = useRef<HTMLButtonElement>(null);
-  const hoverCapable = useDesktopPointer();
-  const railHovered = useEdgeHover(railRef, hoverCapable);
-  const railRevealed = !hoverCapable || railHovered;
-  // The rail's band. Collapsed it hugs the viewport edge, where a cursor
-  // thrown at the side of the screen lands on it without aiming. Docked it
-  // straddles the panel's inner edge (half the rail's width back from
-  // `SIDEBAR_PANEL_WIDTH`), so it reads as a grip on the divider.
-  const railOffset = sidebarCollapsed
-    ? "0px"
-    : `calc(${SIDEBAR_PANEL_WIDTH} - ${SIDEBAR_RAIL_WIDTH} / 2)`;
   // "Open sidebar with" (Settings → General): on phones the drawer opens
   // either from the floating button or from an inward edge swipe — one or the
   // other, never both, so the gesture and the button can't fight each other.
@@ -275,9 +253,6 @@ export function App() {
           collapsed={sidebarCollapsed}
           side={menuPosition.side}
           label={sidebarCollapsed ? "Show sidebar" : "Hide sidebar"}
-          offset={railOffset}
-          revealed={railRevealed}
-          elementRef={railRef}
           onClick={() => setSidebarCollapsed((v) => !v)}
         />
       )}

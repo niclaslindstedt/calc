@@ -6,11 +6,12 @@
 // the same three lines to preview the display text size — the picker shows the
 // real thing rather than an impression of it.
 //
-// Only the expression line reveals character by character (RevealText.tsx).
+// Only the expression line reveals character by character (the framework's
+// `RevealText`).
 // The result is recomputed wholesale on every keystroke, so animating it too
 // would leave the display flickering rather than typing.
 
-import { RevealText } from "./RevealText.tsx";
+import { RevealText } from "@niclaslindstedt/oss-framework/expression";
 import type { DisplayTextSize } from "./useAppSettings.ts";
 
 // The display's two type sizes, stepped together by the Appearance picker. The

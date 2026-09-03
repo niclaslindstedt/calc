@@ -63,14 +63,18 @@ status), and the modal siblings. State is hooks, not stores:
   enabled modes, per-mode hidden keys, custom modes.
 - `useNamespaces()` — the framework's namespace registry in localStorage.
 
-Pure domain modules (unit-tested, DOM-free): `evaluator.ts` (tokenizer +
-recursive-descent parser over one shared grammar for all modes),
-`session.ts` (the Session/Entry/Folder model), `chain.ts` (folds a run of
-`=`-chained calculations back into one bracketed expression), `codec.ts`
-(markdown + YAML front matter serialization, filenames, directory layout),
-`modes.ts` (keypad layout definitions and custom-mode resolution),
-`paste.ts` (what the clipboard has to offer the display: a whole expression,
-or the first number salvaged out of text we cannot parse).
+Pure domain modules (unit-tested, DOM-free): `session.ts` (the
+Session/Entry/Folder model), `codec.ts` (markdown + YAML front matter
+serialization, filenames, directory layout), and `modes.ts` (keypad layout
+definitions and custom-mode resolution).
+
+The arithmetic itself is **not** app code any more. The evaluator, the
+reading of an expression (operator chips, symbol functions, bracket depth),
+the chain fold and the clipboard candidate all live in the framework's
+`expression` module, and the two renderers (`RevealText`, `ExpressionText`)
+come from there with their paint (`.oss-expr-*`, in the framework
+stylesheet). A grammar change is a framework change now — one grammar, and
+every mode still shares it.
 
 Storage: `store.ts` builds a framework `FileStore` (folder / Dropbox /
 Drive) and binds it to sessions via `createSessionStore` — one markdown file
@@ -83,10 +87,10 @@ backends hold. See `docs/architecture.md` and `docs/storage-format.md`.
 
 | Change                         | Location                                                                                     |
 | ------------------------------ | -------------------------------------------------------------------------------------------- |
-| New operator / function        | `src/app/evaluator.ts` + evaluator tests                                                     |
-| New keypad key / layout / mode | `src/app/modes.ts`                                                                           |
+| New operator / function        | the framework's `expression` module — not this repo                                          |
+| New keypad key / layout / mode | `src/app/modes.ts` (the key's stored text must parse in the framework's one grammar)         |
 | Session model change           | `src/app/session.ts` + `codec.ts` (+ migration note in docs/storage-format.md)               |
-| Expression-chain rule          | `src/app/chain.ts` + chain tests (keep its precedence table in step with `evaluator.ts`)     |
+| Expression-chain rule          | the framework's `expression` module — not this repo                                          |
 | File-format change             | `src/app/codec.ts` + `tests/codec_test.ts` + `docs/storage-format.md` + `examples/`          |
 | New storage backend            | `src/app/store.ts` (FileStore factory)                                                       |
 | Device-local persistence       | `src/app/scratch.ts` (IndexedDB) — never localStorage                                        |
@@ -120,8 +124,8 @@ in `=`. No test-specific dependencies beyond vitest.
   geometry — change both together, then `make icons`.
 - `src/app/pwa.ts` (`cacheIdForBase`) is imported by both the app and
   `pwa-plugin.ts`; it must stay dependency-free.
-- Every mode feeds the same evaluator grammar: never add a key whose stored
-  expression text another mode cannot re-evaluate.
+- Every mode feeds the framework's one expression grammar: never add a key
+  whose stored expression text another mode cannot re-evaluate.
 - localStorage is for settings/pointers only (`calc:*` keys); session
   documents go through the storage backend, and the one device-local
   document — the unsaved working tape — goes through `scratch.ts`

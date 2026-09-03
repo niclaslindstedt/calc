@@ -16,7 +16,8 @@
 //                   pointer has no swipe in it, so the row's actions have to
 //                   arrive on the gesture a desktop *does* have.
 // Every copy confirms in place: a small label flicks up over the value it
-// copied, so the eye never leaves the number it just took (CopiedFlash.tsx).
+// copied, so the eye never leaves the number it just took (the framework's
+// `AnchoredFlash`).
 // A saved note renders under the calculation in muted text, so the tape reads
 // like the markdown file it round-trips to.
 
@@ -24,6 +25,7 @@ import { useEffect, useRef, useState } from "react";
 
 import {
   ContextMenu,
+  AnchoredFlash,
   CopyIcon,
   NoteIcon,
   StarIcon,
@@ -36,9 +38,8 @@ import {
   copyTextToClipboard,
   useLongPress,
 } from "@niclaslindstedt/oss-framework/hooks";
+import { ExpressionText } from "@niclaslindstedt/oss-framework/expression";
 
-import { CopiedFlash } from "./CopiedFlash.tsx";
-import { ExpressionText } from "./ExpressionText.tsx";
 import type { Entry } from "./session.ts";
 
 type Props = {
@@ -184,7 +185,7 @@ export function HistoryEntryRow({
         setMenu({ at: { x: e.clientX, y: e.clientY }, kind: "row" });
       }}
     >
-      <CopiedFlash
+      <AnchoredFlash
         label={copied ? COPIED_LABEL[copied] : null}
         anchorRef={rowRef}
       />
@@ -233,7 +234,7 @@ export function HistoryEntryRow({
             </span>
             <ExpressionText
               text={entry.expression}
-              className="calc-expression-soft block truncate font-mono text-sm text-muted"
+              className="oss-expr-soft block truncate font-mono text-sm text-muted"
             />
           </button>
         </div>
