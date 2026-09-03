@@ -67,6 +67,14 @@ or without a storage backend behind it. Clearing the tape (or naming it, so
 it becomes a file) drops the device copy. Clearing the name of a session that
 is already a file does not delete the file.
 
+That mirror only runs on an answer it trusts. `readScratch` distinguishes
+"this device holds no tape" from "this device could not be read"
+(`ScratchRead`), and on the second answer `useSessions` mirrors nothing at
+all for that namespace — no write, no clear — because the tape it failed to
+read may still be sitting in the record either one would overwrite. Pressing
+restart on the update prompt flushes the tape first (`flushScratch`, capped at
+1.5 s) so the reload cannot land on a write still in flight.
+
 **This device is a backend.** With no folder or cloud connected, `useSessions`
 binds the session store to the device's own `FileStore` (IndexedDB — see
 `deviceFileStore` in `scratch.ts`), so naming a tape makes it a file there and
@@ -128,12 +136,16 @@ What is still this app's own:
 
 ## Storage
 
-`scratch.ts` keeps the working tape on the device (IndexedDB, best-effort:
-a private window or a denied quota simply reads back as "nothing there"), and
+`scratch.ts` keeps the working tape on the device (IndexedDB — writing it is
+best-effort, a private window or a denied quota costs the device copy and not
+the tape in memory, but reading it reports failure rather than emptiness), and
 holds the device storage backend beside it — a `FileStore` over the same
 database whose calls _do_ reject, because a named session lives there rather
 than merely being mirrored there, and a write that does not land has to reach
-the save glyph. `store.ts` composes that transport with the framework's
+the save glyph. Every operation on either half is retried against a freshly
+opened database: the framework's `createIdbDatabase` remembers the outcome of
+its one open, so an upgrade blocked by the page an app update is replacing
+would otherwise poison that whole page load. `store.ts` composes that transport with the framework's
 byte-level ones — `createFolderFileStore` (File System Access),
 `createDropboxFileStore`, `createGdriveFileStore` — and binds them with
 `createSessionStore`: one

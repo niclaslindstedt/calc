@@ -68,6 +68,9 @@ import {
 } from "./session.ts";
 
 const SAVE_DEBOUNCE_MS = 800;
+// The longest the app waits for the working tape to reach the device before
+// an update restart goes ahead without it.
+const FLUSH_TIMEOUT_MS = 1500;
 
 export type SaveState = "idle" | "saving" | "saved" | "error";
 
@@ -212,13 +215,21 @@ export function useSessions(namespaceSlug: string) {
   // taken from them either. A saved session needs no device copy — its file
   // in the storage backend is the durable one.
 
-  // The namespace whose device copy has been read, so the mirror below cannot
-  // overwrite — or delete — a tape it has not seen yet. It holds the slug
-  // rather than a flag because a namespace switch renders the new slug while
-  // the old namespace's tape is still the active one: a boolean would be true
-  // for that one render and write the outgoing tape into the incoming
-  // namespace's record.
-  const [scratchLoadedFor, setScratchLoadedFor] = useState<string | null>(null);
+  // What the device said about this namespace's tape, and for which namespace
+  // it said it. It holds the slug rather than a flag because a namespace
+  // switch renders the new slug while the old namespace's tape is still the
+  // active one: a boolean would be true for that one render and write the
+  // outgoing tape into the incoming namespace's record. `usable` is false
+  // when the device could not be read at all — the mirror below then does
+  // nothing whatsoever, because a tape we failed to read is a tape that may
+  // still be sitting there, and both halves of the mirror (the write and the
+  // clear) would destroy it.
+  const [scratchRead, setScratchRead] = useState<{
+    slug: string;
+    usable: boolean;
+  } | null>(null);
+  const scratchReady =
+    scratchRead?.slug === namespaceSlug && scratchRead.usable;
   useEffect(() => {
     let cancelled = false;
     void (async () => {
@@ -226,10 +237,19 @@ export function useSessions(namespaceSlug: string) {
       if (cancelled) return;
       // Onto an untouched tape only: a calculation made while the read was in
       // flight is the newer one, and the mirror below keeps it instead.
-      if (restored) {
-        setActive((prev) => (isDiscardable(prev) ? restored : prev));
+      if (restored.status === "tape") {
+        const tape = restored.session;
+        setActive((prev) => (isDiscardable(prev) ? tape : prev));
       }
-      setScratchLoadedFor(namespaceSlug);
+      if (restored.status === "unavailable") {
+        warn(
+          "This device's working tape could not be read — it is left untouched",
+        );
+      }
+      setScratchRead({
+        slug: namespaceSlug,
+        usable: restored.status !== "unavailable",
+      });
     })();
     return () => {
       cancelled = true;
@@ -241,7 +261,7 @@ export function useSessions(namespaceSlug: string) {
   // a rename), so there is nothing here worth debouncing and nothing left
   // unwritten if the tab closes a moment later.
   useEffect(() => {
-    if (scratchLoadedFor !== namespaceSlug) return;
+    if (!scratchReady) return;
     // An empty untitled tape leaves no record behind, and neither does one
     // that has become a file: clearing the history is meant to clear it.
     if (activeIsSaved || isDiscardable(active)) {
@@ -249,7 +269,23 @@ export function useSessions(namespaceSlug: string) {
       return;
     }
     void writeScratch(namespaceSlug, active);
-  }, [active, activeIsSaved, namespaceSlug, scratchLoadedFor]);
+  }, [active, activeIsSaved, namespaceSlug, scratchReady]);
+
+  // Wait for the tape to be on the device, then let the caller go. The mirror
+  // above already writes every change as it happens, but "as it happens" is a
+  // transaction in flight, and the app update's restart button reloads the
+  // page the moment it is pressed — a reload that lands mid-write is how a
+  // tape goes missing on the one action the user was told is safe. IndexedDB
+  // runs transactions in order, so a write queued now completes after the one
+  // it may be racing. Capped, because nothing about an update may hang on a
+  // database that has stopped answering.
+  const flushScratch = useCallback(async () => {
+    if (!scratchReady || activeIsSaved || isDiscardable(active)) return;
+    await Promise.race([
+      writeScratch(namespaceSlug, active),
+      new Promise((resolve) => window.setTimeout(resolve, FLUSH_TIMEOUT_MS)),
+    ]);
+  }, [active, activeIsSaved, namespaceSlug, scratchReady]);
 
   // Pick a local folder and switch to it. The framework persists the handle to
   // IndexedDB so the grant survives reloads. A dismissed picker or a declined
@@ -679,6 +715,7 @@ export function useSessions(namespaceSlug: string) {
     setMode,
     openSession,
     newScratch,
+    flushScratch,
     deleteSession,
     moveSession,
     createFolder,
