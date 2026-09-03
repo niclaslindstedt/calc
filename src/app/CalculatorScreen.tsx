@@ -38,26 +38,31 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import {
+  ActionPill,
+  CopyIcon,
+} from "@niclaslindstedt/oss-framework/components";
+import {
   copyTextToClipboard,
   useLongPress,
 } from "@niclaslindstedt/oss-framework/hooks";
-
-import { chainExpression } from "./chain.ts";
-import { ClipboardPill } from "./ClipboardPill.tsx";
-import { DISPLAY_MIN_HEIGHT, DisplayReadout } from "./DisplayReadout.tsx";
 import {
+  chainExpression,
   closeParens,
   evaluate,
   EvalError,
   formatHex,
   formatResult,
-} from "./evaluator.ts";
-import { toggleSign } from "./expression.ts";
+  pasteCandidate,
+  pasteLabel,
+  toggleSign,
+  type PasteCandidate,
+} from "@niclaslindstedt/oss-framework/expression";
+
+import { DISPLAY_MIN_HEIGHT, DisplayReadout } from "./DisplayReadout.tsx";
 import { HistoryEntryRow } from "./HistoryEntryRow.tsx";
-import { GrabHandleIcon } from "./icons.tsx";
+import { GrabHandleIcon, PasteIcon } from "./icons.tsx";
 import { Keypad } from "./Keypad.tsx";
 import type { KeyDef, Mode } from "./modes.ts";
-import { clipLabel, pasteCandidate, type PasteCandidate } from "./paste.ts";
 import { repeatedEntry, type Session } from "./session.ts";
 import type { DisplayTextSize, KeyTextSize } from "./useAppSettings.ts";
 
@@ -1165,13 +1170,38 @@ export function CalculatorScreen({
       {/* The clipboard bar the display's long press raises. It renders
           nothing in place — the pill portals itself out to `document.body`
           (see ClipboardPill.tsx). */}
-      <ClipboardPill
+      <ActionPill
         open={clipboardOpen}
         anchorRef={displayRef}
-        copyLabel={expression ? clipLabel(expression) : null}
-        pasteLabel={pasteReady ? clipLabel(pasteReady.text) : null}
-        onCopy={copyDisplay}
-        onPaste={pasteIntoDisplay}
+        ariaLabel="Clipboard"
+        actions={[
+          {
+            label: "Copy",
+            tone: "link",
+            icon: <CopyIcon className="h-5 w-5 shrink-0" />,
+            disabled: expression === "",
+            ariaLabel: expression ? `Copy ${pasteLabel(expression)}` : "Copy",
+            title: expression
+              ? `Copy ${pasteLabel(expression)}`
+              : "Nothing on the display",
+            onSelect: copyDisplay,
+          },
+          {
+            // The label names what would actually land on the display: a
+            // number salvaged out of prose is not what the user copied, and
+            // saying so is the difference between a paste and a surprise.
+            label: pasteReady
+              ? `Paste ${pasteLabel(pasteReady.text)}`
+              : "Paste",
+            icon: <PasteIcon className="h-5 w-5 shrink-0" />,
+            disabled: !pasteReady,
+            ariaLabel: pasteReady
+              ? `Paste ${pasteLabel(pasteReady.text)}`
+              : "Paste",
+            title: pasteReady ? undefined : "Nothing to paste from here",
+            onSelect: pasteIntoDisplay,
+          },
+        ]}
         onDismiss={() => setClipboardOpen(false)}
       />
 

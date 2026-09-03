@@ -31,13 +31,13 @@ import {
   type FloatingPlacement,
 } from "@niclaslindstedt/oss-framework/components";
 import { useLocalStorageState } from "@niclaslindstedt/oss-framework/hooks";
+import { CollapseRail } from "@niclaslindstedt/oss-framework/sidebar";
 import {
   NamespaceSwitcher,
   type Namespace,
 } from "@niclaslindstedt/oss-framework/namespaces";
 
 import { sessionTitle, type Folder, type Session } from "./session.ts";
-import { FooterCollapseRail } from "./SidebarRails.tsx";
 
 // The About dropdown opens up-and-to-the-left of its footer trigger; the
 // framework's `FloatingPanel` flips it above automatically.
@@ -331,7 +331,7 @@ export function SideMenuContent({
       {/* Footer collapse rail — a thin, full-width chevron button seated just
           above the footer that folds it away (and back), handing the freed
           vertical space to the session list. */}
-      <FooterCollapseRail
+      <CollapseRail
         collapsed={footerCollapsed}
         last={footerCollapsed}
         label={footerCollapsed ? "Show footer" : "Hide footer"}

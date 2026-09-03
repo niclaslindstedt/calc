@@ -72,10 +72,10 @@ folder: f-shopping
 - `<markers>` is zero, one, or both of these leading glyphs, in this order,
   each followed by a space:
 
-  | Marker | Meaning                                                                                   |
-  | ------ | ----------------------------------------------------------------------------------------- |
-  | `⭐`   | Starred — the user highlighted this row from the tape's left gutter                       |
-  | `↳`    | Chained — the expression starts with the previous entry's result (see `src/app/chain.ts`) |
+  | Marker | Meaning                                                                                                                                 |
+  | ------ | --------------------------------------------------------------------------------------------------------------------------------------- |
+  | `⭐`   | Starred — the user highlighted this row from the tape's left gutter                                                                     |
+  | `↳`    | Chained — the expression starts with the previous entry's result (folded back into one expression by the framework's `chainExpression`) |
 
   An entry with neither marker is written exactly as it was before the
   markers existed, so files predating them round-trip untouched. A `↳` on

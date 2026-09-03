@@ -12,26 +12,27 @@ storage transports, gesture hooks, components).
 ```
 main.tsx
 └── App.tsx                    theme, sidebar shell, top bar, modals
-    ├── SidebarRails.tsx       the two collapse rails: the docked sidebar's
-    │                          edge grip, and the one above the footer
+    ├── SidebarCollapseRail    the docked sidebar's edge grip (framework);
+    │                          `CollapseRail` folds the footer, in the menu
     ├── SideMenuContent.tsx    namespaces, folders, saved sessions, footer
     ├── CalculatorScreen.tsx   tape (always visible, and a drag handle in
     │   │                      its own right), the draggable seam, display,
     │   │                      Keypad
     │   ├── DisplayReadout.tsx result on top, expression under it, error or
     │   │                      hex below; sized by the Appearance setting
-    │   ├── RevealText.tsx     the expression's per-character reveal
+    │   ├── RevealText         the expression's per-character reveal
+    │   │                      (framework, /expression)
     │   ├── ExpressionText     the same expression, still — operators as
     │   │                      chips, `sqrt(` as an accented `√(`,
-    │   │                      brackets coloured by depth
-    │   │                      (expression.ts splits them out)
+    │   │                      brackets coloured by depth (framework)
     │   ├── HistoryEntryRow    tap=copy value, long-press=copy expression
     │   │                      or chain, star gutter, left-swipe or
     │   │                      right-click=note/delete
-    │   ├── CopiedFlash.tsx    the copy confirmation over the value it took
-    │   │                      (portalled, so the tape cannot clip it)
-    │   ├── ClipboardPill.tsx  the copy / paste twin pill a long press on the
-    │   │                      display raises (portalled to document.body)
+    │   ├── AnchoredFlash      the copy confirmation over the value it took
+    │   │                      (framework; portalled, so the tape cannot
+    │   │                      clip it)
+    │   ├── ActionPill         the copy / paste twin pill a long press on the
+    │   │                      display raises (framework; portalled)
     │   └── Keypad.tsx         mode-driven grid; the erase key reads the
     │                          display (⌫ / C, tap and hold); doubles as the
     │                          mode editor
@@ -80,43 +81,50 @@ session named a moment earlier is seen rather than raced.
 
 ## Domain modules (pure, tested)
 
-- `evaluator.ts` — tokenizer + recursive-descent parser over one grammar
-  shared by every mode: arithmetic, `%` (modulo), `^` (right-assoc power),
-  postfix `!`, functions (`sqrt`, trig, `ln`/`log`, …), constants (`π`,
-  `e`), hex/binary literals, and BigInt-exact bitwise operators with C-like
-  precedence. Multiplication may be written by juxtaposition alone —
-  `5(6+6)`, `2π`, `(1+2)(3+4)`, `3sqrt(9)` — binding at the same level an
-  explicit `×` does, so the two spellings never disagree. Brackets left open
-  on the end are closed for the caller (`closeParens`), so `sin(2` evaluates
-  as `sin(2)` and the tape records the finished expression. Modes are
-  presentation only — any stored expression re-evaluates identically
-  anywhere.
+The arithmetic moved out. The evaluator, the reading of an expression, the
+chain fold and the clipboard candidate are the framework's `expression`
+module — one grammar, shared, with the two renderers (`RevealText`,
+`ExpressionText`) and their paint (`.oss-expr-*`) alongside. What that module
+gives this app, and what a change to it means:
+
+- **`evaluate` / `closeParens`** — one grammar for every mode: arithmetic,
+  `%` (modulo), `^` (right-assoc power), postfix `!`, functions (`sqrt`,
+  trig, `ln`/`log`, …), constants (`π`, `e`), hex/binary literals, and
+  BigInt-exact bitwise operators with C-like precedence. Multiplication may
+  be written by juxtaposition alone — `5(6+6)`, `2π`, `(1+2)(3+4)`,
+  `3sqrt(9)` — binding at the same level an explicit `×` does, so the two
+  spellings never disagree. Brackets left open on the end are closed for the
+  caller, so `sin(2` evaluates as `sin(2)` and the tape records the finished
+  expression. Modes are presentation only — any stored expression
+  re-evaluates identically anywhere.
+- **`expressionSegments` / `depthClass`** — how an expression is read rather
+  than stored: the split into values and the operators between them, which
+  the display and the tape draw as bordered chips. Only operators with an
+  operand on their left are chipped, so the `−` in `−5` stays welded to its
+  number. Symbol functions read as their glyph — a stored `sqrt(9)` shows as
+  an accented `√(9)` — replacing the name only, so the bracket and the
+  argument still show the call the entry re-evaluates to. Each segment
+  carries its bracket depth, and `depthClass()` turns that into the class
+  that paints a whole bracketed group — brackets, digits, chips and symbols
+  alike — in one colour, the next level in the next.
+- **`chainExpression`** — folds a run of calculations that each built on the
+  last result back into one expression (`1+2 = 3`, `3*2 = 6` → `(1+2)*2`),
+  bracketing only where precedence would otherwise re-associate it. It takes
+  a `ChainStep` — `{ expression, result, chained? }` — which this app's
+  `Entry` satisfies as it stands.
+- **`pasteCandidate`** — what the clipboard has to offer the display: text
+  the grammar already understands pastes verbatim, text it cannot parse
+  gives up its first number instead (`Total: $1,234.56` → `1234.56`, either
+  locale's separators), and text with no number in it offers nothing, which
+  is what keeps the paste half of the bar dark.
+
+What is still this app's own:
+
 - `session.ts` — `Session` / `Entry` / `Folder` model and pure operations.
-- `chain.ts` — folds a run of calculations that each built on the last
-  result back into one expression (`1+2 = 3`, `3*2 = 6` → `(1+2)*2`),
-  bracketing only where the evaluator's precedence would otherwise
-  re-associate it. Its precedence table mirrors `evaluator.ts` — the two
-  move together.
 - `codec.ts` — the markdown + YAML front matter file format (see
   [storage-format.md](storage-format.md)), filenames, directory layout.
 - `modes.ts` — keypad layouts (basic / scientific / programmer), custom-mode
   resolution, and the visible-keys filter behind per-mode customization.
-- `expression.ts` — how an expression is read rather than stored: the split
-  into values and the operators between them, which the display and the tape
-  draw as bordered chips. Only operators with an operand on their left are
-  chipped, so the `−` in `−5` stays welded to its number. It also names the
-  functions written as a symbol — a stored `sqrt(9)` reads as an accented
-  `√(9)` — replacing the name only, so the bracket and the argument still
-  show the call the entry re-evaluates to. Each segment carries its bracket
-  depth as well, and `parenClass()` turns that into the class
-  (`.calc-paren-1…3` in `styles.css`, mapped to theme colours) that paints a
-  whole bracketed group — brackets, digits, chips and symbols alike — in one
-  colour, the next level in the next.
-- `paste.ts` — what the clipboard has to offer the display: text the shared
-  grammar already understands pastes verbatim, text it cannot parse gives up
-  its first number instead (`Total: $1,234.56` → `1234.56`, either locale's
-  separators), and text with no number in it offers nothing, which is what
-  keeps the paste half of the bar dark.
 
 ## Storage
 
