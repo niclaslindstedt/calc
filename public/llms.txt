@@ -15,7 +15,8 @@
 
 - Sessions: scratch by default, saved by naming them (no save button);
   the working tape is kept on the device (IndexedDB) so history survives a
-  reload with no backend connected
+  reload with no backend connected, and with no backend connected a named
+  session is a file on the device too — connecting one moves them into it
 - Display: result-first — the answer big on top, the expression under it,
   characters revealing one at a time as they are typed and operators drawn
   as bordered chips (`1 + 2`); a half-typed expression holds the last

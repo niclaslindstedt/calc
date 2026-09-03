@@ -513,6 +513,34 @@ export function CalculatorScreen({
   // into `setTape`, so the ref cannot drift from the state.
   const tapeKind = useRef<TapeSize["kind"]>(tape.kind);
 
+  // Whether opening the tape would put anything on screen that the resting
+  // tape does not already show. A run of three calculations fits above the
+  // display with room to spare: expanding it would reveal nothing and cost the
+  // keypad half the screen for a page of blank paper. So a tape that is not
+  // clipped does not open at all — the seam keeps its handle to itself, and
+  // every gesture that would open it (the seam's click, its arrow keys, a drag
+  // on either, the display's swipe) comes to nothing.
+  //
+  // Asked of the DOM at the moment it matters rather than off a measurement
+  // taken earlier: opening a saved session hands the tape a new set of rows
+  // and asks for it open in the same commit, and a remembered answer would
+  // still be describing the tape the session before it had. A tape that is
+  // already open needs no such test — it has its way back regardless.
+  const canExpand = useCallback(() => {
+    const el = tapeRef.current;
+    if (!el) return false;
+    if (tapeKind.current !== "auto") return true;
+    return el.scrollHeight - el.clientHeight > 1;
+  }, []);
+
+  // The same question, as the seam draws itself: a handle while there is
+  // something to take hold of, a plain divider the rest of the time. This one
+  // is state because it has to survive to the next render, and it is measured
+  // by the observer further down — a frame behind at worst, which the live
+  // reading above keeps honest.
+  const [expandable, setExpandable] = useState(false);
+  const seamActive = expandable || tape.kind !== "auto";
+
   // Run something two frames from now, and a way to call that off. Two, not
   // one: a size that is meant to animate has to be set in a *later* style
   // recalculation than the transition it animates under, or CSS treats the
@@ -543,14 +571,17 @@ export function CalculatorScreen({
   // keyboard, while a drag goes straight to `track`.
   const apply = useCallback(
     (size: TapeSize) => {
-      tapeKind.current = size.kind;
-      setTape(size);
-      const open = size.kind !== "auto";
+      // Nothing behind the fold: every way of opening the tape lands here, so
+      // this is where they all become the resting height instead.
+      const next = canExpand() ? size : { kind: "auto" as const };
+      tapeKind.current = next.kind;
+      setTape(next);
+      const open = next.kind !== "auto";
       if (open === openRef.current) return;
       openRef.current = open;
       onHistoryOpenChange(open);
     },
-    [onHistoryOpenChange],
+    [canExpand, onHistoryOpenChange],
   );
 
   // The guarded door into the tape's size, and so the place that owns the
@@ -791,6 +822,10 @@ export function CalculatorScreen({
       // to the newest, so the list is owed the gesture while the direction it
       // is going still has somewhere to land.
       drag.mode = (dy > 0 ? top > 0 : top < room - 1) ? "scroll" : "resize";
+      // A resting tape with nothing behind the fold does not resize. Leave the
+      // gesture to the browser rather than letting a drag that moves nothing
+      // swallow the tap it ends on.
+      if (drag.mode === "resize" && !canExpand()) drag.mode = "scroll";
       if (drag.mode === "resize") setDragging(true);
     }
     if (drag.mode !== "resize") return false;
@@ -870,7 +905,14 @@ export function CalculatorScreen({
   useEffect(() => {
     const el = tapeRef.current;
     if (!el) return;
-    const measure = () => setTapeScrolls(el.scrollHeight - el.clientHeight > 1);
+    const measure = () => {
+      const clipped = el.scrollHeight - el.clientHeight > 1;
+      setTapeScrolls(clipped);
+      // Clipped at resting height is exactly "there is more to show", so the
+      // same reading answers both questions. Only while resting: an open tape
+      // has already made room, and would report itself unexpandable.
+      if (tapeKind.current === "auto") setExpandable(clipped);
+    };
     measure();
     const observer = new ResizeObserver(measure);
     observer.observe(el);
@@ -1025,20 +1067,30 @@ export function CalculatorScreen({
       {/* The seam. A hairline with a grab glyph riding it: drag to resize,
           click to toggle, arrow keys to step. The glyph carries its own
           background so the line reads as passing behind it rather than
-          through it. */}
+          through it.
+
+          With the whole tape already on screen there is nothing to expand
+          into, so the glyph goes and the hairline is left as the plain divider
+          it also is — the seam keeps its height either way, so entries
+          crossing that threshold don't shift the layout under the fingers. */}
       <button
         ref={seamRef}
         type="button"
-        className={`relative flex w-full shrink-0 cursor-row-resize touch-none items-center justify-center py-1.5 select-none ${
-          full ? "pb-[max(0.375rem,env(safe-area-inset-bottom))]" : ""
-        }`}
+        disabled={!seamActive}
+        className={`relative flex w-full shrink-0 touch-none items-center justify-center py-1.5 select-none ${
+          seamActive ? "cursor-row-resize" : ""
+        } ${full ? "pb-[max(0.375rem,env(safe-area-inset-bottom))]" : ""}`}
         aria-label="Resize history"
         aria-expanded={tape.kind !== "auto"}
-        title={`${
-          tape.kind === "auto" ? "Expand" : "Collapse"
-        } the history — or drag to resize${
-          session.entries.length ? ` (${session.entries.length})` : ""
-        }`}
+        title={
+          seamActive
+            ? `${
+                tape.kind === "auto" ? "Expand" : "Collapse"
+              } the history — or drag to resize${
+                session.entries.length ? ` (${session.entries.length})` : ""
+              }`
+            : "The whole tape is already on screen"
+        }
         onPointerDown={onSeamPointerDown}
         onPointerMove={onSeamPointerMove}
         onPointerUp={endSeamDrag}
@@ -1058,10 +1110,15 @@ export function CalculatorScreen({
         />
         {/* The glyph wears the accent: it is the one thing on the seam that
             can be taken hold of, and the hairline it rides is already as
-            quiet as the rest of the chrome. */}
-        <span className="relative flex items-center rounded-full bg-page-bg px-2 text-accent transition-[filter] duration-150 hover:brightness-125">
-          <GrabHandleIcon className="h-5 w-5" />
-        </span>
+            quiet as the rest of the chrome. Absent, it still holds the row
+            open at its own height. */}
+        {seamActive ? (
+          <span className="relative flex items-center rounded-full bg-page-bg px-2 text-accent transition-[filter] duration-150 hover:brightness-125">
+            <GrabHandleIcon className="h-5 w-5" />
+          </span>
+        ) : (
+          <span aria-hidden="true" className="block h-5" />
+        )}
       </button>
 
       {/* Display. `select-none` (plus the iOS callout suppression) because the

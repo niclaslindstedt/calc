@@ -42,11 +42,14 @@ clearing the tape yourself, or opening another session, which puts the scratch
 tape away. Private-browsing windows may refuse the device copy, and clearing
 site data takes it with everything else.
 
-For a tape that survives all of that — and syncs — connect a backend
-(Settings → Storage) and give the session a name in the top bar; it then
-appears in the sidebar and is written to the backend after every calculation.
-The status beside the mode buttons reads _Saved_ once a write has landed, and
-_Save failed_ if the backend rejected one.
+Naming a session in the top bar makes it a file and puts it in the sidebar —
+with no backend connected that file is kept on this device, which is storage
+that never leaves the browser and is not backed up. For a copy that survives
+site-data clearing — and syncs — connect a backend (Settings → Storage);
+everything the device is holding is moved into it, and every calculation is
+written there from then on. The glyph beside the mode buttons says which of
+those is true: not a file yet, saving, saved to wherever it is saved, or a
+save that failed. Press it to open Settings → Storage.
 
 ## A session file didn't show up in the sidebar
 

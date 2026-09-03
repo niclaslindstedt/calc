@@ -28,6 +28,7 @@ import {
   usePersistentMenuPosition,
   useSidebarInset,
 } from "@niclaslindstedt/oss-framework/sidebar";
+import { SyncStatus } from "@niclaslindstedt/oss-framework/sync";
 import {
   useApplyTheme,
   type ThemeAppearance,
@@ -38,6 +39,7 @@ import { APP_LOOK } from "./app/look.ts";
 import { MODES, resolveMode } from "./app/modes.ts";
 import { cacheIdForBase } from "./app/pwa.ts";
 import { SettingsModal, type SettingsTab } from "./app/SettingsModal.tsx";
+import { storageName } from "./app/store.ts";
 import {
   SIDEBAR_PANEL_WIDTH,
   SIDEBAR_RAIL_WIDTH,
@@ -191,41 +193,14 @@ export function App() {
 
   // ---- save status ------------------------------------------------------
   // There is no save button: naming a session is what saves it, and every
-  // calculation after that writes through. So the top bar says where the tape
-  // stands instead of offering to put it somewhere — including the one state
-  // the user has to act on (a failed write) and the one they have to learn
-  // (an unnamed tape is kept on this device only).
-  const saveStatus = (() => {
-    if (sessions.saveState === "error")
-      return {
-        label: "Save failed",
-        tone: "text-danger",
-        hint: "The last write to the storage backend failed. The tape is still on this device — the next calculation tries again.",
-      };
-    if (!sessions.activeIsNamed && !sessions.activeIsSaved)
-      return {
-        label: "Unsaved",
-        tone: "text-muted",
-        hint: "Name this session to save it. Every calculation is written through from then on; until then the tape is kept on this device only.",
-      };
-    if (!sessions.connected)
-      return {
-        label: "This device",
-        tone: "text-muted",
-        hint: "No storage backend is connected (Settings → Storage). The named tape is kept on this device and is written to storage as soon as you connect one.",
-      };
-    if (sessions.saveState === "saving")
-      return {
-        label: "Saving…",
-        tone: "text-muted",
-        hint: "Writing to storage",
-      };
-    return {
-      label: "Saved",
-      tone: "text-muted",
-      hint: "Saved to storage after every calculation",
-    };
-  })();
+  // calculation after that writes through. So the top bar carries the sibling
+  // apps' sync glyph instead of a verb — one icon saying where the tape stands
+  // (a file, or not one yet; landing, landed, or failed), and a press on it
+  // opening the Storage tab, which is where any of that is changed.
+  const openStorageSettings = () => {
+    setSettingsTab("storage");
+    setSettingsOpen(true);
+  };
 
   return (
     <div className="relative flex h-[var(--app-height,100svh)] overflow-hidden bg-page-bg text-fg">
@@ -354,13 +329,26 @@ export function App() {
             ))}
           </div>
 
-          <span
-            className={`shrink-0 text-xs ${saveStatus.tone}`}
-            title={saveStatus.hint}
-            aria-live="polite"
-          >
-            {saveStatus.label}
-          </span>
+          {/* The framework sync glyph, the same one the contacts sibling flies
+              in its header. `dirty` is a tape that is not a file yet — naming
+              it is the save — and `offline` is a folder grant this browser has
+              to re-confirm, until which the writes land on the device. */}
+          <SyncStatus
+            providerName={storageName(sessions.backend)}
+            status={sessions.saveState}
+            dirty={!sessions.activeIsNamed && !sessions.activeIsSaved}
+            offline={sessions.folderReconnectNeeded}
+            onOpenDetails={openStorageSettings}
+            className="h-8 w-8 shrink-0"
+            labels={{
+              saving: "Saving…",
+              syncedTo: (name) => `Saved to ${name} — after every calculation`,
+              saveUnsaved: "Not saved yet — name this session to keep it",
+              failed: "The last save failed — the next calculation tries again",
+              offline:
+                "Reconnect your folder in Settings — saving to this device meanwhile",
+            }}
+          />
         </header>
 
         <div className="min-h-0 grow">

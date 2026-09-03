@@ -11,6 +11,13 @@
 // the device as it changes (scratch.ts) and read back on the next visit, so a
 // history nobody clears outlives the tab it was typed in — with or without a
 // storage backend behind it.
+//
+// "Nothing connected" is itself a backend. With no folder or cloud chosen the
+// session store is bound to the device's own `FileStore` (IndexedDB), so
+// naming a tape makes it a file there and the sidebar lists it exactly as it
+// would list a folder's. Connecting a backend afterwards moves those files
+// into it — see `migrate` below — so the shelf follows the user rather than
+// emptying behind them.
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
@@ -24,6 +31,7 @@ import {
 import {
   clearBackendState,
   createSessionStore,
+  deviceStore,
   DROPBOX_APP_KEY,
   dropboxFileStore,
   ensurePermission,
@@ -32,6 +40,7 @@ import {
   gdriveFileStore,
   GOOGLE_CLIENT_ID,
   loadDirectoryHandle,
+  moveNamespace,
   readBackendPreference,
   readDropboxTokens,
   readGdriveToken,
@@ -87,12 +96,11 @@ export function useSessions(namespaceSlug: string) {
   const activeIsNamed = isNamed(active);
 
   // ---- store (re)construction -------------------------------------------
+  // No connected backend does not mean no store: the device's own `FileStore`
+  // stands in, and everything above this seam — naming, listing, folders,
+  // deleting — works the same whether it is IndexedDB or a folder underneath.
   const rebuildStore = useCallback(() => {
-    const fs = fileStoreRef.current;
-    if (!fs) {
-      storeRef.current = null;
-      return;
-    }
+    const fs = fileStoreRef.current ?? deviceStore();
     storeRef.current = createSessionStore(fs, namespaceSlug);
   }, [namespaceSlug]);
 
@@ -443,29 +451,53 @@ export function useSessions(namespaceSlug: string) {
     [savedIds, folders, persistSession],
   );
 
-  // A tape named while nothing was connected is still meant to be a file —
-  // there was simply nowhere to put it, and it has been riding the device
-  // mirror since. The first store that turns up takes it, so connecting
-  // storage never leaves an already-named session behind.
+  // ---- moving the device's sessions into a connected backend -------------
+  // Sessions named while nothing was connected are files, they simply live on
+  // the device. The first backend the user connects takes them: each is
+  // written through and the device's copies dropped, so connecting storage
+  // moves the shelf rather than emptying it. A session the backend already
+  // holds under the same id is left where it is — that copy is the one the
+  // user's other devices agree on — and the device's is dropped with the rest.
+  //
+  // It rides the write queue rather than running beside it: the device write
+  // for a session named a moment ago may still be in flight, and the move has
+  // to see it. Once per store swap per namespace, which is what `migratedFor`
+  // remembers.
+  const migratedFor = useRef("");
   useEffect(() => {
-    if (!connected || !storeRef.current) return;
-    // Only once the backend's own listing is in: promoting against a stale
-    // `saved` would write the session, then find it missing from the fresh
-    // listing and write it a second time.
+    const store = storeRef.current;
+    if (!connected || !store) return;
+    // Only once the backend's own listing is in: moving against a stale
+    // `saved` would write a session the fresh listing then contradicts.
     if (listedEpoch !== storeEpoch) return;
-    if (!activeIsNamed || activeIsSaved) return;
-    setSaved((list) => [active, ...list]);
-    persistSession(active, folders, true);
-  }, [
-    connected,
-    storeEpoch,
-    listedEpoch,
-    active,
-    activeIsNamed,
-    activeIsSaved,
-    folders,
-    persistSession,
-  ]);
+    const key = `${storeEpoch}:${namespaceSlug}`;
+    if (migratedFor.current === key) return;
+    migratedFor.current = key;
+    const device = createSessionStore(deviceStore(), namespaceSlug);
+    writeQueue.current = writeQueue.current
+      .then(async () => {
+        const result = await moveNamespace(device, store, () =>
+          setSaveState("saving"),
+        );
+        if (!result) return;
+        setFolders(result.folders);
+        setSaved((list) => {
+          const byId = new Map(list.map((s) => [s.id, s]));
+          for (const session of result.moved) byId.set(session.id, session);
+          return [...byId.values()].sort((a, b) => b.updatedAt - a.updatedAt);
+        });
+        setSaveState("saved");
+        status(`Moved ${result.moved.length} session(s) off this device`);
+      })
+      .catch((err: unknown) => {
+        logError(
+          `Moving this device's sessions failed: ${
+            err instanceof Error ? err.message : String(err)
+          }`,
+        );
+        setSaveState("error");
+      });
+  }, [connected, storeEpoch, listedEpoch, namespaceSlug]);
 
   // ---- session actions ---------------------------------------------------
   // `=`. On a named session this is a save: the calculation is written to the

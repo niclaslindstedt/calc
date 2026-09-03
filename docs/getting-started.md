@@ -36,7 +36,9 @@ npm run dev
    few entries in view. Drag the tape — or the hairline handle under it — to
    give it more of the screen; carry on and the calculator slides off the
    bottom until the tape has all of it, and a drag back up brings it in
-   again. Pressing `=` again on the same
+   again. The handle only appears once there is more tape than fits: while
+   every entry is on screen the hairline is a plain divider and the tape
+   stays where it is. Pressing `=` again on the same
    calculation adds nothing new — a held key lights the entry that already
    records it rather than repeating it down the tape.
 2. Left-swipe a tape entry — or right-click it — and press the note button
@@ -47,11 +49,12 @@ npm run dev
    finding again.
 3. **Name the session** in the top bar. That is the save: the tape becomes a
    markdown file the moment it has a title, and every calculation after it is
-   written through as you press `=`. The status beside the mode buttons says
-   where the tape stands — _Unsaved_, _Saving…_, _Saved_. Connect a backend
-   first in Settings → Storage (a local folder on Chromium, or Dropbox /
-   Google Drive); name it before that and the tape waits on the device and is
-   written out as soon as you connect one.
+   written through as you press `=`. With no backend connected that file is
+   kept on this device, so the session lands in the sidebar either way. The
+   glyph beside the mode buttons says where the tape stands — not a file yet,
+   saving, saved to wherever it is saved — and a press on it opens Settings →
+   Storage, where a local folder (Chromium), Dropbox or Google Drive can be
+   connected. Connecting one moves everything the device is holding into it.
 4. The named session appears in the left sidebar. Organize with the folder
    button, or switch namespaces (separate workspaces) from the switcher on
    top.
