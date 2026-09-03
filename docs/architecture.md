@@ -45,12 +45,12 @@ imports hooks from `"react"` (the sibling apps' convention).
 
 ## State
 
-| Hook               | Owns                                                                                                                                                                                                  | Persistence                                                        |
-| ------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------ |
-| `useSessions(ns)`  | Active session (scratch or saved), saved list, folders, actions                                                                                                                                       | Storage backend (markdown); the scratch tape mirrored to IndexedDB |
-| `useAppSettings()` | Gestures, key animation, sidebar open mode, display and keypad text sizes, enabled modes, hidden keys, custom modes — read here, staged as a draft in the Settings dialog and committed whole on Save | localStorage `calc:settings`                                       |
-| `useNamespaces()`  | Namespace registry + active slug                                                                                                                                                                      | localStorage `calc:namespaces`                                     |
-| `App` appearance   | Theme / fonts / UI style (`ThemeAppearance`)                                                                                                                                                          | localStorage `calc:appearance`                                     |
+| Hook               | Owns                                                                                                                                                                                                  | Persistence                                                                                             |
+| ------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------- |
+| `useSessions(ns)`  | Active session (scratch or saved), saved list, folders, actions                                                                                                                                       | Storage backend (markdown) — this device when none is connected; the scratch tape mirrored to IndexedDB |
+| `useAppSettings()` | Gestures, key animation, sidebar open mode, display and keypad text sizes, enabled modes, hidden keys, custom modes — read here, staged as a draft in the Settings dialog and committed whole on Save | localStorage `calc:settings`                                                                            |
+| `useNamespaces()`  | Namespace registry + active slug                                                                                                                                                                      | localStorage `calc:namespaces`                                                                          |
+| `App` appearance   | Theme / fonts / UI style (`ThemeAppearance`)                                                                                                                                                          | localStorage `calc:appearance`                                                                          |
 
 A **scratch** session is not a file — it becomes one when it is named. There
 is no save button: typing a title in the top bar writes the tape to the
@@ -63,10 +63,20 @@ made. A scratch session is not lost when the tab closes either: `scratch.ts`
 mirrors it into IndexedDB on every change and `useSessions` reads it back on
 the next visit, so a tape nobody clears keeps its history indefinitely, with
 or without a storage backend behind it. Clearing the tape (or naming it, so
-it becomes a file) drops the device copy. Naming a tape with no backend
-connected keeps it on the device and writes it out as soon as one is
-connected. Clearing the name of a session that is already a file does not
-delete the file.
+it becomes a file) drops the device copy. Clearing the name of a session that
+is already a file does not delete the file.
+
+**This device is a backend.** With no folder or cloud connected, `useSessions`
+binds the session store to the device's own `FileStore` (IndexedDB — see
+`deviceFileStore` in `scratch.ts`), so naming a tape makes it a file there and
+the sidebar lists it exactly as it lists a folder's. The first backend the
+user connects takes those files: `moveNamespace` (store.ts) writes them
+through to it and then drops the device's copies
+(`SessionStore.clearNamespace`) — in that order, so a backend that refuses the
+write costs nothing. A session the backend already holds under the same id is
+left as the backend has it, and folders merge by id. The move runs
+once per store swap per namespace, chained onto the same write queue so a
+session named a moment earlier is seen rather than raced.
 
 ## Domain modules (pure, tested)
 
@@ -111,10 +121,14 @@ delete the file.
 ## Storage
 
 `scratch.ts` keeps the working tape on the device (IndexedDB, best-effort:
-a private window or a denied quota simply reads back as "nothing there").
-`store.ts` composes the framework's byte-level `FileStore` transports —
-`createFolderFileStore` (File System Access), `createDropboxFileStore`,
-`createGdriveFileStore` — and binds them with `createSessionStore`: one
+a private window or a denied quota simply reads back as "nothing there"), and
+holds the device storage backend beside it — a `FileStore` over the same
+database whose calls _do_ reject, because a named session lives there rather
+than merely being mirrored there, and a write that does not land has to reach
+the save glyph. `store.ts` composes that transport with the framework's
+byte-level ones — `createFolderFileStore` (File System Access),
+`createDropboxFileStore`, `createGdriveFileStore` — and binds them with
+`createSessionStore`: one
 markdown file per session at
 `[<namespace>/]calculations/[<folder>/]<slug>-<id6>.md`, plus a
 `folders.json` registry. The `folder:` front matter id is authoritative; the
@@ -140,14 +154,19 @@ Both collapse flags are per-device layout choices — a wide desktop and a
 small laptop want different answers — so they ride localStorage rather than
 the appearance store.
 
-IndexedDB holds the two things localStorage must not: the folder backend's
-directory handle (framework-managed, `oss:folder-handles`) and the scratch
-tape (`calc:scratch`, one markdown record per namespace slug — the same
-document format the backends write, so there is one codec and one round
-trip).
+IndexedDB holds the things localStorage must not: the folder backend's
+directory handle (framework-managed, `oss:folder-handles`) and the `calc:scratch`
+database, which carries two object stores — `tapes` (the working tape, one
+markdown record per namespace slug) and `files` (the device backend, one
+record per file path, keyed exactly as a folder would key it). Both hold the
+same document format the other backends write, so there is one codec and one
+round trip.
 
 Settings → Storage drives all of this from one picker (Device / Folder /
-Dropbox / Drive). Connecting swaps the `FileStore` behind `useSessions`,
+Dropbox / Drive); the top bar's sync glyph (the framework's `SyncStatus`, as
+in the contacts sibling) is the shortcut to it and says where the tape
+stands — not a file yet, saving, saved to whichever backend, or failed.
+Connecting swaps the `FileStore` behind `useSessions`,
 which bumps a store epoch so the session store is rebuilt and re-listed — a
 switch straight from one connected backend to another changes no other state,
 so without that epoch the old transport would keep taking the writes.

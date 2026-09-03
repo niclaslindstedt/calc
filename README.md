@@ -87,12 +87,14 @@ kept: every calculation from then on is saved as you make it.
 - **Sessions** — the left sidebar lists saved sessions. A new tape is
   scratch: it is not a file until you name it. There is no save button —
   typing a title in the top bar writes the session to storage, and every
-  calculation after that is saved as you press `=`. The status beside the
-  mode buttons says where the tape stands (_Unsaved_, _Saving…_, _Saved_,
-  _Save failed_). Not a file is not the same as not kept — the tape you
-  are working on stays on this device and is still there when you come back,
-  backend or no backend, until you clear it yourself. Opening a session
-  resumes its tape _and_ the mode it was last used with.
+  calculation after that is saved as you press `=`. Storage means this device
+  when no backend is connected, so a named session lands in the sidebar either
+  way. The glyph beside the mode buttons says where the tape stands — not a
+  file yet, saving, saved to wherever it is saved, or a save that failed — and
+  a press on it opens Settings → Storage. Not a file is not the same as not
+  kept: the tape you are working on stays on this device and is still there
+  when you come back, until you clear it yourself. Opening a session resumes
+  its tape _and_ the mode it was last used with.
 - **Tape** — always in view above the display, showing the last few entries.
   It scrolls at any size. Each entry reads result-first with the expression
   under it and a star in the left gutter for the rows worth finding again.
@@ -113,6 +115,9 @@ kept: every calculation from then on is saved as you make it.
   tape has entries to scroll, the list keeps the drag until it reaches one of
   its ends. Clicking the handle toggles, and the arrow keys step it. Swiping
   the display down and up steps the tape open and shut (Settings → General).
+  A tape with nothing behind the fold does not open at all: when every entry
+  is already on screen the handle steps off the hairline and none of the
+  gestures do anything, so the keys are never traded for blank paper.
 - **Brackets** — a bracket left open at the end closes itself. `sqrt(3`,
   `sin(2` and `(25+3)*(5+1` all answer as written, and what the tape records
   is the finished expression (`sqrt(3)`), so it re-reads and re-evaluates
@@ -180,12 +185,13 @@ kept: every calculation from then on is saved as you make it.
   which is where a backend is connected. Changes are staged and applied with Save;
   Cancel puts everything back. The footer also carries an About entry with
   the build identifier.
-- **Storage** — Settings → Storage picks between _Device_ (the working tape
-  stays on this device and nothing else leaves it), a local _Folder_,
-  _Dropbox_, and Google _Drive_. Every option is
-  listed whether or not this browser and build can reach it, and picking an
-  unreachable one says what it needs. Connecting or disconnecting applies at
-  once — it is not staged behind Save.
+- **Storage** — Settings → Storage picks between _Device_ (sessions are kept
+  in this browser’s own storage and nothing leaves it — nothing is synced or
+  backed up either), a local _Folder_, _Dropbox_, and Google _Drive_. Every
+  option is listed whether or not this browser and build can reach it, and
+  picking an unreachable one says what it needs. Connecting or disconnecting
+  applies at once — it is not staged behind Save, and connecting moves
+  whatever the device is holding into the backend you chose.
 
 ## Configuration
 
@@ -227,8 +233,10 @@ folder: f-shopping
   line above to `~/.npmrc`. See [`docs/troubleshooting.md`](docs/troubleshooting.md).
 - **"Local folder…" is missing from Settings → Storage** — the File System
   Access API is Chromium-only; use a cloud backend elsewhere.
-- **Nothing saves** — a scratch session is intentional: connect a backend in
-  Settings → Storage, then name the session in the top bar.
+- **Nothing saves** — a scratch session is intentional: name the session in
+  the top bar and it becomes a file. With no backend connected that file is
+  kept on this device; connect one in Settings → Storage to have it written
+  somewhere you can back up.
 
 ## Documentation
 

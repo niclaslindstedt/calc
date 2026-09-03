@@ -110,8 +110,9 @@ const BACKEND_NAMES: Record<BackendId, string> = {
   gdrive: "Google Drive",
 };
 
-// What the Storage tab's picker holds: a backend, or "this device" — the
-// unconnected state, where a tape lives in memory until a backend is chosen.
+// What the Storage tab's picker holds: a backend, or "this device" — which is
+// a place sessions are kept (IndexedDB, see scratch.ts) rather than the
+// absence of one. Connecting a backend moves what the device holds into it.
 type StorageChoice = BackendId | "none";
 
 // Every backend is listed, whether or not this browser/build can reach it —
@@ -670,9 +671,9 @@ export function SettingsModal({
             <Section title="Storage backend">
               <p className="mb-2 text-xs text-muted">
                 Sessions are stored as markdown files. Settings stay on this
-                device; nothing leaves it until you connect a backend and save a
-                session. Connecting applies straight away — it is not part of
-                Save.
+                device, and so do the sessions until you connect a backend —
+                nothing leaves it before that. Connecting applies straight away;
+                it is not part of Save.
               </p>
               <SegmentedControl<StorageChoice>
                 value={picked}
@@ -688,11 +689,12 @@ export function SettingsModal({
 
               {picked === "none" ? (
                 <p className="text-xs text-muted">
-                  The tape you are working on stays on this device and is still
-                  there the next time you open Calc — it only goes when you
-                  clear it. Naming a session has nothing to keep it in until a
-                  backend is connected — pick one above, and the named tape is
-                  written to it right away.
+                  Sessions are kept in this browser&rsquo;s own storage, on this
+                  device: naming one saves it here and the sidebar lists it, and
+                  the tape you are working on is still there the next time you
+                  open Calc. Nothing is synced or backed up — clearing the
+                  browser&rsquo;s site data takes it with it. Connect a backend
+                  above and everything here is moved into it.
                 </p>
               ) : null}
 

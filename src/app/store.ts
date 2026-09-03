@@ -1,11 +1,17 @@
 // SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0
 //
 // Storage: sessions live as markdown files (codec.ts) behind the framework's
-// byte-level `FileStore` seam, so the same session store works over a local
-// folder (File System Access API), Dropbox, or Google Drive. localStorage
-// holds *settings and pointers only* — backend choice, tokens, namespace
-// registry — never session documents (the app's storage rule; see
-// docs/architecture.md).
+// byte-level `FileStore` seam, so the same session store works over this
+// device (IndexedDB — scratch.ts), a local folder (File System Access API),
+// Dropbox, or Google Drive. localStorage holds *settings and pointers only* —
+// backend choice, tokens, namespace registry — never session documents (the
+// app's storage rule; see docs/architecture.md).
+//
+// The device is the one backend that is always there, and the one the app
+// falls back to: with nothing connected, a named session is still a file, it
+// simply lives in IndexedDB. Connecting a backend moves what the device holds
+// into it (see `useSessions`), so "This device" is a place sessions are kept
+// rather than a place they wait.
 
 import {
   createDropboxFileStore,
@@ -29,6 +35,7 @@ import {
   sessionFilePath,
   sessionToMarkdown,
 } from "./codec.ts";
+import { deviceFileStore } from "./scratch.ts";
 import type { Folder, Session } from "./session.ts";
 
 // ---------------------------------------------------------------------------
@@ -50,6 +57,19 @@ export const GDRIVE_APP_FOLDER =
   import.meta.env.VITE_GDRIVE_APP_FOLDER ?? "Calc";
 
 export const FOLDER_BACKEND_AVAILABLE = isFolderBackendAvailable();
+
+// What the save glyph calls each place a session can live — woven into
+// "Saved to …", so they read as somewhere rather than as product names where
+// they can. No backend is not nowhere: it is this device.
+const STORAGE_NAMES: Record<BackendId, string> = {
+  folder: "your local folder",
+  dropbox: "Dropbox",
+  gdrive: "Google Drive",
+};
+
+export function storageName(backend: BackendId | null): string {
+  return backend ? STORAGE_NAMES[backend] : "this device";
+}
 
 export function readBackendPreference(): BackendId | null {
   const raw = localStorage.getItem(BACKEND_KEY);
@@ -103,6 +123,14 @@ export { loadDirectoryHandle, saveDirectoryHandle, ensurePermission };
 // FileStore construction
 // ---------------------------------------------------------------------------
 
+// The device backend, built once and shared: it holds no connection state, and
+// a single instance keeps every caller on the same IndexedDB handle.
+const DEVICE_FILE_STORE = deviceFileStore();
+
+export function deviceStore(): FileStore {
+  return DEVICE_FILE_STORE;
+}
+
 export function folderFileStore(handle: FileSystemDirectoryHandle): FileStore {
   return createFolderFileStore(handle);
 }
@@ -128,12 +156,53 @@ export type SessionStore = {
   saveSession(session: Session, folders: readonly Folder[]): Promise<void>;
   removeSession(sessionId: string): Promise<void>;
   saveFolders(folders: readonly Folder[]): Promise<void>;
+  // Delete every file the namespace holds. Used once, when the device's
+  // sessions have been handed to a backend the user just connected: what has
+  // been moved must not also stay behind, or disconnecting would resurrect it.
+  clearNamespace(): Promise<void>;
 };
 
 // The default namespace stores at the store root; others under `<slug>/`
 // (same layout rule as the notes sibling).
 function nsPrefix(namespaceSlug: string): string {
   return namespaceSlug === "default" ? "" : `${namespaceSlug}/`;
+}
+
+/**
+ * Hand everything one store holds to another, and leave the first empty.
+ *
+ * This is what connecting a backend does with the sessions the device has
+ * been keeping. A session the destination already holds under the same id is
+ * left exactly as the destination has it — that copy is the one the user's
+ * other devices agree on — and the source's is dropped with the rest; folders
+ * are merged by id, the destination's names winning. Resolves to what moved
+ * and the merged folder list, or null when there was nothing to move at all.
+ *
+ * `onStart` fires once it is known there *is* something to move and before
+ * the first write — the caller's cue to say it is saving, which a move that
+ * turns out to be empty should never make it say.
+ */
+export async function moveNamespace(
+  from: SessionStore,
+  to: SessionStore,
+  onStart?: () => void,
+): Promise<{ moved: Session[]; folders: Folder[] } | null> {
+  const held = await from.list();
+  if (held.sessions.length === 0 && held.folders.length === 0) return null;
+  onStart?.();
+  const landed = await to.list();
+  const landedIds = new Set(landed.sessions.map((s) => s.id));
+  const moved = held.sessions.filter((s) => !landedIds.has(s.id));
+  const folders = [
+    ...landed.folders,
+    ...held.folders.filter((f) => !landed.folders.some((g) => g.id === f.id)),
+  ];
+  if (folders.length !== landed.folders.length) await to.saveFolders(folders);
+  for (const session of moved) await to.saveSession(session, folders);
+  // Last, and only once every write above has landed: what is dropped here is
+  // gone, so it must already exist somewhere else.
+  await from.clearNamespace();
+  return { moved, folders };
 }
 
 export function createSessionStore(
@@ -188,6 +257,15 @@ export function createSessionStore(
 
     async saveFolders(folders) {
       await store.write(foldersPath, serializeFolders(folders));
+    },
+
+    async clearNamespace() {
+      const entries = await store.list();
+      for (const entry of entries) {
+        if (!entry.path.startsWith(`${prefix}${CALCULATIONS_DIR}/`)) continue;
+        await store.remove(entry.path);
+      }
+      pathsById.clear();
     },
   };
 }
