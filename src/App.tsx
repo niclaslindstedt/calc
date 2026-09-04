@@ -399,7 +399,13 @@ export function App() {
       <UpdateToast
         needRefresh={pwa.needRefresh}
         incomingVersion={pwa.incomingVersion}
-        onReload={() => void pwa.reload()}
+        // The tape first, the restart second: pressing this reloads the page,
+        // and an unsaved tape whose last write is still in flight would go
+        // with it. `flushScratch` is capped, so a database that has stopped
+        // answering delays the update rather than blocking it.
+        onReload={() =>
+          void sessions.flushScratch().finally(() => pwa.reload())
+        }
         onDismiss={pwa.dismiss}
       />
       <ToastViewport store={defaultToastStore} />
