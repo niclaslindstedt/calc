@@ -164,7 +164,7 @@ calc:appearance          theme appearance
 calc:namespaces          namespace registry
 calc:namespace:active    active namespace slug
 calc:backend             chosen backend id
-calc:dropbox:token/:refresh, calc:gdrive:token   OAuth tokens
+calc:dropbox:token/:refresh                     OAuth tokens
 calc:menu-position       sidebar button position
 calc:sidebar-collapsed   docked sidebar folded away to its edge rail
 calc:footer-collapsed    sidebar footer folded away behind its rail

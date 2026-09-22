@@ -25,7 +25,6 @@ import {
   completeDropboxAuth,
   hasPendingDropboxAuth,
   startDropboxAuth,
-  startGdriveAuth,
 } from "@niclaslindstedt/oss-framework/storage";
 
 import {
@@ -37,17 +36,13 @@ import {
   ensurePermission,
   FOLDER_BACKEND_AVAILABLE,
   folderFileStore,
-  gdriveFileStore,
-  GOOGLE_CLIENT_ID,
   loadDirectoryHandle,
   moveNamespace,
   readBackendPreference,
   readDropboxTokens,
-  readGdriveToken,
   saveDirectoryHandle,
   writeBackendPreference,
   writeDropboxTokens,
-  writeGdriveToken,
   type BackendId,
   type SessionStore,
 } from "./store.ts";
@@ -163,14 +158,10 @@ export function useSessions(namespaceSlug: string) {
           return;
         }
         fileStoreRef.current = folderFileStore(handle);
-      } else if (preference === "dropbox") {
+      } else {
         const tokens = readDropboxTokens();
         if (!tokens || cancelled) return;
         fileStoreRef.current = dropboxFileStore(tokens);
-      } else {
-        const token = readGdriveToken();
-        if (!token || cancelled) return;
-        fileStoreRef.current = gdriveFileStore(token);
       }
       setBackend(preference);
       setStoreEpoch((n) => n + 1);
@@ -346,28 +337,6 @@ export function useSessions(namespaceSlug: string) {
     if (!DROPBOX_APP_KEY) return;
     status("Starting Dropbox authorization…");
     await startDropboxAuth(DROPBOX_APP_KEY);
-  }, []);
-
-  const connectGdrive = useCallback(async () => {
-    if (!GOOGLE_CLIENT_ID) return;
-    status("Requesting Google Drive consent…");
-    let token: string;
-    try {
-      token = await startGdriveAuth(GOOGLE_CLIENT_ID);
-    } catch (err) {
-      // A dismissed consent popup lands here — nothing to connect.
-      logError(
-        `Google Drive consent failed: ${err instanceof Error ? err.message : String(err)}`,
-      );
-      return;
-    }
-    writeGdriveToken(token);
-    fileStoreRef.current = gdriveFileStore(token);
-    writeBackendPreference("gdrive");
-    setBackend("gdrive");
-    setStoreEpoch((n) => n + 1);
-    setConnected(true);
-    status("Connected to Google Drive");
   }, []);
 
   const disconnect = useCallback(() => {
@@ -696,7 +665,6 @@ export function useSessions(namespaceSlug: string) {
     connectFolder,
     reconnectFolder,
     connectDropbox,
-    connectGdrive,
     disconnect,
     saved,
     folders,

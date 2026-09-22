@@ -201,9 +201,7 @@ for the full list. Build-time env (`.env`, see `.env.example`):
 | Variable                  | Effect                                            |
 | ------------------------- | ------------------------------------------------- |
 | `VITE_DROPBOX_APP_KEY`    | Enables the Dropbox backend in Settings → Storage |
-| `VITE_GOOGLE_CLIENT_ID`   | Enables the Google Drive backend                  |
 | `VITE_DROPBOX_APP_FOLDER` | Dropbox app-folder name (default `Calc`)          |
-| `VITE_GDRIVE_APP_FOLDER`  | Drive folder name (default `Calc`)                |
 
 ## Examples
 

@@ -27,10 +27,10 @@ sidebar's storage row shows "Reconnect folder…" — one click re-grants. If
 the handle is gone entirely (profile cleared), reconnect picks the folder
 again; existing files are re-read as-is.
 
-## Dropbox / Google Drive buttons are missing
+## Dropbox buttons are missing
 
 The cloud backends only appear when the build was given
-`VITE_DROPBOX_APP_KEY` / `VITE_GOOGLE_CLIENT_ID` — see
+`VITE_DROPBOX_APP_KEY` — see
 [configuration.md](configuration.md). Local dev: put them in `.env`.
 
 ## Nothing is saved / my session disappeared

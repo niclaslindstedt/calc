@@ -11,9 +11,7 @@ repository variables (`vars.*`) in CI.
 | Variable                  | Default | Effect                                                                                                                                                                            |
 | ------------------------- | ------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `VITE_DROPBOX_APP_KEY`    | unset   | Dropbox app key (PKCE public client). Unset hides the Dropbox backend in Settings → Storage. Register at <https://www.dropbox.com/developers/apps> (scoped access, "App folder"). |
-| `VITE_GOOGLE_CLIENT_ID`   | unset   | Google OAuth client id (GIS token client). Unset hides the Google Drive backend. Needs the Drive API enabled.                                                                     |
 | `VITE_DROPBOX_APP_FOLDER` | `Calc`  | Dropbox app-folder name (`Apps/<name>/`), fixed by your Dropbox app config.                                                                                                       |
-| `VITE_GDRIVE_APP_FOLDER`  | `Calc`  | Folder created in My Drive to hold the synced files.                                                                                                                              |
 | `VITE_BASE`               | `/`     | Deploy base path — set by the pages workflow per release channel.                                                                                                                 |
 | `VITE_PWA_IGNORE_PATHS`   | unset   | Sibling deploy channels the root service worker must disown (see `pwa-plugin.ts`).                                                                                                |
 
@@ -47,11 +45,10 @@ not staged behind the dialog's Save.
 | Device       | none                                  | The default. Both the working tape and named sessions are kept on this device (IndexedDB) — a real backend, just one that never leaves the browser and is not backed up. Connecting another moves what it holds into that one. |
 | Local folder | Chromium (File System Access API)     | The directory handle persists in IndexedDB; the browser re-asks permission after restarts.                                                                                                                                     |
 | Dropbox      | `VITE_DROPBOX_APP_KEY` at build time  | PKCE redirect flow; tokens in localStorage.                                                                                                                                                                                    |
-| Google Drive | `VITE_GOOGLE_CLIENT_ID` at build time | GIS popup tokens; re-prompts on expiry.                                                                                                                                                                                        |
 
 The deploy workflows read the two OAuth identifiers from repository variables
 of the same name, so a fork that wants Dropbox or Drive sets
-`VITE_DROPBOX_APP_KEY` / `VITE_GOOGLE_CLIENT_ID` there (and registers the
+`VITE_DROPBOX_APP_KEY` there (and registers the
 deployed URL as the OAuth redirect target). Without them the app still runs —
 those two segments just explain that the build carries no key.
 

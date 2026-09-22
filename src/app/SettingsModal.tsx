@@ -74,8 +74,6 @@ import {
   DROPBOX_APP_FOLDER,
   DROPBOX_APP_KEY,
   FOLDER_BACKEND_AVAILABLE,
-  GDRIVE_APP_FOLDER,
-  GOOGLE_CLIENT_ID,
 } from "./store.ts";
 
 export type SettingsTab = "general" | "layouts" | "appearance" | "storage";
@@ -107,7 +105,6 @@ const MENU_PLACEMENT: FloatingPlacement = {
 const BACKEND_NAMES: Record<BackendId, string> = {
   folder: "Local folder",
   dropbox: "Dropbox",
-  gdrive: "Google Drive",
 };
 
 // What the Storage tab's picker holds: a backend, or "this device" — which is
@@ -124,7 +121,6 @@ const BACKEND_OPTIONS: { value: StorageChoice; label: string }[] = [
   { value: "none", label: "Device" },
   { value: "folder", label: "Folder" },
   { value: "dropbox", label: "Dropbox" },
-  { value: "gdrive", label: "Drive" },
 ];
 
 // "Open sidebar with" (General) — the floating button or an inward edge
@@ -149,7 +145,6 @@ type Props = {
   // OAuth redirect / consent popup or the directory picker is in flight.
   onConnectFolder: () => Promise<void>;
   onConnectDropbox: () => Promise<void>;
-  onConnectGdrive: () => Promise<void>;
   onReconnectFolder: () => Promise<void>;
   onDisconnect: () => void;
   initialTab?: SettingsTab;
@@ -167,7 +162,6 @@ export function SettingsModal({
   folderReconnectNeeded,
   onConnectFolder,
   onConnectDropbox,
-  onConnectGdrive,
   onReconnectFolder,
   onDisconnect,
   initialTab = "general",
@@ -741,25 +735,19 @@ export function SettingsModal({
                 </div>
               ) : null}
 
-              {picked === "dropbox" || picked === "gdrive" ? (
+              {picked === "dropbox" ? (
                 <div className="flex flex-col gap-2">
                   <p className="text-xs text-muted">
-                    {picked === "dropbox"
-                      ? `Sessions sync to Apps/${DROPBOX_APP_FOLDER}/ in your Dropbox — the app only ever sees its own folder.`
-                      : `Sessions sync to a ${GDRIVE_APP_FOLDER} folder the app creates in your Google Drive.`}
+                    {`Sessions sync to Apps/${DROPBOX_APP_FOLDER}/ in your Dropbox — the app only ever sees its own folder.`}
                   </p>
-                  {(picked === "dropbox" && !DROPBOX_APP_KEY) ||
-                  (picked === "gdrive" && !GOOGLE_CLIENT_ID) ? (
+                  {!DROPBOX_APP_KEY ? (
                     // Every backend stays in the picker, so this is where an
                     // unconfigured one explains itself instead of offering a
                     // button that could only fail.
                     <p className="text-sm text-danger">
                       {BACKEND_NAMES[picked]} needs an app key baked into the
-                      build (
-                      {picked === "dropbox"
-                        ? "VITE_DROPBOX_APP_KEY"
-                        : "VITE_GOOGLE_CLIENT_ID"}
-                      ) — see docs/configuration.md.
+                      build (VITE_DROPBOX_APP_KEY) — see
+                      docs/configuration.md.
                     </p>
                   ) : connected && backend === picked ? (
                     <div className="flex flex-wrap items-center gap-2">
@@ -774,13 +762,7 @@ export function SettingsModal({
                     <ConnectButton
                       busy={connecting}
                       label={`Connect ${BACKEND_NAMES[picked]}…`}
-                      onPress={() =>
-                        runConnect(
-                          picked === "dropbox"
-                            ? onConnectDropbox
-                            : onConnectGdrive,
-                        )
-                      }
+                      onPress={() => runConnect(onConnectDropbox)}
                     />
                   )}
                 </div>

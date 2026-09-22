@@ -3,7 +3,7 @@
 // Storage: sessions live as markdown files (codec.ts) behind the framework's
 // byte-level `FileStore` seam, so the same session store works over this
 // device (IndexedDB — scratch.ts), a local folder (File System Access API),
-// Dropbox, or Google Drive. localStorage holds *settings and pointers only* —
+// Dropbox,. localStorage holds *settings and pointers only* —
 // backend choice, tokens, namespace registry — never session documents (the
 // app's storage rule; see docs/architecture.md).
 //
@@ -16,7 +16,6 @@
 import {
   createDropboxFileStore,
   createFolderFileStore,
-  createGdriveFileStore,
   isFolderBackendAvailable,
   loadDirectoryHandle,
   saveDirectoryHandle,
@@ -42,19 +41,18 @@ import type { Folder, Session } from "./session.ts";
 // Backend preference (localStorage — settings, not documents)
 // ---------------------------------------------------------------------------
 
-export type BackendId = "folder" | "dropbox" | "gdrive";
+export type BackendId = "folder" | "dropbox";
 
 const BACKEND_KEY = "calc:backend";
 const DROPBOX_TOKEN_KEY = "calc:dropbox:token";
 const DROPBOX_REFRESH_KEY = "calc:dropbox:refresh";
-const GDRIVE_TOKEN_KEY = "calc:gdrive:token";
+// Dropbox is gone as a backend. The key stays named so a token a device
+// may still hold is cleared rather than left sitting in storage.
+const RETIRED_GDRIVE_TOKEN_KEY = "calc:gdrive:token";
 
 export const DROPBOX_APP_KEY = import.meta.env.VITE_DROPBOX_APP_KEY ?? "";
-export const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID ?? "";
 export const DROPBOX_APP_FOLDER =
   import.meta.env.VITE_DROPBOX_APP_FOLDER ?? "Calc";
-export const GDRIVE_APP_FOLDER =
-  import.meta.env.VITE_GDRIVE_APP_FOLDER ?? "Calc";
 
 export const FOLDER_BACKEND_AVAILABLE = isFolderBackendAvailable();
 
@@ -64,7 +62,6 @@ export const FOLDER_BACKEND_AVAILABLE = isFolderBackendAvailable();
 const STORAGE_NAMES: Record<BackendId, string> = {
   folder: "your local folder",
   dropbox: "Dropbox",
-  gdrive: "Google Drive",
 };
 
 export function storageName(backend: BackendId | null): string {
@@ -73,7 +70,7 @@ export function storageName(backend: BackendId | null): string {
 
 export function readBackendPreference(): BackendId | null {
   const raw = localStorage.getItem(BACKEND_KEY);
-  return raw === "folder" || raw === "dropbox" || raw === "gdrive" ? raw : null;
+  return raw === "folder" || raw === "dropbox" ? raw : null;
 }
 
 export function writeBackendPreference(backend: BackendId | null): void {
@@ -100,20 +97,11 @@ export function writeDropboxTokens(
   if (refreshToken) localStorage.setItem(DROPBOX_REFRESH_KEY, refreshToken);
 }
 
-export function readGdriveToken(): string | null {
-  return localStorage.getItem(GDRIVE_TOKEN_KEY);
-}
-
-export function writeGdriveToken(token: string | null): void {
-  if (token) localStorage.setItem(GDRIVE_TOKEN_KEY, token);
-  else localStorage.removeItem(GDRIVE_TOKEN_KEY);
-}
-
 export function clearBackendState(): void {
   writeBackendPreference(null);
   localStorage.removeItem(DROPBOX_TOKEN_KEY);
   localStorage.removeItem(DROPBOX_REFRESH_KEY);
-  localStorage.removeItem(GDRIVE_TOKEN_KEY);
+  localStorage.removeItem(RETIRED_GDRIVE_TOKEN_KEY);
   void clearDirectoryHandle();
 }
 
@@ -139,10 +127,6 @@ export function dropboxFileStore(auth: DropboxAuth): FileStore {
   return createDropboxFileStore(auth, {
     appKey: DROPBOX_APP_KEY || undefined,
   });
-}
-
-export function gdriveFileStore(token: string): FileStore {
-  return createGdriveFileStore(token, { appFolderName: GDRIVE_APP_FOLDER });
 }
 
 // ---------------------------------------------------------------------------

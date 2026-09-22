@@ -22,11 +22,7 @@ interface ImportMetaEnv {
   // Dropbox app key (PKCE public client). Unset hides the Dropbox storage
   // backend in Settings → Storage. See `src/app/store.ts`.
   readonly VITE_DROPBOX_APP_KEY?: string;
-  // Google OAuth client id (GIS token client). Unset hides the Google Drive
-  // storage backend. See `src/app/store.ts`.
-  readonly VITE_GOOGLE_CLIENT_ID?: string;
   // App-folder names for the cloud backends' stored documents. Both default
   // to "Calc". See `src/app/store.ts`.
   readonly VITE_DROPBOX_APP_FOLDER?: string;
-  readonly VITE_GDRIVE_APP_FOLDER?: string;
 }

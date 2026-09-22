@@ -3,7 +3,7 @@
 > A local-first calculator PWA built on @niclaslindstedt/oss-framework.
 > Calculations run in named sessions: every operation that ends with = lands
 > on a commentable tape, sessions save as markdown files (YAML front matter +
-> a readable bullet list) to a local folder, Dropbox, or Google Drive, and
+> a readable bullet list) to a local folder, Dropbox,, and
 > the keypad layouts — basic, scientific, programmer, or your own custom
 > modes — are per-session and customizable.
 

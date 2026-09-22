@@ -375,7 +375,6 @@ export function App() {
         folderReconnectNeeded={sessions.folderReconnectNeeded}
         onConnectFolder={sessions.connectFolder}
         onConnectDropbox={sessions.connectDropbox}
-        onConnectGdrive={sessions.connectGdrive}
         onReconnectFolder={sessions.reconnectFolder}
         onDisconnect={sessions.disconnect}
         initialTab={settingsTab}
