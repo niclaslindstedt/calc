@@ -108,7 +108,9 @@ backends hold. See `docs/architecture.md` and `docs/storage-format.md`.
 ### The desktop shell wraps this app — it does not extend it
 
 `tauri/` is a **thin** [Tauri](https://tauri.app) wrapper: a window, the built
-site served from a private `calc://` scheme, and nothing else. **The page is
+site served from a private `calc://` scheme, and one capability a page cannot
+have — the loopback listener that lets Dropbox sign in
+(`tauri/shell/src/oauth.rs`, `tauri/src-tauri/src/loopback.rs`). **The page is
 never told it is inside it** — no injected global, no Tauri command, and a
 permission list holding only Tauri's own minimum. It is two Rust crates:
 `tauri/shell/` holds every decision and needs no GUI toolkit (so `make

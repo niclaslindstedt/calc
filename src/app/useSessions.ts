@@ -24,7 +24,9 @@ import { useICloudHost } from "./icloudHost.ts";
 
 import {
   completeDropboxAuth,
+  connectDropboxLoopback,
   hasPendingDropboxAuth,
+  isDesktopShellOrigin,
   startDropboxAuth,
 } from "@niclaslindstedt/oss-framework/storage";
 
@@ -378,6 +380,32 @@ export function useSessions(namespaceSlug: string) {
 
   const connectDropbox = useCallback(async () => {
     if (!DROPBOX_APP_KEY) return;
+    // In the desktop app the redirect has nowhere to land (its origin is a
+    // private scheme), so the sign-in runs in the user's browser and the
+    // shell's loopback listener hands the result back — and the connection
+    // is made here, in place, the way the folder's is.
+    if (isDesktopShellOrigin()) {
+      status("Signing in to Dropbox in your browser…");
+      try {
+        const result = await connectDropboxLoopback(DROPBOX_APP_KEY);
+        writeDropboxTokens(result.accessToken, result.refreshToken);
+      } catch (err) {
+        logError(
+          `Dropbox sign-in failed: ${err instanceof Error ? err.message : String(err)}`,
+        );
+        return;
+      }
+      const tokens = readDropboxTokens();
+      if (!tokens) return;
+      fileStoreRef.current = dropboxFileStore(tokens);
+      writeBackendPreference("dropbox");
+      setBackend("dropbox");
+      setFolderReconnectNeeded(false);
+      setStoreEpoch((n) => n + 1);
+      setConnected(true);
+      status("Connected to Dropbox");
+      return;
+    }
     status("Starting Dropbox authorization…");
     await startDropboxAuth(DROPBOX_APP_KEY);
   }, []);
