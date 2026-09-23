@@ -20,6 +20,7 @@
 // emptying behind them.
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useICloudHost } from "./icloudHost.ts";
 
 import {
   completeDropboxAuth,
@@ -36,6 +37,7 @@ import {
   ensurePermission,
   FOLDER_BACKEND_AVAILABLE,
   folderFileStore,
+  icloudFileStore,
   loadDirectoryHandle,
   moveNamespace,
   readBackendPreference,
@@ -143,6 +145,13 @@ export function useSessions(namespaceSlug: string) {
       }
       const preference = readBackendPreference();
       if (!preference || cancelled) return;
+      if (preference === "icloud") {
+        // The native shell injects the iCloud host AFTER the page loads and
+        // announces it with an event, so it may not be here yet. The effect
+        // below attaches the moment it is; nothing to do on this pass.
+        setBackend("icloud");
+        return;
+      }
       if (preference === "folder") {
         const handle = await loadDirectoryHandle();
         if (!handle || cancelled) {
@@ -333,6 +342,40 @@ export function useSessions(namespaceSlug: string) {
 
   // Dropbox authorises by redirect: this call navigates away, and the boot
   // effect above finishes the PKCE exchange when the browser comes back.
+  // iCLOUD DRIVE. Only the App Store build has a host; in a browser this is
+  // null for the life of the page and the backend is simply not reachable.
+  const icloudHost = useICloudHost();
+
+  // A device that chose iCloud last time reconnects the moment the shell
+  // offers the host — the boot pass above could not, because the host is
+  // injected after the page has loaded.
+  useEffect(() => {
+    if (!icloudHost || readBackendPreference() !== "icloud") return;
+    if (fileStoreRef.current) return;
+    fileStoreRef.current = icloudFileStore(icloudHost);
+    setBackend("icloud");
+    setStoreEpoch((n) => n + 1);
+    setConnected(true);
+  }, [icloudHost]);
+
+  const connectICloud = useCallback(async () => {
+    if (!icloudHost) return;
+    // Nothing to authorise: the container belongs to the Apple ID the device
+    // is already signed into. A signed-out device says so rather than
+    // connecting to a container that will never sync.
+    if ((await icloudHost.status()) !== "ready") {
+      warn("iCloud is not available — is this device signed into iCloud?");
+      return;
+    }
+    fileStoreRef.current = icloudFileStore(icloudHost);
+    writeBackendPreference("icloud");
+    setBackend("icloud");
+    setFolderReconnectNeeded(false);
+    setStoreEpoch((n) => n + 1);
+    setConnected(true);
+    status("Connected to iCloud Drive");
+  }, [icloudHost]);
+
   const connectDropbox = useCallback(async () => {
     if (!DROPBOX_APP_KEY) return;
     status("Starting Dropbox authorization…");
@@ -665,6 +708,8 @@ export function useSessions(namespaceSlug: string) {
     connectFolder,
     reconnectFolder,
     connectDropbox,
+    icloudAvailable: icloudHost !== null,
+    connectICloud,
     disconnect,
     saved,
     folders,

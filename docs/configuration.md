@@ -36,21 +36,21 @@ preferences, never documents:
 
 Settings → Storage offers all four choices as a picker, whether or not this
 browser and build can reach them — a backend that cannot be connected
-explains what it needs (a Chromium browser, or an app key baked into the
-build) instead of quietly disappearing. Connecting applies immediately; it is
-not staged behind the dialog's Save.
+explains what it needs (a Chromium browser, an app key baked into the
+build, or the App Store app) instead of quietly disappearing. Connecting
+applies immediately; it is not staged behind the dialog's Save.
 
-| Backend      | Requirements                          | Notes                                                                                                                                                                                                                          |
-| ------------ | ------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| Device       | none                                  | The default. Both the working tape and named sessions are kept on this device (IndexedDB) — a real backend, just one that never leaves the browser and is not backed up. Connecting another moves what it holds into that one. |
-| Local folder | Chromium (File System Access API)     | The directory handle persists in IndexedDB; the browser re-asks permission after restarts.                                                                                                                                     |
-| Dropbox      | `VITE_DROPBOX_APP_KEY` at build time  | PKCE redirect flow; tokens in localStorage.                                                                                                                                                                                    |
+| Backend      | Requirements                         | Notes                                                                                                                                                                                                                          |
+| ------------ | ------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Device       | none                                 | The default. Both the working tape and named sessions are kept on this device (IndexedDB) — a real backend, just one that never leaves the browser and is not backed up. Connecting another moves what it holds into that one. |
+| Local folder | Chromium (File System Access API)    | The directory handle persists in IndexedDB; the browser re-asks permission after restarts.                                                                                                                                     |
+| Dropbox      | `VITE_DROPBOX_APP_KEY` at build time | PKCE redirect flow; tokens in localStorage.                                                                                                                                                                                    |
+| iCloud       | the App Store app (native/)          | The native shell injects an iCloud Drive host after the page loads; the web app files sessions through it. Absent in a browser.                                                                                                |
 
-The deploy workflows read the two OAuth identifiers from repository variables
-of the same name, so a fork that wants Dropbox or Drive sets
-`VITE_DROPBOX_APP_KEY` there (and registers the
-deployed URL as the OAuth redirect target). Without them the app still runs —
-those two segments just explain that the build carries no key.
+The deploy workflows read the Dropbox app key from the repository variable of
+the same name, so a fork that wants Dropbox sets `VITE_DROPBOX_APP_KEY` there
+(and registers the deployed URL as the OAuth redirect target). Without it the
+app still runs — that segment just explains that the build carries no key.
 
 Sessions are markdown files — see [storage-format.md](storage-format.md) for
 the layout a backend ends up holding.

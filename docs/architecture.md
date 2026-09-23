@@ -183,7 +183,7 @@ same document format the other backends write, so there is one codec and one
 round trip.
 
 Settings → Storage drives all of this from one picker (Device / Folder /
-Dropbox / Drive); the top bar's sync glyph (the framework's `SyncStatus`, as
+Dropbox / iCloud); the top bar's sync glyph (the framework's `SyncStatus`, as
 in the contacts sibling) is the shortcut to it and says where the tape
 stands — not a file yet, saving, saved to whichever backend, or failed.
 Connecting swaps the `FileStore` behind `useSessions`,

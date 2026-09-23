@@ -24,6 +24,7 @@ import {
   type DropboxAuth,
   type FileStore,
 } from "@niclaslindstedt/oss-framework/storage";
+import { parseICloudEntries, type ICloudHost } from "./icloudHost.ts";
 
 import {
   CALCULATIONS_DIR,
@@ -41,7 +42,7 @@ import type { Folder, Session } from "./session.ts";
 // Backend preference (localStorage — settings, not documents)
 // ---------------------------------------------------------------------------
 
-export type BackendId = "folder" | "dropbox";
+export type BackendId = "folder" | "dropbox" | "icloud";
 
 const BACKEND_KEY = "calc:backend";
 const DROPBOX_TOKEN_KEY = "calc:dropbox:token";
@@ -62,6 +63,7 @@ export const FOLDER_BACKEND_AVAILABLE = isFolderBackendAvailable();
 const STORAGE_NAMES: Record<BackendId, string> = {
   folder: "your local folder",
   dropbox: "Dropbox",
+  icloud: "iCloud Drive",
 };
 
 export function storageName(backend: BackendId | null): string {
@@ -70,7 +72,7 @@ export function storageName(backend: BackendId | null): string {
 
 export function readBackendPreference(): BackendId | null {
   const raw = localStorage.getItem(BACKEND_KEY);
-  return raw === "folder" || raw === "dropbox" ? raw : null;
+  return raw === "folder" || raw === "dropbox" || raw === "icloud" ? raw : null;
 }
 
 export function writeBackendPreference(backend: BackendId | null): void {
@@ -117,6 +119,23 @@ const DEVICE_FILE_STORE = deviceFileStore();
 
 export function deviceStore(): FileStore {
   return DEVICE_FILE_STORE;
+}
+
+/** iCLOUD DRIVE, as a {@link FileStore}: the picked-local-folder backend with a
+ *  different transport underneath. The native shell offers the container's
+ *  document root through `icloudHost.ts`; this moves text in and out of it
+ *  and nothing else. Only the App Store build has a host to offer — a browser
+ *  never reaches this. Sessions land in iCloud Drive as the same readable
+ *  files a picked folder holds, visible in the Files app under "Calc". */
+export function icloudFileStore(host: ICloudHost): FileStore {
+  return {
+    async list() {
+      return parseICloudEntries(await host.list());
+    },
+    read: (path) => host.read(path),
+    write: (path, text) => host.write(path, text),
+    remove: (path) => host.remove(path),
+  };
 }
 
 export function folderFileStore(handle: FileSystemDirectoryHandle): FileStore {

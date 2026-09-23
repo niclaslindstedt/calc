@@ -105,6 +105,7 @@ const MENU_PLACEMENT: FloatingPlacement = {
 const BACKEND_NAMES: Record<BackendId, string> = {
   folder: "Local folder",
   dropbox: "Dropbox",
+  icloud: "iCloud Drive",
 };
 
 // What the Storage tab's picker holds: a backend, or "this device" — which is
@@ -121,6 +122,7 @@ const BACKEND_OPTIONS: { value: StorageChoice; label: string }[] = [
   { value: "none", label: "Device" },
   { value: "folder", label: "Folder" },
   { value: "dropbox", label: "Dropbox" },
+  { value: "icloud", label: "iCloud" },
 ];
 
 // "Open sidebar with" (General) — the floating button or an inward edge
@@ -145,6 +147,9 @@ type Props = {
   // OAuth redirect / consent popup or the directory picker is in flight.
   onConnectFolder: () => Promise<void>;
   onConnectDropbox: () => Promise<void>;
+  /** Only the App Store build has an iCloud container to offer. */
+  icloudAvailable: boolean;
+  onConnectICloud: () => Promise<void>;
   onReconnectFolder: () => Promise<void>;
   onDisconnect: () => void;
   initialTab?: SettingsTab;
@@ -162,6 +167,8 @@ export function SettingsModal({
   folderReconnectNeeded,
   onConnectFolder,
   onConnectDropbox,
+  icloudAvailable,
+  onConnectICloud,
   onReconnectFolder,
   onDisconnect,
   initialTab = "general",
@@ -702,8 +709,8 @@ export function SettingsModal({
                   </p>
                   {!FOLDER_BACKEND_AVAILABLE ? (
                     <p className="text-sm text-danger">
-                      This browser has no folder picker — use Dropbox or Google
-                      Drive here, or open the app in a Chromium browser.
+                      This browser has no folder picker — use Dropbox here, or
+                      open the app in a Chromium browser.
                     </p>
                   ) : connected && backend === "folder" ? (
                     <div className="flex flex-wrap items-center gap-2">
@@ -735,6 +742,39 @@ export function SettingsModal({
                 </div>
               ) : null}
 
+              {picked === "icloud" ? (
+                <div className="flex flex-col gap-2">
+                  <p className="text-xs text-muted">
+                    Your own iCloud Drive, through the Apple ID this device is
+                    already signed into — nothing to sign into and no account to
+                    make. Sessions land as the same readable files a folder
+                    holds, under Calc in the Files app, on every device you are
+                    signed into.
+                  </p>
+                  {!icloudAvailable ? (
+                    <p className="text-sm text-danger">
+                      iCloud is part of the App Store app. In a browser, use a
+                      folder or Dropbox instead.
+                    </p>
+                  ) : connected && backend === "icloud" ? (
+                    <div className="flex flex-wrap items-center gap-2">
+                      <span className="text-sm text-success">
+                        Connected to iCloud Drive.
+                      </span>
+                      <Button variant="secondary" onClick={onDisconnect}>
+                        Disconnect
+                      </Button>
+                    </div>
+                  ) : (
+                    <ConnectButton
+                      busy={connecting}
+                      label="Use iCloud Drive"
+                      onPress={() => runConnect(onConnectICloud)}
+                    />
+                  )}
+                </div>
+              ) : null}
+
               {picked === "dropbox" ? (
                 <div className="flex flex-col gap-2">
                   <p className="text-xs text-muted">
@@ -746,8 +786,7 @@ export function SettingsModal({
                     // button that could only fail.
                     <p className="text-sm text-danger">
                       {BACKEND_NAMES[picked]} needs an app key baked into the
-                      build (VITE_DROPBOX_APP_KEY) — see
-                      docs/configuration.md.
+                      build (VITE_DROPBOX_APP_KEY) — see docs/configuration.md.
                     </p>
                   ) : connected && backend === picked ? (
                     <div className="flex flex-wrap items-center gap-2">

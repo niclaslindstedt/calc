@@ -187,7 +187,8 @@ kept: every calculation from then on is saved as you make it.
   the build identifier.
 - **Storage** — Settings → Storage picks between _Device_ (sessions are kept
   in this browser’s own storage and nothing leaves it — nothing is synced or
-  backed up either), a local _Folder_, _Dropbox_, and Google _Drive_. Every
+  backed up either), a local _Folder_, _Dropbox_, and — in the App Store
+  app — _iCloud_ Drive. Every
   option is listed whether or not this browser and build can reach it, and
   picking an unreachable one says what it needs. Connecting or disconnecting
   applies at once — it is not staged behind Save, and connecting moves

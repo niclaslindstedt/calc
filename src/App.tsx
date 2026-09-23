@@ -375,6 +375,8 @@ export function App() {
         folderReconnectNeeded={sessions.folderReconnectNeeded}
         onConnectFolder={sessions.connectFolder}
         onConnectDropbox={sessions.connectDropbox}
+        icloudAvailable={sessions.icloudAvailable}
+        onConnectICloud={sessions.connectICloud}
         onReconnectFolder={sessions.reconnectFolder}
         onDisconnect={sessions.disconnect}
         initialTab={settingsTab}
