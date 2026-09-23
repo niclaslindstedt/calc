@@ -123,10 +123,12 @@ export function App() {
   });
 
   // ---- PWA update -------------------------------------------------------
+  // Idle in dev, and idle in the desktop shell (`tauri/`): that build ships no
+  // worker, because a new version arrives there as a new binary.
   const pwa = usePwaUpdate({
     base: import.meta.env.BASE_URL,
     cacheId: cacheIdForBase(import.meta.env.BASE_URL),
-    enabled: !import.meta.env.DEV,
+    enabled: !import.meta.env.DEV && !__SHELL_BUILD__,
   });
 
   // ---- favicon follows the active namespace -----------------------------

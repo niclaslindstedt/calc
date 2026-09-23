@@ -55,7 +55,9 @@ npm install
 ```
 
 Or just use the hosted app at <https://calc.niclaslindstedt.se/> — it
-installs as a PWA and works offline.
+installs as a PWA and works offline. Every release also attaches a desktop
+download for Windows, macOS and Linux — see
+[`docs/desktop-app.md`](docs/desktop-app.md).
 
 ## Quick start
 
@@ -244,6 +246,7 @@ folder: f-shopping
 - [`docs/configuration.md`](docs/configuration.md)
 - [`docs/storage-format.md`](docs/storage-format.md)
 - [`docs/troubleshooting.md`](docs/troubleshooting.md)
+- [`docs/desktop-app.md`](docs/desktop-app.md)
 
 ## Contributing
 
