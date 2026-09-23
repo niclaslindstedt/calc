@@ -6,7 +6,7 @@ All configuration is optional — the app builds and runs with none of it set.
 
 Copy `.env.example` to `.env` (git-ignored) and fill in what you need. These
 are Vite build-time variables; the deploy workflows inject them from
-repository variables (`vars.*`) in CI.
+repository secrets of the same name (`secrets.*`) in CI.
 
 | Variable                  | Default | Effect                                                                                                                                                                            |
 | ------------------------- | ------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -47,7 +47,7 @@ applies immediately; it is not staged behind the dialog's Save.
 | Dropbox      | `VITE_DROPBOX_APP_KEY` at build time | PKCE redirect flow; tokens in localStorage.                                                                                                                                                                                    |
 | iCloud       | the App Store app (native/)          | The native shell injects an iCloud Drive host after the page loads; the web app files sessions through it. Absent in a browser.                                                                                                |
 
-The deploy workflows read the Dropbox app key from the repository variable of
+The deploy workflows read the Dropbox app key from the repository secret of
 the same name, so a fork that wants Dropbox sets `VITE_DROPBOX_APP_KEY` there
 (and registers the deployed URL as the OAuth redirect target). Without it the
 app still runs — that segment just explains that the build carries no key.
