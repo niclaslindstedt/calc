@@ -44,12 +44,15 @@ applies immediately; it is not staged behind the dialog's Save.
 | ------------ | ------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | Device       | none                                 | The default. Both the working tape and named sessions are kept on this device (IndexedDB) — a real backend, just one that never leaves the browser and is not backed up. Connecting another moves what it holds into that one. |
 | Local folder | Chromium (File System Access API)    | The directory handle persists in IndexedDB; the browser re-asks permission after restarts.                                                                                                                                     |
-| Dropbox      | `VITE_DROPBOX_APP_KEY` at build time | PKCE redirect flow; tokens in localStorage.                                                                                                                                                                                    |
+| Dropbox      | `VITE_DROPBOX_APP_KEY` at build time | PKCE; tokens in localStorage. A redirect on the website, a loopback listener in the desktop app, an in-app authentication session in the phone app.                                                                            |
 | iCloud       | the App Store app (native/)          | The native shell injects an iCloud Drive host after the page loads; the web app files sessions through it. Absent in a browser.                                                                                                |
 
 The deploy workflows read the Dropbox app key from the repository secret of
 the same name, so a fork that wants Dropbox sets `VITE_DROPBOX_APP_KEY` there
-(and registers the deployed URL as the OAuth redirect target). Without it the
+(and registers every redirect URI the app uses in the Dropbox App Console:
+the deployed URL for the website, `http://127.0.0.1:53682/`, `:53683/` and
+`:53684/` for the desktop app, and `calc://oauth` for the phone app — see
+[native/README.md](../native/README.md#signing-in-to-dropbox)). Without it the
 app still runs — that segment just explains that the build carries no key.
 
 Sessions are markdown files — see [storage-format.md](storage-format.md) for

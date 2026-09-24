@@ -24,8 +24,11 @@ import { useICloudHost } from "./icloudHost.ts";
 
 import {
   completeDropboxAuth,
+  connectDropboxAuthSession,
   connectDropboxLoopback,
+  getAuthSessionHost,
   hasPendingDropboxAuth,
+  isAuthCancelled,
   isDesktopShellOrigin,
   startDropboxAuth,
 } from "@niclaslindstedt/oss-framework/storage";
@@ -380,16 +383,31 @@ export function useSessions(namespaceSlug: string) {
 
   const connectDropbox = useCallback(async () => {
     if (!DROPBOX_APP_KEY) return;
-    // In the desktop app the redirect has nowhere to land (its origin is a
-    // private scheme), so the sign-in runs in the user's browser and the
-    // shell's loopback listener hands the result back — and the connection
-    // is made here, in place, the way the folder's is.
-    if (isDesktopShellOrigin()) {
-      status("Signing in to Dropbox in your browser…");
+    // Two hosts cannot take the redirect back, and both finish the sign-in in
+    // one promise, connecting here, in place, the way the folder does:
+    //   • a host that OFFERS an authentication session (the phone app): the
+    //     consent page opens in a sheet over the app and the sheet hands the
+    //     redirect back — asked for as a capability, not a platform;
+    //   • the desktop app, whose origin is a private scheme: the sign-in runs
+    //     in the user's browser and the shell's loopback listener hands the
+    //     result back.
+    const authSession = getAuthSessionHost();
+    if (authSession || isDesktopShellOrigin()) {
+      status(
+        authSession
+          ? "Signing in to Dropbox…"
+          : "Signing in to Dropbox in your browser…",
+      );
       try {
-        const result = await connectDropboxLoopback(DROPBOX_APP_KEY);
+        const result = authSession
+          ? await connectDropboxAuthSession(DROPBOX_APP_KEY, authSession)
+          : await connectDropboxLoopback(DROPBOX_APP_KEY);
         writeDropboxTokens(result.accessToken, result.refreshToken);
       } catch (err) {
+        if (isAuthCancelled(err)) {
+          status("Dropbox sign-in cancelled");
+          return;
+        }
         logError(
           `Dropbox sign-in failed: ${err instanceof Error ? err.message : String(err)}`,
         );

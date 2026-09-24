@@ -135,16 +135,19 @@ Two rules keep it thin:
 
 1. **Nothing in `src/` may learn that the wrapper exists.** The web app asks
    whether a _capability_ is present (`src/app/icloudHost.ts` looks for an
-   iCloud provider on `window`), never whether it is running natively. A
-   browser has no provider and the iCloud option says so.
+   iCloud provider on `window`; the framework's `getAuthSessionHost` looks
+   for a sign-in provider at `window.__ossAuthSession`), never whether it is
+   running natively. A browser has no provider: the iCloud option says so,
+   and Dropbox keeps its redirect sign-in.
 2. **The wrapper owns no domain.** It moves opaque files between the page and a
    folder in iCloud Drive. Session paths, the codec and when a save is due stay
    in `src/app/`.
 
-A root test (`tests/native_icloud_test.ts`) imports one module from that tree
-to pin the two sides of the seam against each other — which is why
+Two root tests (`tests/native_icloud_test.ts`,
+`tests/native_auth_session_test.ts`) import modules from that tree to pin the
+two sides of each seam against each other — which is why
 `native/src/icloudBridge.ts` takes its types from the import-free
-`native/src/icloudWire.ts`. See [`native/README.md`](native/README.md).
+`native/src/icloudWire.ts`, and neither bridge imports anything from `expo`. See [`native/README.md`](native/README.md).
 
 ## Where new code goes
 
@@ -197,6 +200,12 @@ in `=`. No test-specific dependencies beyond vitest.
 - The iCloud bridge's property and event names are a contract between
   `native/src/icloudBridge.ts` and `src/app/icloudHost.ts`.
   `tests/native_icloud_test.ts` pins them.
+- The auth-session bridge's property and event names are the framework's
+  (`AUTH_SESSION_HOST_PROPERTY`, `AUTH_SESSION_HOST_EVENT`), spelled again in
+  `native/src/authSessionBridge.ts`; `tests/native_auth_session_test.ts` pins
+  them. Its redirect URI is `<scheme>://oauth` from `native/app.config.js`,
+  and the Dropbox app must list it — changing the scheme breaks phone sign-in
+  until the App Console follows.
 - `src/app/pwa.ts` (`cacheIdForBase`) is imported by both the app and
   `pwa-plugin.ts`; it must stay dependency-free.
 - Every mode feeds the framework's one expression grammar: never add a key
