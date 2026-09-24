@@ -146,9 +146,9 @@ Settings → Storage → Dropbox → Connect
 window.__ossAuthSession.open(authorizeUrl)   — installed by src/authSessionBridge.ts
    │  postMessage (request)  /  injectJavaScript (answer)
    ▼
-App.tsx → src/authSession.ts → WebBrowser.openAuthSessionAsync(url, "calc://oauth")
+App.tsx → src/authSession.ts → WebBrowser.openAuthSessionAsync(url, "se.agilator.calc://oauth")
    │  the reader consents in the sheet; Dropbox redirects to
-   │  calc://oauth?code=…&state=dropbox and the sheet closes
+   │  se.agilator.calc://oauth?code=…&state=dropbox and the sheet closes
    ▼
 the page checks the state, trades the code (same verifier, same redirect URI)
 ```
@@ -161,10 +161,14 @@ sees a token: it opens an `https:` URL (nothing else is accepted) and returns
 the callback URL, unread; a closed sheet comes back as `null`, which the page
 reports as "cancelled" rather than as an error.
 
-**The redirect URI is `<scheme>://oauth`** — `calc://oauth` here, from
-`app.config.js`'s `scheme`. Dropbox requires the exact URI to be registered,
-so the Dropbox app behind `VITE_DROPBOX_APP_KEY` must list `calc://oauth`
-under **Settings → OAuth 2 → Redirect URIs** in the
+**The redirect URI is `<scheme>://oauth`**, and the scheme is the **bundle
+id** (`app.config.js`'s `scheme`, from `APP_BUNDLE_ID` via `identifiers.js`):
+reverse-DNS, as RFC 8252 §7.1 asks, so no other app can claim it. In the
+store build that is `se.agilator.calc://oauth`; a plain checkout builds as
+`dev.local.calc://oauth`. Dropbox requires the exact URI to be registered,
+so the Dropbox app behind `VITE_DROPBOX_APP_KEY` must list
+`se.agilator.calc://oauth` (and `dev.local.calc://oauth`, to sign in from a
+development build) under **Settings → OAuth 2 → Redirect URIs** in the
 [App Console](https://www.dropbox.com/developers/apps), next to the website's
 and the desktop app's. Without it Dropbox shows "Invalid redirect_uri" in the
 sheet. The scheme needs no Info.plist entry of its own for the sheet to catch

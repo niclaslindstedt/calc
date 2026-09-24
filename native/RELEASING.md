@@ -76,11 +76,13 @@ in to iCloud" on a device that plainly is. Both are configuration, not code.
 ### 5. Dropbox
 
 The phone app signs in to Dropbox through an in-app authentication session
-that returns on **`calc://oauth`** (see
+that returns on **`<bundle id>://oauth`** — `se.agilator.calc://oauth` for the
+store build, whose `APP_BUNDLE_ID` is `se.agilator.calc` (see
 [README → Signing in to Dropbox](README.md#signing-in-to-dropbox)). In the
 [Dropbox App Console](https://www.dropbox.com/developers/apps), open the app
-whose key is the `VITE_DROPBOX_APP_KEY` secret and add `calc://oauth` under
-**Settings → OAuth 2 → Redirect URIs**, exactly as written. The same secret
+whose key is the `VITE_DROPBOX_APP_KEY` secret and add
+`se.agilator.calc://oauth` under **Settings → OAuth 2 → Redirect URIs**,
+exactly as written. The same secret
 is what the build job passes to the web bundle; without it the app offers no
 Dropbox at all.
 

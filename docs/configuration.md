@@ -51,7 +51,7 @@ The deploy workflows read the Dropbox app key from the repository secret of
 the same name, so a fork that wants Dropbox sets `VITE_DROPBOX_APP_KEY` there
 (and registers every redirect URI the app uses in the Dropbox App Console:
 the deployed URL for the website, `http://127.0.0.1:53682/`, `:53683/` and
-`:53684/` for the desktop app, and `calc://oauth` for the phone app — see
+`:53684/` for the desktop app, and `se.agilator.calc://oauth` (the bundle id as the scheme) for the phone app — see
 [native/README.md](../native/README.md#signing-in-to-dropbox)). Without it the
 app still runs — that segment just explains that the build carries no key.
 

@@ -9,6 +9,8 @@
 // here, and the injected script is RUN, not inspected, against a stand-in for
 // the WebView's window.
 
+import { createRequire } from "node:module";
+
 import { describe, expect, it } from "vitest";
 
 import {
@@ -25,7 +27,7 @@ import {
   redirectUriFor,
 } from "../native/src/authSessionBridge.ts";
 
-const REDIRECT = redirectUriFor("calc");
+const REDIRECT = redirectUriFor("se.agilator.calc");
 
 type FakeWindow = Record<string, unknown> & {
   posted: string[];
@@ -57,9 +59,45 @@ function run(script: string, win: FakeWindow): void {
   new Function("window", "Event", script)(win, FakeEvent);
 }
 
+const require = createRequire(import.meta.url);
+const CONFIG = require.resolve("../native/app.config.js");
+const IDENTIFIERS = require.resolve("../native/identifiers.js");
+
+/** The Expo `scheme` app.config.js resolves to under `bundleId` (unset: a
+ *  plain checkout). Loaded fresh, because identifiers.js reads the
+ *  environment once, at require time. */
+function schemeFor(bundleId: string | undefined): unknown {
+  const saved = process.env.APP_BUNDLE_ID;
+  if (bundleId === undefined) delete process.env.APP_BUNDLE_ID;
+  else process.env.APP_BUNDLE_ID = bundleId;
+  try {
+    delete require.cache[CONFIG];
+    delete require.cache[IDENTIFIERS];
+    const config = (require(CONFIG) as () => { expo: { scheme?: unknown } })();
+    return config.expo.scheme;
+  } finally {
+    if (saved === undefined) delete process.env.APP_BUNDLE_ID;
+    else process.env.APP_BUNDLE_ID = saved;
+    delete require.cache[CONFIG];
+    delete require.cache[IDENTIFIERS];
+  }
+}
+
 describe("the redirect URI", () => {
   it("is the app's scheme with an oauth path — the string Dropbox must list", () => {
-    expect(REDIRECT).toBe("calc://oauth");
+    expect(REDIRECT).toBe("se.agilator.calc://oauth");
+  });
+
+  it("has the bundle id for its scheme, so the store build returns on se.agilator.calc://oauth", () => {
+    // RFC 8252 §7.1: a reverse-DNS scheme no other app can claim. It follows
+    // APP_BUNDLE_ID rather than being committed.
+    const scheme = schemeFor("se.agilator.calc");
+    expect(scheme).toBe("se.agilator.calc");
+    expect(redirectUriFor(scheme as string)).toBe(REDIRECT);
+  });
+
+  it("falls back with the bundle id in a plain checkout", () => {
+    expect(schemeFor(undefined)).toBe("dev.local.calc");
   });
 });
 
@@ -178,7 +216,7 @@ describe("isAuthSessionRequest", () => {
       "http://localhost:8261/",
       "javascript:alert(1)",
       "file:///etc/passwd",
-      "calc://oauth",
+      "se.agilator.calc://oauth",
       "https://",
       " https://www.dropbox.com/",
     ]) {
@@ -195,7 +233,7 @@ describe("authSessionResolveScript", () => {
     win.__ossAuthSessionResolve = (_id: string, result: unknown) => {
       seen = result;
     };
-    const nasty = `calc://oauth?code=");alert(1);//&x=${String.fromCharCode(0x2028)}`;
+    const nasty = `se.agilator.calc://oauth?code=");alert(1);//&x=${String.fromCharCode(0x2028)}`;
     const script = authSessionResolveScript("a1", { ok: true, value: nasty });
     expect(script).not.toContain(String.fromCharCode(0x2028));
     run(script, win);

@@ -55,7 +55,8 @@ const REDIRECT_PATH = "oauth";
 
 /**
  * The redirect URI the wrapper catches: `<scheme>://oauth`, where `<scheme>`
- * is `app.config.js`'s `scheme` (the app's slug). This exact string is what
+ * is `app.config.js`'s `scheme` (the bundle id, `se.agilator.calc` in the
+ * store build). This exact string is what
  * the Dropbox app's App Console must list under Redirect URIs.
  */
 export function redirectUriFor(scheme: string): string {

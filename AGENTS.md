@@ -203,9 +203,10 @@ in `=`. No test-specific dependencies beyond vitest.
 - The auth-session bridge's property and event names are the framework's
   (`AUTH_SESSION_HOST_PROPERTY`, `AUTH_SESSION_HOST_EVENT`), spelled again in
   `native/src/authSessionBridge.ts`; `tests/native_auth_session_test.ts` pins
-  them. Its redirect URI is `<scheme>://oauth` from `native/app.config.js`,
-  and the Dropbox app must list it — changing the scheme breaks phone sign-in
-  until the App Console follows.
+  them. Its redirect URI is `<scheme>://oauth`, and the scheme is the bundle
+  id (`native/app.config.js` takes it from `native/identifiers.js`), so the
+  Dropbox app must list `se.agilator.calc://oauth` — a different
+  `APP_BUNDLE_ID` breaks phone sign-in until the App Console follows.
 - `src/app/pwa.ts` (`cacheIdForBase`) is imported by both the app and
   `pwa-plugin.ts`; it must stay dependency-free.
 - Every mode feeds the framework's one expression grammar: never add a key
