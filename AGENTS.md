@@ -80,7 +80,9 @@ status), and the modal siblings. State is hooks, not stores:
   moment it is named — there is no save button — after which `=` writes it
   through immediately and slower edits debounce; an unnamed tape is not a
   file, but it is mirrored to the device (`scratch.ts`) and read back on the
-  next visit.
+  next visit. A device with no tape (reinstall, new device) opens the most
+  recently updated saved session once the backend has listed it
+  (`sessionToResume`).
 - `useAppSettings()` — localStorage settings: gestures, key animation,
   enabled modes, per-mode hidden keys, custom modes.
 - `useNamespaces()` — the framework's namespace registry in localStorage.

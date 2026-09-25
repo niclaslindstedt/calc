@@ -59,6 +59,11 @@ npm run dev
    button, or switch namespaces (separate workspaces) from the switcher on
    top.
 
+The unnamed working tape belongs to the device you are on. When a device has
+none — a reinstall, a new phone, a cleared browser — Calc opens your most
+recently updated saved session instead of a blank tape, once the connected
+storage has listed it. A device with a tape resumes it exactly as before.
+
 ## Copy and paste
 
 Press and hold the display and a twin pill rises over it: **Copy** takes

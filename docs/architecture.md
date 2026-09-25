@@ -75,6 +75,17 @@ read may still be sitting in the record either one would overwrite. Pressing
 restart on the update prompt flushes the tape first (`flushScratch`, capped at
 1.5 s) so the reload cannot land on a write still in flight.
 
+**No tape on the device opens the latest session.** The tape is the device's
+and the sessions are the backend's, so a reinstall or a new device has every
+session and no tape. When `readScratch` answers "no tape" (`empty` — never
+`unavailable`), `useSessions` waits for the backend's listing (the preferred
+backend connected and `listedEpoch === storeEpoch`, not the device store's
+interim listing) and opens the most recently updated saved session
+(`session.ts` `sessionToResume`) — onto a still-untouched tape only, and
+decided once per tape read (each start, each namespace switch), so a later
+listing never swaps the session out from under the reader. Any backend,
+including this device.
+
 **This device is a backend.** With no folder or cloud connected, `useSessions`
 binds the session store to the device's own `FileStore` (IndexedDB — see
 `deviceFileStore` in `scratch.ts`), so naming a tape makes it a file there and

@@ -162,6 +162,38 @@ export function isDiscardable(session: Session): boolean {
   return session.entries.length === 0 && session.title.trim() === "";
 }
 
+// What this device said about its working tape at startup: a tape to resume,
+// no tape at all, or no answer (see `ScratchRead` in scratch.ts). Spelled here
+// rather than imported so the domain model stays free of IndexedDB.
+export type TapeOnDevice = "tape" | "empty" | "unavailable";
+
+// The saved session a start should open instead of a blank tape, or null to
+// leave the tape as it is.
+//
+// The working tape is device-local: a reinstall, a new phone or a cleared
+// browser has none, while the reader's sessions are all still in the backend.
+// Opening a blank tape over them reads as "my data is gone", so a start that
+// finds NO tape on the device opens the most recently updated saved session
+// instead — the one the reader was most likely working in. Everything else
+// keeps today's behaviour:
+//   - a tape on the device always wins (a normal launch resumes it);
+//   - a device that could not be read is not "no tape" — it may hold one;
+//   - a tape the reader has already touched (a calculation, a title) is theirs
+//     and is never replaced;
+//   - nothing saved means nothing to open.
+export function sessionToResume(
+  tape: TapeOnDevice,
+  active: Session,
+  saved: readonly Session[],
+): Session | null {
+  if (tape !== "empty" || !isDiscardable(active)) return null;
+  let latest: Session | null = null;
+  for (const session of saved) {
+    if (!latest || session.updatedAt > latest.updatedAt) latest = session;
+  }
+  return latest;
+}
+
 // The entry a fresh `=` would merely restate, or null when the calculation
 // says something new. Holding `=` (or ENTER) re-evaluates whatever `=` just
 // left on the display, so without this every repeat would append a twin of

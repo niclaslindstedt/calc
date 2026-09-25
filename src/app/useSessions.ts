@@ -63,10 +63,12 @@ import {
   newId,
   newSession,
   removeEntry,
+  sessionToResume,
   setEntryNote,
   toggleEntryStar,
   type Folder,
   type Session,
+  type TapeOnDevice,
 } from "./session.ts";
 
 const SAVE_DEBOUNCE_MS = 800;
@@ -191,16 +193,21 @@ export function useSessions(namespaceSlug: string) {
   // until then `saved` still describes the store we just left, which is why
   // the promotion below waits for it.
   const [listedEpoch, setListedEpoch] = useState(-1);
+  // The same, for the namespace: a namespace switch re-lists without moving
+  // the epoch, and until that listing lands `saved` is the old namespace's.
+  const [listedSlug, setListedSlug] = useState<string | null>(null);
   useEffect(() => {
     rebuildStore();
     let cancelled = false;
     void refresh().then(() => {
-      if (!cancelled) setListedEpoch(storeEpoch);
+      if (cancelled) return;
+      setListedEpoch(storeEpoch);
+      setListedSlug(namespaceSlug);
     });
     return () => {
       cancelled = true;
     };
-  }, [connected, storeEpoch, rebuildStore, refresh]);
+  }, [connected, storeEpoch, namespaceSlug, rebuildStore, refresh]);
 
   // Switching namespace resets the working session (each namespace is its
   // own workspace); the tape left behind is not lost, it is the other
@@ -229,9 +236,11 @@ export function useSessions(namespaceSlug: string) {
   // nothing whatsoever, because a tape we failed to read is a tape that may
   // still be sitting there, and both halves of the mirror (the write and the
   // clear) would destroy it.
+  // `tape` is what the read found, kept for the start-up resume below.
   const [scratchRead, setScratchRead] = useState<{
     slug: string;
     usable: boolean;
+    tape: TapeOnDevice;
   } | null>(null);
   const scratchReady =
     scratchRead?.slug === namespaceSlug && scratchRead.usable;
@@ -254,12 +263,48 @@ export function useSessions(namespaceSlug: string) {
       setScratchRead({
         slug: namespaceSlug,
         usable: restored.status !== "unavailable",
+        tape: restored.status,
       });
     })();
     return () => {
       cancelled = true;
     };
   }, [namespaceSlug]);
+
+  // ---- no tape on this device: open the latest saved session -------------
+  // The tape is the device's, the sessions are the backend's. A reinstall or a
+  // new device has sessions and no tape, and opening a blank tape over them
+  // looks like the sessions are gone — so a start with no tape opens the most
+  // recently updated saved session instead (`sessionToResume` has the rules).
+  //
+  // It waits for the listing that counts: the backend's, once the backend
+  // the reader chose has connected — not the device store's, which is listed
+  // first while a backend is still connecting and is empty after a
+  // reinstall. It decides ONCE per tape read (each start, each namespace
+  // switch): whatever the answer, a later listing never reopens anything over
+  // the tape the reader is now using.
+  const resumeDecided = useRef<object | null>(null);
+  useEffect(() => {
+    if (!scratchRead || scratchRead.slug !== namespaceSlug) return;
+    if (resumeDecided.current === scratchRead) return;
+    if (listedEpoch !== storeEpoch || listedSlug !== namespaceSlug) return;
+    if (readBackendPreference() !== null && !connected) return;
+    resumeDecided.current = scratchRead;
+    const latest = sessionToResume(scratchRead.tape, active, saved);
+    if (!latest) return;
+    // Onto an untouched tape only, judged again at the moment of the swap.
+    setActive((prev) => (isDiscardable(prev) ? latest : prev));
+    status("Opened the most recent session — this device had no working tape");
+  }, [
+    scratchRead,
+    namespaceSlug,
+    listedEpoch,
+    listedSlug,
+    storeEpoch,
+    connected,
+    active,
+    saved,
+  ]);
 
   // Every change to an unsaved tape lands on the device as it happens — the
   // session only changes on a finished action (`=`, a committed note, a star,
