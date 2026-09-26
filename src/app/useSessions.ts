@@ -36,6 +36,7 @@ import {
 import {
   clearBackendState,
   createSessionStore,
+  demoActive,
   deviceStore,
   DROPBOX_APP_KEY,
   dropboxFileStore,
@@ -72,6 +73,16 @@ import {
 } from "./session.ts";
 
 const SAVE_DEBOUNCE_MS = 800;
+
+// The demo shelf (`VITE_SEED=demo`) is nobody's documents. Connecting a
+// backend moves what the device holds into it (see `migrate`), which from the
+// demo would carry the demo sessions into the reader's folder or cloud — so
+// the demo refuses, and says why.
+function refusedInDemo(): boolean {
+  if (!demoActive()) return false;
+  warn("This is the demo — its sessions are not saved anywhere");
+  return true;
+}
 // The longest the app waits for the working tape to reach the device before
 // an update restart goes ahead without it.
 const FLUSH_TIMEOUT_MS = 1500;
@@ -342,6 +353,7 @@ export function useSessions(namespaceSlug: string) {
   // permission prompt is a no-op — the same forgiving flow the contacts
   // sibling runs, so neither leaves a rejected promise behind the button.
   const connectFolder = useCallback(async () => {
+    if (refusedInDemo()) return;
     if (!FOLDER_BACKEND_AVAILABLE || !window.showDirectoryPicker) return;
     status("Opening the directory picker…");
     let handle: FileSystemDirectoryHandle;
@@ -374,6 +386,7 @@ export function useSessions(namespaceSlug: string) {
   // `requestPermission` needs a user gesture, which is why this lives behind a
   // click handler. Falls back to a fresh pick when the stored record is gone.
   const reconnectFolder = useCallback(async () => {
+    if (refusedInDemo()) return;
     const handle = await loadDirectoryHandle();
     if (!handle) return connectFolder();
     const granted = await ensurePermission(handle, true);
@@ -409,6 +422,7 @@ export function useSessions(namespaceSlug: string) {
   }, [icloudHost]);
 
   const connectICloud = useCallback(async () => {
+    if (refusedInDemo()) return;
     if (!icloudHost) return;
     // Nothing to authorise: the container belongs to the Apple ID the device
     // is already signed into. A signed-out device says so rather than
@@ -427,6 +441,7 @@ export function useSessions(namespaceSlug: string) {
   }, [icloudHost]);
 
   const connectDropbox = useCallback(async () => {
+    if (refusedInDemo()) return;
     if (!DROPBOX_APP_KEY) return;
     // Two hosts cannot take the redirect back, and both finish the sign-in in
     // one promise, connecting here, in place, the way the folder does:

@@ -71,6 +71,9 @@ export function storageName(backend: BackendId | null): string {
 }
 
 export function readBackendPreference(): BackendId | null {
+  // The demo is pinned to its own shelf: a backend this device chose for the
+  // reader's real sessions is theirs, and is left unconnected.
+  if (demoDevice) return null;
   const raw = localStorage.getItem(BACKEND_KEY);
   return raw === "folder" || raw === "dropbox" || raw === "icloud" ? raw : null;
 }
@@ -117,8 +120,23 @@ export { loadDirectoryHandle, saveDirectoryHandle, ensurePermission };
 // a single instance keeps every caller on the same IndexedDB handle.
 const DEVICE_FILE_STORE = deviceFileStore();
 
+// What stands in for the device while the demo shelf is showing (`VITE_SEED=
+// demo`, see dev/demo.ts); null in every other build.
+let demoDevice: FileStore | null = null;
+
 export function deviceStore(): FileStore {
-  return DEVICE_FILE_STORE;
+  return demoDevice ?? DEVICE_FILE_STORE;
+}
+
+/** Stand `store` in for this device's backend for the life of the page. Only
+ *  the demo does this, once, before the first render. */
+export function setDemoDevice(store: FileStore): void {
+  demoDevice = store;
+}
+
+/** Whether the demo shelf is showing — the storage backends stay off. */
+export function demoActive(): boolean {
+  return demoDevice !== null;
 }
 
 /** iCLOUD DRIVE, as a {@link FileStore}: the picked-local-folder backend with a

@@ -25,6 +25,11 @@ interface ImportMetaEnv {
   // App-folder names for the cloud backends' stored documents. Both default
   // to "Calc". See `src/app/store.ts`.
   readonly VITE_DROPBOX_APP_FOLDER?: string;
+  // `demo` boots onto the demo shelf — eight saved sessions held in memory,
+  // nothing read from or written to the device (`src/app/dev/demo.ts`). The
+  // live demo and the store screenshots are this build. Any other value, or
+  // none, is the reader's own sessions.
+  readonly VITE_SEED?: string;
 }
 
 // Whether this build is the one bundled inside the desktop shell (tauri/).

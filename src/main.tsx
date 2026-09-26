@@ -27,5 +27,16 @@ if (import.meta.env.DEV && "serviceWorker" in navigator) {
 
 const root = document.getElementById("root");
 if (!root) throw new Error("missing #root element");
+const mount = root;
 
-render(<App />, root);
+// `VITE_SEED=demo` boots onto the demo shelf instead of the reader's own
+// sessions (see src/app/dev/demo.ts). A build-time switch: Vite folds the
+// comparison, so a build without it carries neither the demo nor its data.
+if (import.meta.env.VITE_SEED === "demo") {
+  void import("./app/dev/demo.ts").then((demo) => {
+    demo.installDemo();
+    render(<App />, mount);
+  });
+} else {
+  render(<App />, mount);
+}

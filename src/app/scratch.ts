@@ -97,6 +97,18 @@ function openHandles() {
 
 let handles = openHandles();
 
+// The working tapes, held in memory instead — only while the demo shelf is
+// showing (`VITE_SEED=demo`, see dev/demo.ts), so the demo neither reads the
+// reader's own tape nor writes over it. Null in every other build.
+let memoryTapes: Map<string, string> | null = null;
+
+/** Keep working tapes in memory for the life of the page, leaving this
+ *  device's IndexedDB untouched. Only the demo does this, before the first
+ *  render. */
+export function keepTapesInMemory(): void {
+  memoryTapes = new Map();
+}
+
 const delay = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
 /**
@@ -140,7 +152,9 @@ export type ScratchRead =
 export async function readScratch(namespaceSlug: string): Promise<ScratchRead> {
   let text: string | null;
   try {
-    text = await withRetries((h) => h.tapes.get(namespaceSlug));
+    text = memoryTapes
+      ? (memoryTapes.get(namespaceSlug) ?? null)
+      : await withRetries((h) => h.tapes.get(namespaceSlug));
   } catch {
     return { status: "unavailable" };
   }
@@ -160,6 +174,10 @@ export async function writeScratch(
   namespaceSlug: string,
   session: Session,
 ): Promise<boolean> {
+  if (memoryTapes) {
+    memoryTapes.set(namespaceSlug, sessionToMarkdown(session));
+    return true;
+  }
   try {
     await withRetries((h) =>
       h.tapes.set(namespaceSlug, sessionToMarkdown(session)),
@@ -175,6 +193,10 @@ export async function writeScratch(
  * become a file in the storage backend and no longer needs a device copy.
  */
 export async function clearScratch(namespaceSlug: string): Promise<void> {
+  if (memoryTapes) {
+    memoryTapes.delete(namespaceSlug);
+    return;
+  }
   try {
     await withRetries((h) => h.tapes.delete(namespaceSlug));
   } catch {

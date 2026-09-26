@@ -8,12 +8,13 @@ Copy `.env.example` to `.env` (git-ignored) and fill in what you need. These
 are Vite build-time variables; the deploy workflows inject them from
 repository secrets of the same name (`secrets.*`) in CI.
 
-| Variable                  | Default | Effect                                                                                                                                                                            |
-| ------------------------- | ------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `VITE_DROPBOX_APP_KEY`    | unset   | Dropbox app key (PKCE public client). Unset hides the Dropbox backend in Settings → Storage. Register at <https://www.dropbox.com/developers/apps> (scoped access, "App folder"). |
-| `VITE_DROPBOX_APP_FOLDER` | `Calc`  | Dropbox app-folder name (`Apps/<name>/`), fixed by your Dropbox app config.                                                                                                       |
-| `VITE_BASE`               | `/`     | Deploy base path — set by the pages workflow per release channel.                                                                                                                 |
-| `VITE_PWA_IGNORE_PATHS`   | unset   | Sibling deploy channels the root service worker must disown (see `pwa-plugin.ts`).                                                                                                |
+| Variable                  | Default | Effect                                                                                                                                                                                                 |
+| ------------------------- | ------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `VITE_DROPBOX_APP_KEY`    | unset   | Dropbox app key (PKCE public client). Unset hides the Dropbox backend in Settings → Storage. Register at <https://www.dropbox.com/developers/apps> (scoped access, "App folder").                      |
+| `VITE_DROPBOX_APP_FOLDER` | `Calc`  | Dropbox app-folder name (`Apps/<name>/`), fixed by your Dropbox app config.                                                                                                                            |
+| `VITE_BASE`               | `/`     | Deploy base path — set by the pages workflow per release channel.                                                                                                                                      |
+| `VITE_PWA_IGNORE_PATHS`   | unset   | Sibling deploy channels the root service worker must disown (see `pwa-plugin.ts`).                                                                                                                     |
+| `VITE_SEED`               | unset   | `demo` boots onto the demo shelf — eight saved sessions held in memory, nothing read from or written to the device (`src/app/dev/demo.ts`). `make demo` runs it; the store screenshots are this build. |
 
 ## In-app settings
 
