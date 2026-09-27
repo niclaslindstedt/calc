@@ -232,9 +232,9 @@ The app is the website: `pages.yml` builds it per channel and deploys
 `index.html` (title, description, Open Graph) and `public/og.png` describe the
 app when a link is shared — keep them in sync with user-visible features.
 
-No SEO and no size budgets, by owner decision: the site is not meant to be
-found, so every page carries `<meta name="robots" content="noindex">`, and
-there is no sitemap, structured data or bundle-size ceiling.
+The website is unlisted (OSS_SPEC §11.3.12): every page carries `noindex`.
+
+oss-spec:unlisted-website: the web build is a testing surface; users install the app from its store listing
 
 ## Maintenance skills
 
