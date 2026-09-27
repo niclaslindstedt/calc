@@ -31,6 +31,7 @@ import {
 import { SyncStatus } from "@niclaslindstedt/oss-framework/sync";
 import {
   useApplyTheme,
+  useThemeColorMeta,
   type ThemeAppearance,
 } from "@niclaslindstedt/oss-framework/theme";
 
@@ -77,6 +78,7 @@ export function App() {
     { parse: parseAppearance },
   );
   useApplyTheme(appearance);
+  useThemeColorMeta(appearance);
   useEffect(() => {
     document.documentElement.setAttribute(
       "data-density",
