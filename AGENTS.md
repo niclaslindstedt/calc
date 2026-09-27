@@ -23,7 +23,6 @@ make lint       # eslint . && tsc --noEmit
 make fmt        # prettier --write .
 make fmt-check  # prettier --check .
 make icons      # regenerate public/icons + og.png from the mark geometry
-make check-seo  # build + structural SEO assertions over dist/
 ```
 
 The native wrapper in `native/` has a **dependency tree of its own** — `make
@@ -181,7 +180,7 @@ in `=`. No test-specific dependencies beyond vitest.
 
 | When you change…             | Also update…                                                      |
 | ---------------------------- | ----------------------------------------------------------------- |
-| The file format (codec.ts)   | `docs/storage-format.md`, `examples/`, `public/llms.txt`          |
+| The file format (codec.ts)   | `docs/storage-format.md`, `examples/`                             |
 | Keypad layouts / modes       | README **Usage**, `docs/getting-started.md`                       |
 | Env vars (`vite-env.d.ts`)   | `.env.example`, `docs/configuration.md`, README **Configuration** |
 | Storage backends             | `docs/architecture.md`, `docs/configuration.md`                   |
@@ -224,10 +223,13 @@ in `=`. No test-specific dependencies beyond vitest.
 ## Website staleness
 
 The app is the website: `pages.yml` builds it per channel and deploys
-`dist/` (OSS_SPEC §11.2 applies in PWA form). SEO surfaces live in
-`index.html` (head), `public/` (`robots.txt`, `sitemap.xml`, `llms.txt`,
-`og.png`), and `scripts/check-seo.mjs` asserts them post-build — keep them
-in sync with user-visible features.
+`dist/` (OSS_SPEC §11.2 applies in PWA form). The `<head>` copy in
+`index.html` (title, description, Open Graph) and `public/og.png` describe the
+app when a link is shared — keep them in sync with user-visible features.
+
+No SEO and no size budgets, by owner decision: the site is not meant to be
+found, so every page carries `<meta name="robots" content="noindex">`, and
+there is no sitemap, structured data or bundle-size ceiling.
 
 ## Maintenance skills
 

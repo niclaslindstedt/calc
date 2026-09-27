@@ -16,7 +16,9 @@
       name="description"
       content="Calc is a local-first calculator PWA with named sessions: every calculation lands on a commentable tape, sessions save as markdown files to a local folder or the cloud, and layouts are yours to customize."
     />
-    <link rel="canonical" href="https://calc.niclaslindstedt.se/" />
+    <!-- Not meant to be found: people find the App Store page and
+         apps.agilator.se, not this web edition. -->
+    <meta name="robots" content="noindex" />
 
     <!-- Open Graph -->
     <meta property="og:type" content="website" />
@@ -42,25 +44,6 @@
       name="twitter:image"
       content="https://calc.niclaslindstedt.se/og.png"
     />
-
-    <!-- JSON-LD -->
-    <script type="application/ld+json">
-      {
-        "@context": "https://schema.org",
-        "@type": "SoftwareApplication",
-        "name": "Calc",
-        "applicationCategory": "UtilitiesApplication",
-        "operatingSystem": "Any",
-        "description": "A local-first calculator PWA with named sessions, a commentable tape, markdown storage, and customizable layouts.",
-        "url": "https://calc.niclaslindstedt.se/",
-        "image": "https://calc.niclaslindstedt.se/og.png",
-        "offers": {
-          "@type": "Offer",
-          "price": "0",
-          "priceCurrency": "USD"
-        }
-      }
-    </script>
   </head>
   <body>
     <div id="root"></div>
