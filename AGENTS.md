@@ -183,16 +183,16 @@ in `=`. No test-specific dependencies beyond vitest.
 
 ## Documentation sync points
 
-| When you change…             | Also update…                                                      |
-| ---------------------------- | ----------------------------------------------------------------- |
-| The file format (codec.ts)   | `docs/storage-format.md`, `examples/`                             |
-| Keypad layouts / modes       | README **Usage**, `docs/getting-started.md`                       |
-| Env vars (`vite-env.d.ts`)   | `.env.example`, `docs/configuration.md`, README **Configuration** |
-| Storage backends             | `docs/architecture.md`, `docs/configuration.md`                   |
-| The native wrapper           | `native/README.md`, `native/RELEASING.md`                         |
-| The desktop shell            | `tauri/README.md`, `docs/desktop-app.md`, `tauri/shell/tests/`    |
-| localStorage keys            | `docs/architecture.md` (key inventory)                            |
-| The public surface generally | Run the `update-readme` / `update-docs` skills (`.agent/skills/`) |
+| When you change…             | Also update…                                                       |
+| ---------------------------- | ------------------------------------------------------------------ |
+| The file format (codec.ts)   | `docs/storage-format.md`, `examples/`                              |
+| Keypad layouts / modes       | README **Usage**, `docs/getting-started.md`                        |
+| Env vars (`vite-env.d.ts`)   | `.env.example`, `docs/configuration.md`, README **Configuration**  |
+| Storage backends             | `docs/architecture.md`, `docs/configuration.md`                    |
+| The native wrapper           | `native/README.md`, `native/RELEASING.md`                          |
+| The desktop shell            | `tauri/README.md`, `docs/desktop-app.md`, `tauri/shell/tests/`     |
+| localStorage keys            | `docs/architecture.md` (key inventory)                             |
+| The public surface generally | Run the `update-readme` / `update-docs` skills (`.agents/skills/`) |
 
 ## Parity and cross-cutting rules
 
@@ -238,8 +238,8 @@ oss-spec:unlisted-website: the web build is a testing surface; users install the
 
 ## Maintenance skills
 
-`.agent/skills/` ships (registry + run order in
-`.agent/skills/maintenance/SKILL.md`):
+`.agents/skills/` ships (registry + run order in
+`.agents/skills/maintenance/SKILL.md`):
 
 - `maintenance` — umbrella: detects which sync skills are stale and runs them.
 - `update-docs` — sync `docs/*.md` after behavior changes.
