@@ -78,6 +78,8 @@ const shellBuild = process.env.VITE_SHELL_BUILD === "on";
 
 export default defineConfig({
   base,
+  // No size budgets, by owner decision: this only keeps Vite's warning quiet.
+  build: { chunkSizeWarningLimit: 100_000 },
   define: {
     __SHELL_BUILD__: JSON.stringify(shellBuild),
     __APP_VERSION__: JSON.stringify(appVersion),
@@ -91,8 +93,6 @@ export default defineConfig({
   // `preact/jsx-runtime` and aliases `react` / `react-dom` onto
   // `preact/compat`, so both this app's `import … from "react"` lines and the
   // pre-built framework chunks resolve to Preact. See `docs/architecture.md`.
-  // No size budgets, by owner decision: this only keeps Vite's warning quiet.
-  build: { chunkSizeWarningLimit: 100_000 },
   plugins: [
     preact(),
     tailwindcss(),
