@@ -120,7 +120,12 @@ tauri-test` runs on a bare runner), `tauri/src-tauri/` holds every effect.
 One seam reaches back into this tree, `VITE_SHELL_BUILD`: the shell's site
 build passes it, which switches off the service-worker half of `appPwa` and —
 through `__SHELL_BUILD__` — the in-app update prompt. A desktop build has no
-deploy to notice; a new version arrives as a new binary. The package's name
+deploy to notice; a new version arrives as a new binary. The phone wrapper's
+site build sets `VITE_NATIVE_BUILD=on` (`__NATIVE_BUILD__`), and either flag
+makes a build that is not the website: it carries no link back to the source
+(owner decision D17) — no About entry ("Source code", "Report an issue"), no
+Open Graph tags naming the web edition, no `CNAME` or `og.png` — and both
+bundle scripts refuse a webroot that still contains `niclaslindstedt`. The package's name
 and identifier come from `APP_DISPLAY_NAME` and `APP_BUNDLE_ID` at packaging
 time (`tauri/scripts/package.mjs`), like the phone app's. See
 [`tauri/README.md`](tauri/README.md).

@@ -1,12 +1,13 @@
 // SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0
 import { execSync } from "node:child_process";
-import { readFileSync } from "node:fs";
+import { readFileSync, rmSync } from "node:fs";
+import { resolve } from "node:path";
 import process from "node:process";
 import { fileURLToPath } from "node:url";
 
 import preact from "@preact/preset-vite";
 import tailwindcss from "@tailwindcss/vite";
-import { defineConfig } from "vite";
+import { defineConfig, type Plugin } from "vite";
 
 import { appPwa } from "./pwa-plugin.ts";
 
@@ -76,12 +77,50 @@ const version = process.env.GITHUB_SHA
 // nothing left to prompt about.
 const shellBuild = process.env.VITE_SHELL_BUILD === "on";
 
+// A build for the PHONE WRAPPER (native/), set by `native/scripts/bundle-web.mjs`.
+// With `__SHELL_BUILD__` it marks every build that is not the website, and
+// what it changes is about the channel rather than the medium: an app from a
+// store carries no link back to the source (owner decision D17) — no "Source
+// code" or "Report an issue", no web-edition address. Both are compile-time
+// constants, so the About entry and its URLs are folded out of those bundles
+// rather than hidden, and `websiteOnly` below drops the rest.
+const nativeBuild = process.env.VITE_NATIVE_BUILD === "on";
+const appBuild = shellBuild || nativeBuild;
+
+// What only the website carries, left out of an app build (D17): the Open
+// Graph and Twitter tags in `index.html` that point at the web edition's
+// address, and the two public files that exist for them and for Pages — the
+// share card (`og.png`) and the custom-domain file (`CNAME`). The bundle
+// scripts refuse a webroot that still names the site's owner.
+function websiteOnly(): Plugin {
+  let outDir = "";
+  return {
+    name: "website-only",
+    apply: "build",
+    configResolved(config) {
+      outDir = resolve(config.root, config.build.outDir);
+    },
+    transformIndexHtml(html) {
+      return html.replace(
+        /[ \t]*<meta\b[^>]*\bcontent="https?:\/\/[^"]*"[^>]*>\n?/g,
+        "",
+      );
+    },
+    closeBundle() {
+      for (const file of ["CNAME", "og.png"]) {
+        rmSync(resolve(outDir, file), { force: true });
+      }
+    },
+  };
+}
+
 export default defineConfig({
   base,
   // No size budgets, by owner decision: this only keeps Vite's warning quiet.
   build: { chunkSizeWarningLimit: 100_000 },
   define: {
     __SHELL_BUILD__: JSON.stringify(shellBuild),
+    __NATIVE_BUILD__: JSON.stringify(nativeBuild),
     __APP_VERSION__: JSON.stringify(appVersion),
     __BUILD_LABEL__: JSON.stringify(buildLabel),
     __BUILD_COMMIT__: JSON.stringify(commit),
@@ -97,5 +136,6 @@ export default defineConfig({
     preact(),
     tailwindcss(),
     appPwa({ base, version, ignorePaths, serviceWorker: !shellBuild }),
+    ...(appBuild ? [websiteOnly()] : []),
   ],
 });

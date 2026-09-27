@@ -2,8 +2,8 @@
 //
 // The sidebar: namespaces on top, then the saved-session tree — folders (one
 // level, like the notes sibling) with loose sessions below — and a footer
-// with About and Settings (storage lives in Settings → Storage, so the
-// footer stays about the app itself). Folder create/rename is inline (focus +
+// with About (the website only) and Settings (storage lives in Settings →
+// Storage, so the footer stays about the app itself). Folder create/rename is inline (focus +
 // select on mount, Enter/blur commits, empty cancels); session rows get a
 // right-click / long-press action menu.
 //
@@ -47,7 +47,13 @@ const ABOUT_PLACEMENT: FloatingPlacement = {
   coordinateSpace: "viewport",
 };
 
-const SOURCE_URL = "https://github.com/niclaslindstedt/calc";
+// The About entry — "Source code" and "Report an issue" — is the website's
+// alone: an app build carries no link back to the source (owner decision D17),
+// and with both rows gone the entry has nothing left to open. The flags are
+// compile-time constants, so in those builds the entry and its URL are folded
+// out of the bundle rather than hidden.
+const HAS_ABOUT = !__NATIVE_BUILD__ && !__SHELL_BUILD__;
+const SOURCE_URL = HAS_ABOUT ? "https://github.com/niclaslindstedt/calc" : "";
 
 // The footer-collapse choice persists across reloads under this key.
 const FOOTER_COLLAPSED_KEY = "calc:footer-collapsed";
@@ -343,17 +349,19 @@ export function SideMenuContent({
           via the rail above. */}
       {!footerCollapsed && (
         <div className="shrink-0 border-t border-line p-2 pb-[max(0.5rem,env(safe-area-inset-bottom))]">
-          <button
-            ref={aboutRef}
-            type="button"
-            aria-haspopup="menu"
-            aria-expanded={aboutOpen}
-            className="flex w-full items-center gap-2 rounded-lg px-2 py-1.5 text-left text-sm text-fg hover:bg-surface-2"
-            onClick={() => setAboutOpen((v) => !v)}
-          >
-            <HelpCircleIcon className="h-4 w-4 shrink-0 text-muted" />
-            About
-          </button>
+          {HAS_ABOUT && (
+            <button
+              ref={aboutRef}
+              type="button"
+              aria-haspopup="menu"
+              aria-expanded={aboutOpen}
+              className="flex w-full items-center gap-2 rounded-lg px-2 py-1.5 text-left text-sm text-fg hover:bg-surface-2"
+              onClick={() => setAboutOpen((v) => !v)}
+            >
+              <HelpCircleIcon className="h-4 w-4 shrink-0 text-muted" />
+              About
+            </button>
+          )}
           <button
             type="button"
             className="flex w-full items-center gap-2 rounded-lg px-2 py-1.5 text-left text-sm text-fg hover:bg-surface-2"
@@ -373,29 +381,31 @@ export function SideMenuContent({
           width, and the panel stays at the trigger's. The build label
           subtitles the source link, so a bug report can name the exact build
           it came from. */}
-      <FloatingPanel
-        open={aboutOpen}
-        onClose={() => setAboutOpen(false)}
-        triggerRef={aboutRef}
-        placement={ABOUT_PLACEMENT}
-        className="py-1"
-      >
-        <div role="menu" className="flex w-full flex-col">
-          <AboutLink
-            href={SOURCE_URL}
-            sublabel={BUILD_LABEL}
-            onNavigate={() => setAboutOpen(false)}
-          >
-            Source code
-          </AboutLink>
-          <AboutLink
-            href={`${SOURCE_URL}/issues`}
-            onNavigate={() => setAboutOpen(false)}
-          >
-            Report an issue
-          </AboutLink>
-        </div>
-      </FloatingPanel>
+      {HAS_ABOUT && (
+        <FloatingPanel
+          open={aboutOpen}
+          onClose={() => setAboutOpen(false)}
+          triggerRef={aboutRef}
+          placement={ABOUT_PLACEMENT}
+          className="py-1"
+        >
+          <div role="menu" className="flex w-full flex-col">
+            <AboutLink
+              href={SOURCE_URL}
+              sublabel={BUILD_LABEL}
+              onNavigate={() => setAboutOpen(false)}
+            >
+              Source code
+            </AboutLink>
+            <AboutLink
+              href={`${SOURCE_URL}/issues`}
+              onNavigate={() => setAboutOpen(false)}
+            >
+              Report an issue
+            </AboutLink>
+          </div>
+        </FloatingPanel>
+      )}
 
       <ConfirmDialog
         open={confirmDelete !== null}

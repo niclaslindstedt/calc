@@ -36,3 +36,9 @@ interface ImportMetaEnv {
 // True only when `tauri/scripts/bundle-web.mjs` built it: no service worker was
 // emitted, so there is no update lifecycle for the app to drive.
 declare const __SHELL_BUILD__: boolean;
+
+// Whether this build is the one bundled inside the phone wrapper (native/).
+// True only when `native/scripts/bundle-web.mjs` built it. With
+// `__SHELL_BUILD__` it leaves out the About entry, whose links back to the
+// source only the website carries (owner decision D17).
+declare const __NATIVE_BUILD__: boolean;
