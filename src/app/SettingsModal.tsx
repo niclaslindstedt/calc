@@ -93,6 +93,13 @@ const TABS: TabDef[] = [
 
 // What the Appearance tab's display preview reads — a calculation that shows
 // both lines at once, and short enough not to wrap at the largest size.
+// The framework's default wording is British; the app speaks US English (the
+// store's language), so the two strings that differ are given here.
+const US_APPEARANCE_LABELS = {
+  reduceMotionHint: "Minimize animations and transitions.",
+  colours: "Colors",
+};
+
 const DISPLAY_SAMPLE = { result: "42", expression: "6×7" };
 
 // The mobile section menu hangs off the header burger.
@@ -664,6 +671,7 @@ export function SettingsModal({
               <AppearancePicker
                 appearance={appearance}
                 onChange={onAppearanceChange}
+                labels={US_APPEARANCE_LABELS}
               />
             </>
           ) : null}

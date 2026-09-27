@@ -465,7 +465,7 @@ export function useSessions(namespaceSlug: string) {
         writeDropboxTokens(result.accessToken, result.refreshToken);
       } catch (err) {
         if (isAuthCancelled(err)) {
-          status("Dropbox sign-in cancelled");
+          status("Dropbox sign-in canceled");
           return;
         }
         logError(

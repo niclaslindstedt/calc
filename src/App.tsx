@@ -45,6 +45,14 @@ import { useAppSettings } from "./app/useAppSettings.ts";
 import { useNamespaces } from "./app/useNamespaces.ts";
 import { useSessions } from "./app/useSessions.ts";
 
+// The framework's default wording is British; the app speaks US English (the
+// store's language), so the two strings that differ are given here.
+const US_NAMESPACE_LABELS = {
+  blurb:
+    "Each namespace keeps its own data. Switch between them, or give one an icon and color.",
+  colorLabel: "Color",
+};
+
 const APPEARANCE_KEY = "calc:appearance";
 // Folding the docked sidebar away is a per-device layout choice — a wide
 // desktop and a small laptop want different answers — so it rides localStorage
@@ -397,6 +405,7 @@ export function App() {
         onRename={namespaces.rename}
         onSetAppearance={namespaces.setAppearance}
         onRemove={namespaces.remove}
+        labels={US_NAMESPACE_LABELS}
       />
 
       <UpdateToast

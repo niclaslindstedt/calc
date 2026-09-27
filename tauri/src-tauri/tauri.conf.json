@@ -29,7 +29,7 @@
     },
     "category": "Utility",
     "shortDescription": "a local-first calculator",
-    "longDescription": "A local-first calculator: named sessions with folders and namespaces, a tape you can annotate, and keypad layouts you can customise. Your sessions stay on your machine.",
+    "longDescription": "A local-first calculator: named sessions with folders and namespaces, a tape you can annotate, and keypad layouts you can customize. Your sessions stay on your machine.",
     "copyright": "Copyright © Niclas Lindstedt",
     "macOS": {
       "entitlements": "entitlements.mac.plist",
