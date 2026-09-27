@@ -681,8 +681,8 @@ export function SettingsModal({
               <p className="mb-2 text-xs text-muted">
                 Sessions are stored as markdown files. Settings stay on this
                 device, and so do the sessions until you connect a backend —
-                nothing leaves it before that. Connecting applies straight away;
-                it is not part of Save.
+                nothing leaves it before that. Connecting applies right away; it
+                is not part of Save.
               </p>
               <SegmentedControl<StorageChoice>
                 value={picked}

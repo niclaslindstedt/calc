@@ -75,7 +75,7 @@ const TAPES: Tape[] = [
       { then: "×1.1", note: "Plus 10% for cuts and waste" },
       { then: "÷20", note: "Boxes of 20 sq ft — round up to 8" },
       { expr: "8×64.99", note: "White oak, 8 boxes", star: true },
-      { expr: "2×38.5+4×12.75", note: "Underlay and trim" },
+      { expr: "2×38.5+4×12.75", note: "Underlayment and trim" },
       {
         expr: "519.92+128+350",
         note: "All in, with the installer's quote",
