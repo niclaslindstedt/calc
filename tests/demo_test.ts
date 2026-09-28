@@ -114,3 +114,85 @@ describe("demo shelf", () => {
     expect(listed.folders).toEqual(DEMO_FOLDERS);
   });
 });
+
+describe("demo shelf, on every day of a year", () => {
+  // The shelf is built from the moment it is read, so a screenshot taken on
+  // any day — early, late, across a clock change — has to show the same
+  // shelf. Walk a whole year, several times a day, and hold each premise the
+  // frames rest on.
+  const HOURS: [number, number][] = [
+    [0, 5],
+    [6, 30],
+    [9, 13],
+    [12, 0],
+    [18, 45],
+    [23, 55],
+  ];
+  const moments: number[] = [];
+  for (let day = 0; day < 366; day++) {
+    for (const [h, m] of HOURS) {
+      moments.push(new Date(2027, 0, 1 + day, h, m).getTime());
+    }
+  }
+
+  it("walks a whole year", () => {
+    expect(new Date(moments[0]).getFullYear()).toBe(2027);
+    expect(new Date(moments[moments.length - 1]).getFullYear()).toBe(2028);
+  });
+
+  it("writes nothing after the moment it is read", () => {
+    for (const now of moments) {
+      for (const session of buildDemoSessions(now)) {
+        expect(session.updatedAt, new Date(now).toString()).toBeLessThan(now);
+        session.entries.forEach((entry, i) => {
+          expect(entry.at).toBeLessThan(now);
+          if (i > 0) {
+            expect(entry.at).toBeGreaterThan(session.entries[i - 1].at);
+          }
+        });
+      }
+    }
+  });
+
+  it("lists newest first and opens on the kitchen floor", () => {
+    for (const now of moments) {
+      const shelf = buildDemoSessions(now);
+      const at = new Date(now).toString();
+      for (let i = 1; i < shelf.length; i++) {
+        expect(shelf[i].updatedAt, at).toBeLessThan(shelf[i - 1].updatedAt);
+      }
+      const blank = { ...shelf[0], id: "blank", title: "", entries: [] };
+      expect(sessionToResume("empty", blank, shelf)?.title, at).toBe(
+        "Kitchen floor",
+      );
+    }
+  });
+
+  it("keeps the kitchen floor within the last day, and the rest this month", () => {
+    const DAY = 24 * 60 * 60 * 1000;
+    for (const now of moments) {
+      const shelf = buildDemoSessions(now);
+      expect(now - shelf[0].updatedAt).toBeLessThan(DAY);
+      for (const session of shelf) {
+        expect(now - session.createdAt).toBeLessThan(31 * DAY);
+      }
+    }
+  });
+
+  it("carries the same tapes whatever the day", () => {
+    const strip = (now: number) =>
+      buildDemoSessions(now).map((s) => ({
+        title: s.title,
+        mode: s.mode,
+        folderId: s.folderId,
+        entries: s.entries.map(({ expression, result, note, starred }) => ({
+          expression,
+          result,
+          note,
+          starred,
+        })),
+      }));
+    const first = strip(moments[0]);
+    for (const now of moments) expect(strip(now)).toEqual(first);
+  });
+});

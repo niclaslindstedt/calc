@@ -182,6 +182,9 @@ function evaluateStep(expression: string): string {
   return formatResult(evaluate(closeParens(expression)));
 }
 
+/** Roughly a minute and a half between presses of `=`. */
+const STEP_GAP = 90_000;
+
 function buildTape(tape: Tape, index: number, now: number): Session {
   const start = new Date(now);
   start.setDate(start.getDate() - tape.daysAgo);
@@ -191,7 +194,7 @@ function buildTape(tape: Tape, index: number, now: number): Session {
   // latest.
   const first = Math.min(
     start.getTime(),
-    now - tape.steps.length * 60_000 - 60_000,
+    now - (tape.steps.length - 1) * STEP_GAP - 60_000,
   );
 
   const id = demoId(index);
@@ -207,8 +210,7 @@ function buildTape(tape: Tape, index: number, now: number): Session {
       id: `${id}-${i}`,
       expression,
       result: evaluateStep(expression),
-      // Roughly a minute and a half between presses of `=`.
-      at: first + i * 90_000,
+      at: first + i * STEP_GAP,
     };
     if (step.note) entry.note = step.note;
     if (step.star) entry.starred = true;
