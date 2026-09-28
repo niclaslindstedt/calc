@@ -177,7 +177,7 @@ which is why `native/src/icloudBridge.ts` takes its types from the import-free
 
 ## Test conventions
 
-Tests live flat in `tests/` with the OSS_SPEC §20.2 `_test.ts` suffix, run
+Tests live flat in `tests/` with the `_test.ts` suffix, run
 by vitest in the `node` environment (`vitest.config.ts` — no DOM, no
 rendering). They cover the pure domain modules; UI changes are verified by
 `npm run build && npm run preview` and clicking through a calculation ending
@@ -237,13 +237,14 @@ in `=`. No test-specific dependencies beyond vitest.
 ## Website staleness
 
 The app is the website: `pages.yml` builds it per channel and deploys
-`dist/` (OSS_SPEC §11.2 applies in PWA form). The `<head>` copy in
+`dist/`. The `<head>` copy in
 `index.html` (title, description, Open Graph) and `public/og.png` describe the
 app when a link is shared — keep them in sync with user-visible features.
 
-The website is unlisted (OSS_SPEC §11.3.12): every page carries `noindex`.
-
-oss-spec:unlisted-website: the web build is a testing surface; users install the app from its store listing
+The website is unlisted — a testing surface; people install the app from its
+store listing. Every page carries `noindex`, `robots.txt` allows crawling so
+the `noindex` is read, and there is no sitemap, `llms.txt`, JSON-LD or
+canonical link.
 
 ## Maintenance skills
 
@@ -253,5 +254,3 @@ oss-spec:unlisted-website: the web build is a testing surface; users install the
 - `maintenance` — umbrella: detects which sync skills are stale and runs them.
 - `update-docs` — sync `docs/*.md` after behavior changes.
 - `update-readme` — sync `README.md` after public-surface changes.
-- `sync-oss-spec` — run the spec validator and fix what it reports; last in a
-  `maintenance` sweep, and after a spec bump or a change at the repo root.

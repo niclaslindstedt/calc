@@ -6,7 +6,6 @@
 [![ci](https://github.com/niclaslindstedt/calc/actions/workflows/ci.yml/badge.svg)](https://github.com/niclaslindstedt/calc/actions/workflows/ci.yml)
 [![release](https://github.com/niclaslindstedt/calc/actions/workflows/release.yml/badge.svg)](https://github.com/niclaslindstedt/calc/actions/workflows/release.yml)
 [![pages](https://github.com/niclaslindstedt/calc/actions/workflows/pages.yml/badge.svg)](https://github.com/niclaslindstedt/calc/actions/workflows/pages.yml)
-[![spec](https://img.shields.io/badge/OSS__SPEC-v2.8.0-blueviolet)](OSS_SPEC.md)
 [![license](https://img.shields.io/badge/license-PolyForm--NC--1.0.0-blue.svg)](LICENSE)
 
 ## What
@@ -254,8 +253,7 @@ folder: f-shopping
 
 See [`CONTRIBUTING.md`](CONTRIBUTING.md). Bugs and feature requests go to
 [GitHub Issues](https://github.com/niclaslindstedt/calc/issues); security
-reports go through [`SECURITY.md`](SECURITY.md) — never public issues. This
-repository follows [`OSS_SPEC.md`](OSS_SPEC.md).
+reports go through [`SECURITY.md`](SECURITY.md) — never public issues.
 
 ## License
 

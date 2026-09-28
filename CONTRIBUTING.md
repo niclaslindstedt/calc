@@ -61,7 +61,7 @@ make fmt-check
 
 ## Tests
 
-Tests live in `tests/` with a `_test` suffix (OSS_SPEC §20.2) and cover the
+Tests live in `tests/` with a `_test` suffix and cover the
 pure domain modules — the expression evaluator, the markdown document
 codec, and session helpers. Run one file with
 `npx vitest run tests/evaluator_test.ts`. UI changes

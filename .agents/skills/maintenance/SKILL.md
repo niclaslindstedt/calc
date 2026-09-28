@@ -5,7 +5,7 @@ description: "Use when you want to bring every drift-prone artifact in the repo 
 
 # Maintenance
 
-This is the umbrella skill for calc, mandated by §21.6 of `OSS_SPEC.md`. It does no rewriting itself — it decides which sync skills are stale, runs each one, and reports a combined summary. Use it when you do not know which specific artifact is out of date, or when several have likely drifted at once (for example, after a large merge).
+This is the umbrella skill for calc. It does no rewriting itself — it decides which sync skills are stale, runs each one, and reports a combined summary. Use it when you do not know which specific artifact is out of date, or when several have likely drifted at once (for example, after a large merge).
 
 ## When to run
 
@@ -19,11 +19,10 @@ Do **not** use this skill for a targeted fix — if you know exactly which artif
 
 The registry is the single source of truth for which sync skills exist in this repo. Every `update-*` directory under `.agents/skills/` must appear here exactly once. New projects start with the entries below; add rows whenever you create a new sync skill.
 
-| Skill           | Fixes                                       | Spec sections | Run order                                                        |
-| --------------- | ------------------------------------------- | ------------- | ---------------------------------------------------------------- |
-| `update-docs`   | `docs/*.md` vs. source of truth             | §11.1         | 1                                                                |
-| `update-readme` | `README.md` vs. current public surface      | §3            | 2                                                                |
-| `sync-oss-spec` | Repo-wide §19 conformance vs. `OSS_SPEC.md` | §19, §21      | 3 — run last; catches what the per-artifact skills did not touch |
+| Skill           | Fixes                                  | Run order |
+| --------------- | -------------------------------------- | --------- |
+| `update-docs`   | `docs/*.md` vs. source of truth        | 1         |
+| `update-readme` | `README.md` vs. current public surface | 2         |
 
 Run order matters:
 

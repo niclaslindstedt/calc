@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0
-// oss-spec:allow-large-file: split when next touched; known deviation by owner decision
+// guidelines:allow-large-file: split when next touched; known deviation by owner decision
 //
 // The calculator surface, Calcbot-style: the session tape rests above a tall
 // display, and the active mode's keypad sits below. The display leads with
