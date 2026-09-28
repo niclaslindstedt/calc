@@ -124,17 +124,28 @@ function dibEntry(size, rgba) {
   return Buffer.concat([header, pixels, Buffer.alloc(maskStride * size)]);
 }
 
-function encodePng(width, height, rgba) {
-  const raw = Buffer.alloc((width * 4 + 1) * height);
+// `opaque` writes an RGB PNG with no alpha channel at all — what the App Store
+// asks of an app icon — and refuses pixels that are not fully opaque rather
+// than flatten them onto a colour nobody chose.
+function encodePng(width, height, rgba, { opaque = false } = {}) {
+  const channels = opaque ? 3 : 4;
+  const stride = width * channels + 1;
+  const raw = Buffer.alloc(stride * height);
   for (let y = 0; y < height; y++) {
-    raw[y * (width * 4 + 1)] = 0; // filter: none
-    rgba.copy(raw, y * (width * 4 + 1) + 1, y * width * 4, (y + 1) * width * 4);
+    raw[y * stride] = 0; // filter: none
+    for (let x = 0; x < width; x++) {
+      const from = (y * width + x) * 4;
+      if (opaque && rgba[from + 3] !== 255) {
+        throw new Error(`opaque icon: pixel (${x}, ${y}) is transparent`);
+      }
+      rgba.copy(raw, y * stride + 1 + x * channels, from, from + channels);
+    }
   }
   const ihdr = Buffer.alloc(13);
   ihdr.writeUInt32BE(width, 0);
   ihdr.writeUInt32BE(height, 4);
   ihdr[8] = 8; // bit depth
-  ihdr[9] = 6; // colour type: RGBA
+  ihdr[9] = opaque ? 2 : 6; // colour type: RGB or RGBA
   return Buffer.concat([
     Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]),
     chunk("IHDR", ihdr),
@@ -227,7 +238,7 @@ function renderIconRgba(size, { pad = 0, radius = 0.2 } = {}) {
 /** The same mark, encoded as a PNG. The desktop `.ico` below needs the raw
  *  pixels instead. */
 function renderIcon(size, options) {
-  return encodePng(size, size, renderIconRgba(size, options));
+  return encodePng(size, size, renderIconRgba(size, options), options);
 }
 
 // The 1200×630 Open Graph card: the mark on the left, accent bars suggesting
@@ -302,7 +313,8 @@ writeFileSync(join(root, "public", "og.png"), renderOg());
 // than two that resemble each other. Written here rather than kept as a
 // separate set of files precisely so they cannot drift.
 //   icon          — iOS wants a square, fully opaque icon and applies its own
-//                   mask, so the tile is not pre-rounded.
+//                   mask, so the tile is not pre-rounded, and the file has no
+//                   alpha channel at all (the App Store refuses one).
 //   adaptive-icon — Android masks the foreground to whatever shape the
 //                   launcher uses, so the mark is inset to the safe zone and
 //                   the tile runs to the edges (app.config.js paints the same
@@ -311,7 +323,10 @@ writeFileSync(join(root, "public", "og.png"), renderOg());
 //                   this one keeps its rounded corners.
 const nativeAssets = join(root, "native", "assets");
 mkdirSync(nativeAssets, { recursive: true });
-writeFileSync(join(nativeAssets, "icon.png"), renderIcon(1024, { radius: 0 }));
+writeFileSync(
+  join(nativeAssets, "icon.png"),
+  renderIcon(1024, { radius: 0, opaque: true }),
+);
 writeFileSync(
   join(nativeAssets, "adaptive-icon.png"),
   renderIcon(1024, { pad: 0.18, radius: 0 }),
