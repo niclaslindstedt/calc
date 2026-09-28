@@ -124,7 +124,9 @@ One seam reaches back into this tree, `VITE_SHELL_BUILD`: the shell's site
 build passes it, which switches off the service-worker half of `appPwa` and —
 through `__SHELL_BUILD__` — the in-app update prompt. A desktop build has no
 deploy to notice; a new version arrives as a new binary. The phone wrapper's
-site build sets `VITE_NATIVE_BUILD=on` (`__NATIVE_BUILD__`) and passes the
+site build is a shell build too (`VITE_SHELL_BUILD=on`, and
+`native/scripts/bundle-web.mjs` refuses a webroot holding `sw.js`); it also
+sets `VITE_NATIVE_BUILD=on` (`__NATIVE_BUILD__`) and passes the
 listing's `APP_DISPLAY_NAME`, which only that build reads and the app then
 calls itself (`__APP_NAME__`, `src/app/appName.ts`); and either flag
 makes a build that is not the website: it carries no link back to the source

@@ -12,6 +12,10 @@ import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 
 import { webBuildEnv } from "../native/scripts/web-build-env.mjs";
+import {
+  assertNoServiceWorker,
+  assertNoSourceLink,
+} from "../native/scripts/webroot-checks.mjs";
 import { PROJECT_NAME, resolveAppName } from "../src/app/appName.ts";
 
 const root = join(import.meta.dirname, "..");
@@ -74,5 +78,56 @@ describe("the name the app calls itself", () => {
     expect(
       resolveAppName({ nativeBuild: false, displayName: "Nird Calc" }),
     ).toBe(PROJECT_NAME);
+  });
+});
+
+describe("the phone build's webroot", () => {
+  const bytes = (text: string) => new TextEncoder().encode(text);
+
+  it("is a shell build: no service worker, no update prompt", () => {
+    expect(webBuildEnv({}, "preview").VITE_SHELL_BUILD).toBe("on");
+  });
+
+  it("refuses a service worker", () => {
+    const site = { "index.html": bytes("<!doctype html>") };
+    expect(() => assertNoServiceWorker(site)).not.toThrow();
+    expect(() =>
+      assertNoServiceWorker({
+        ...site,
+        "sw.js": bytes("self.addEventListener"),
+      }),
+    ).toThrow(/service worker/);
+    expect(() =>
+      assertNoServiceWorker({ ...site, "preview/sw.js": bytes("") }),
+    ).toThrow(/preview\/sw\.js/);
+  });
+
+  it("refuses a link back to the source, in any text file", () => {
+    const site = { "index.html": bytes("<!doctype html>") };
+    expect(() => assertNoSourceLink(site)).not.toThrow();
+    expect(() =>
+      assertNoSourceLink({
+        ...site,
+        "assets/app.js": bytes("https://github.com/NiclasLindstedt/calc"),
+      }),
+    ).toThrow(/assets\/app\.js/);
+    expect(() =>
+      assertNoSourceLink({ ...site, "icon.png": bytes("niclaslindstedt") }),
+    ).not.toThrow();
+  });
+
+  it("is checked by the bundle script before it zips", () => {
+    const script = readFileSync(
+      join(root, "native", "scripts", "bundle-web.mjs"),
+      "utf8",
+    );
+    const zip = script.indexOf("zipSync(files");
+    for (const check of [
+      "assertNoSourceLink(files)",
+      "assertNoServiceWorker(files)",
+    ]) {
+      expect(script.indexOf(check)).toBeGreaterThan(0);
+      expect(script.indexOf(check)).toBeLessThan(zip);
+    }
   });
 });

@@ -222,10 +222,13 @@ capability is there for the first export that does.
 - **`localhost`, not `127.0.0.1`.** App Transport Security blocks the literal
   address from `WKWebView` even with exception domains declared. The failure
   mode is a silent blank page on iOS.
-- **The service worker is unregistered** (`src/injected.ts`). The origin is
-  stable across app updates, so a worker registered by an older build would
-  keep answering from its precache after a store update had already unpacked
-  the new one.
+- **The bundled site carries no service worker.** `scripts/bundle-web.mjs`
+  builds it with `VITE_SHELL_BUILD=on`, which leaves the worker and the update
+  prompt out, and refuses a webroot that still holds `sw.js`. The origin is
+  stable across app updates, so a worker would keep answering from its
+  precache after a store update had already unpacked the new one — which is
+  also why `src/injected.ts` unregisters any worker an older build left
+  behind.
 - **`url(forUbiquityContainerIdentifier:)` blocks.** It hits the disk and the
   iCloud account, so it never runs on the main thread — every entry point in
   the Swift module is an `AsyncFunction`, and the resolved URL is cached.

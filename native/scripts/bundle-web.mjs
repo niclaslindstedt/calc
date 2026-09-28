@@ -11,14 +11,17 @@
 // rather than the medium (an app from a store carries no link back to the
 // source, owner decision D17, so it compiles out the sidebar's About entry and
 // leaves the web edition's address out of the page — see `vite.config.ts`),
-// and `APP_DISPLAY_NAME`, the store listing's name, which the app then calls
+// `VITE_SHELL_BUILD=on`, about the medium (no service worker and no update
+// prompt: the app changes only when a new build ships), and
+// `APP_DISPLAY_NAME`, the store listing's name, which the app then calls
 // itself. Nothing else in `src/` changes for the app. If the wrapper ever needs
 // the web app to behave differently in some other way, that is a sign it has
 // stopped being thin.
 //
-// The flag is build-time, so `--skip-build` re-zips whatever the last build
-// left in `dist/` — and a website build there carries those links. The zip is
-// refused when one is found in it (`assertNoSourceLink`).
+// The flags are build-time, so `--skip-build` re-zips whatever the last build
+// left in `dist/` — and a website build there carries those links and a
+// service worker. The zip is refused when either is found in it
+// (`webroot-checks.mjs`).
 //
 // Usage:
 //   node scripts/bundle-web.mjs                 # build the site, then zip it
@@ -48,6 +51,10 @@ import { fileURLToPath } from "node:url";
 import { zipSync } from "fflate";
 
 import { webBuildEnv } from "./web-build-env.mjs";
+import {
+  assertNoServiceWorker,
+  assertNoSourceLink,
+} from "./webroot-checks.mjs";
 
 const APP_DIR = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const REPO_DIR = resolve(APP_DIR, "..");
@@ -115,27 +122,10 @@ if (count === 0 || !files["index.html"]) {
   );
 }
 
-/** Refuse a webroot that links back to the source (owner decision D17): no
- *  GitHub repository, issues, releases or sponsor link, and not the author's
- *  handle anywhere — web-edition address, package name or meta tag included.
- *  The website keeps those; the app has none. Every file but a binary asset is
- *  read, extensionless ones too, so nothing slips past on its suffix. */
-const BINARY = /\.(png|ico|jpe?g|webp|gif|woff2?|ttf|otf)$/i;
-function assertNoSourceLink(files) {
-  const decoder = new TextDecoder();
-  for (const [path, bytes] of Object.entries(files)) {
-    if (BINARY.test(path)) continue;
-    if (decoder.decode(bytes).toLowerCase().includes("niclaslindstedt")) {
-      throw new Error(
-        `dist/${path} carries a link back to the source ("niclaslindstedt") — ` +
-          `the phone app must not. Rebuild through this script (drop ` +
-          `--skip-build) so VITE_NATIVE_BUILD=on compiles it out.`,
-      );
-    }
-  }
-}
-
+// A website build left in `dist/` is refused: a link back to the source, or a
+// service worker (`sw.js`) — see `webroot-checks.mjs`.
 assertNoSourceLink(files);
+assertNoServiceWorker(files);
 
 // Deterministic zip: every entry pinned to the ZIP epoch (1980-01-01), so the
 // artifact is reproducible instead of drifting with the clock.

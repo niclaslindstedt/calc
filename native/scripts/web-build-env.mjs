@@ -1,9 +1,12 @@
 // SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0
 // The environment the phone app's web build runs in (`bundle-web.mjs`).
 //
-// Two things mark it as the phone build. `VITE_NATIVE_BUILD=on` is about the
+// Three things mark it as the phone build. `VITE_NATIVE_BUILD=on` is about the
 // channel: an app from a store carries no link back to the source (owner
-// decision D17). `APP_DISPLAY_NAME` is the store listing's name — the same
+// decision D17). `VITE_SHELL_BUILD=on` is about the medium, as in the desktop
+// shell: the page is served from files already on the device and changes only
+// when a new build ships, so it has no service worker and no update prompt.
+// `APP_DISPLAY_NAME` is the store listing's name — the same
 // variable `identifiers.js` reads for the name under the icon — so the app
 // calls itself inside what the tile says outside (`src/app/appName.ts`).
 // Unset, the page keeps the project's own name, which is right for a plain
@@ -27,7 +30,7 @@ export function webBuildEnv(env, profile) {
         "build gets (native/RELEASING.md).",
     );
   }
-  const out = { ...env, VITE_NATIVE_BUILD: "on" };
+  const out = { ...env, VITE_NATIVE_BUILD: "on", VITE_SHELL_BUILD: "on" };
   if (displayName) out.APP_DISPLAY_NAME = displayName;
   else delete out.APP_DISPLAY_NAME;
   return out;
