@@ -40,7 +40,7 @@ declare const __SHELL_BUILD__: boolean;
 // Whether this build is the one bundled inside the phone wrapper (native/).
 // True only when `native/scripts/bundle-web.mjs` built it. With
 // `__SHELL_BUILD__` it leaves out the About entry, whose links back to the
-// source only the website carries (owner decision D17).
+// source only the website carries (by owner decision).
 declare const __NATIVE_BUILD__: boolean;
 
 // The name the app calls itself (`src/app/appName.ts`): the store listing's

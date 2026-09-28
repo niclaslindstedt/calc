@@ -130,7 +130,7 @@ sets `VITE_NATIVE_BUILD=on` (`__NATIVE_BUILD__`) and passes the
 listing's `APP_DISPLAY_NAME`, which only that build reads and the app then
 calls itself (`__APP_NAME__`, `src/app/appName.ts`); and either flag
 makes a build that is not the website: it carries no link back to the source
-(owner decision D17) — no About entry ("Source code", "Report an issue"), no
+(by owner decision) — no About entry ("Source code", "Report an issue"), no
 Open Graph tags naming the web edition, no `CNAME` or `og.png` — and both
 bundle scripts refuse a webroot that still contains `niclaslindstedt`. The package's name
 and identifier come from `APP_DISPLAY_NAME` and `APP_BUNDLE_ID` at packaging

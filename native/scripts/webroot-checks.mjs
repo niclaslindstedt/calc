@@ -9,7 +9,7 @@
 
 const BINARY = /\.(png|ico|jpe?g|webp|gif|woff2?|ttf|otf)$/i;
 
-/** Refuse a webroot that links back to the source (owner decision D17): no
+/** Refuse a webroot that links back to the source (by owner decision): no
  *  GitHub repository, issues, releases or sponsor link, and not the author's
  *  handle anywhere — web-edition address, package name or meta tag included.
  *  The website keeps those; the app has none. Every file but a binary asset is

@@ -82,7 +82,7 @@ const shellBuild = process.env.VITE_SHELL_BUILD === "on";
 // A build for the PHONE WRAPPER (native/), set by `native/scripts/bundle-web.mjs`.
 // With `__SHELL_BUILD__` it marks every build that is not the website, and
 // what it changes is about the channel rather than the medium: an app from a
-// store carries no link back to the source (owner decision D17) — no "Source
+// store carries no link back to the source (by owner decision) — no "Source
 // code" or "Report an issue", no web-edition address. Both are compile-time
 // constants, so the About entry and its URLs are folded out of those bundles
 // rather than hidden, and `websiteOnly` below drops the rest.
@@ -108,7 +108,7 @@ function titled(name: string): Plugin {
   };
 }
 
-// What only the website carries, left out of an app build (D17): the Open
+// What only the website carries, left out of an app build (by owner decision): the Open
 // Graph and Twitter tags in `index.html` that point at the web edition's
 // address, and the two public files that exist for them and for Pages — the
 // share card (`og.png`) and the custom-domain file (`CNAME`). The bundle

@@ -2,8 +2,8 @@
 // The environment the phone app's web build runs in (`bundle-web.mjs`).
 //
 // Three things mark it as the phone build. `VITE_NATIVE_BUILD=on` is about the
-// channel: an app from a store carries no link back to the source (owner
-// decision D17). `VITE_SHELL_BUILD=on` is about the medium, as in the desktop
+// channel: an app from a store carries no link back to the source (by owner
+// decision). `VITE_SHELL_BUILD=on` is about the medium, as in the desktop
 // shell: the page is served from files already on the device and changes only
 // when a new build ships, so it has no service worker and no update prompt.
 // `APP_DISPLAY_NAME` is the store listing's name — the same
