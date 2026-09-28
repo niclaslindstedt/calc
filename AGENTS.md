@@ -244,3 +244,5 @@ oss-spec:unlisted-website: the web build is a testing surface; users install the
 - `maintenance` — umbrella: detects which sync skills are stale and runs them.
 - `update-docs` — sync `docs/*.md` after behavior changes.
 - `update-readme` — sync `README.md` after public-surface changes.
+- `sync-oss-spec` — run the spec validator and fix what it reports; last in a
+  `maintenance` sweep, and after a spec bump or a change at the repo root.
