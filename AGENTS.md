@@ -151,11 +151,11 @@ Two rules keep it thin:
    folder in iCloud Drive. Session paths, the codec and when a save is due stay
    in `src/app/`.
 
-Two root tests (`tests/native_icloud_test.ts`,
-`tests/native_auth_session_test.ts`) import modules from that tree to pin the
-two sides of each seam against each other — which is why
-`native/src/icloudBridge.ts` takes its types from the import-free
-`native/src/icloudWire.ts`, and neither bridge imports anything from `expo`. See [`native/README.md`](native/README.md).
+Three root tests (`tests/native_icloud_test.ts`,
+`tests/native_auth_session_test.ts`, `tests/native_save_file_test.ts`) import
+modules from that tree to pin the two sides of each seam against each other —
+which is why `native/src/icloudBridge.ts` takes its types from the import-free
+`native/src/icloudWire.ts`, and no bridge imports anything from `expo`. See [`native/README.md`](native/README.md).
 
 ## Where new code goes
 
@@ -211,7 +211,14 @@ in `=`. No test-specific dependencies beyond vitest.
 - The auth-session bridge's property and event names are the framework's
   (`AUTH_SESSION_HOST_PROPERTY`, `AUTH_SESSION_HOST_EVENT`), spelled again in
   `native/src/authSessionBridge.ts`; `tests/native_auth_session_test.ts` pins
-  them. Its redirect URI is `<scheme>://oauth`, and the scheme is the bundle
+  them.
+- The save-file bridge's message type, result event and
+  `window.__ossShell` descriptor are the framework's (`SAVE_FILE_MESSAGE`,
+  `SAVE_FILE_RESULT_EVENT`, `docs/native-shell.md`), spelled again in
+  `native/src/saveFileBridge.ts`; `tests/native_save_file_test.ts` runs the
+  framework's `saveFile` against it. An export in `src/` goes through
+  `saveFile`, never `downloadBlob`/`downloadText`: a `blob:` download goes
+  nowhere in the WebView. Its redirect URI is `<scheme>://oauth`, and the scheme is the bundle
   id (`native/app.config.js` takes it from `native/identifiers.js`), so the
   Dropbox app must list `se.agilator.calc://oauth` — a different
   `APP_BUNDLE_ID` breaks phone sign-in until the App Console follows.

@@ -4,8 +4,9 @@
 // This is a deliberately thin wrapper. It starts a loopback server, points a
 // WebView at it, keeps the native chrome in step with the page's theme, sends
 // off-origin links to the system browser, answers the page when it asks to
-// read or write the app's iCloud Drive container, and opens a provider's
-// sign-in in an authentication session when the page asks for one. There is no native UI at all
+// read or write the app's iCloud Drive container, opens a provider's
+// sign-in in an authentication session when the page asks for one, and hands
+// an export to the share sheet. There is no native UI at all
 // beyond a spinner and a failure screen — everything a reader sees is the web
 // app, unchanged.
 //
@@ -62,6 +63,8 @@ import {
   isAuthSessionRequest,
 } from "./src/authSessionBridge";
 import { answerAuthSession, authRedirectUri } from "./src/authSession";
+import { isSaveFileRequest, SAVE_FILE_DESCRIPTOR } from "./src/saveFileBridge";
+import { answerSaveFile } from "./src/saveFile";
 import { barStyleFor, type BarStyle } from "./src/statusBar";
 
 // Hold the native splash until the WebView actually paints. Called at module
@@ -201,6 +204,14 @@ export default function App() {
         void signIn(parsed.id, parsed.url);
         return;
       }
+      // An export: the page's `saveFile` found the "save-file" capability
+      // and sent the bytes here instead of downloading them.
+      if (isSaveFileRequest(parsed)) {
+        void answerSaveFile(parsed, (script) =>
+          webViewRef.current?.injectJavaScript(script),
+        );
+        return;
+      }
       if (!isReport(parsed)) return;
 
       // The native chrome follows the page's theme so the status bar and the
@@ -241,6 +252,11 @@ export default function App() {
   const onShouldStartLoadWithRequest = useCallback(
     (request: WebViewNavigation) => {
       if (!origin) return false;
+      // A `blob:` or `data:` URL only exists inside this WebView, so the
+      // system browser could not open it. Exports reach the share sheet
+      // through `saveFile` instead; anything still navigating there is
+      // dropped.
+      if (/^(blob|data):/i.test(request.url)) return false;
       if (request.url.startsWith(origin)) return true;
       if (request.url.startsWith("about:")) return true;
       void Linking.openURL(request.url);
@@ -297,7 +313,10 @@ export default function App() {
             incognito={false}
             allowsBackForwardNavigationGestures
             setSupportMultipleWindows={false}
-            injectedJavaScriptBeforeContentLoaded={BEFORE_LOAD_SCRIPT}
+            // Before the page's scripts run: the service-worker teardown, and
+            // the `window.__ossShell` descriptor that tells the framework's
+            // `saveFile` this shell opens a share sheet.
+            injectedJavaScriptBeforeContentLoaded={`${BEFORE_LOAD_SCRIPT}\n${SAVE_FILE_DESCRIPTOR}`}
             // Three scripts, one prop: the theme reporter the native chrome
             // follows, the iCloud provider the app looks for, and the
             // auth-session provider its sign-in looks for. All run once the

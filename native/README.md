@@ -21,7 +21,10 @@ Thin is the design, not an aspiration. The wrapper:
   `modules/icloud-store`);
 - opens a cloud provider's sign-in in an **authentication session** when the
   page asks for one (`src/authSessionBridge.ts` → `src/authSession.ts` →
-  `expo-web-browser`) — see [Signing in to Dropbox](#signing-in-to-dropbox).
+  `expo-web-browser`) — see [Signing in to Dropbox](#signing-in-to-dropbox);
+- opens the share sheet for a file the page saves (`src/saveFileBridge.ts` →
+  `src/saveFile.ts` → `expo-file-system` + `expo-sharing`) — see
+  [Saving a file](#saving-a-file).
 
 That is the entire list, and it is deliberately not empty: **App Store
 guideline 4.2 rejects a build that is only a viewer for a website**, so the
@@ -41,21 +44,23 @@ picked local folder.
 
 ## Layout
 
-| Path                       | What it is                                                                                                                         |
-| -------------------------- | ---------------------------------------------------------------------------------------------------------------------------------- |
-| `App.tsx`                  | The whole app: a WebView, a spinner, and a failure screen.                                                                         |
-| `src/local-server.ts`      | Unpacks `assets/webroot.zip` and serves it on a **fixed** loopback port.                                                           |
-| `src/injected.ts`          | One of the two injected scripts: reports the page's theme, kills the service worker.                                               |
-| `src/icloudBridge.ts`      | **Pure.** The injected iCloud provider, and the request/response plumbing. Tested from the root suite.                             |
-| `src/icloudWire.ts`        | **Import-free.** The shapes that cross the bridge — see the note in the file.                                                      |
-| `src/authSessionBridge.ts` | **Pure.** The injected sign-in provider (`window.__ossAuthSession`) and its request/response plumbing. Tested from the root suite. |
-| `src/authSession.ts`       | Opens one sign-in in an authentication session (`expo-web-browser`) and hands back where it ended.                                 |
-| `src/statusBar.ts`         | **Import-free.** Light or dark status-bar icons from the page's reported background. Tested from the root suite.                   |
-| `src/scriptText.ts`        | **Import-free.** Splicing text safely into an injected script; shared by both bridges.                                             |
-| `src/icloud.ts`            | Runs one request against the native module. Degrades to "unavailable" when it is absent.                                           |
-| `modules/icloud-store/`    | A local Expo module: list / read / write / remove inside the app's iCloud container. **Apple only.**                               |
-| `plugins/with-icloud.js`   | Declares the container as a document scope, so it shows up in the Files app.                                                       |
-| `scripts/bundle-web.mjs`   | Builds the web app and packs `dist/` into `assets/webroot.zip`.                                                                    |
+| Path                       | What it is                                                                                                                           |
+| -------------------------- | ------------------------------------------------------------------------------------------------------------------------------------ |
+| `App.tsx`                  | The whole app: a WebView, a spinner, and a failure screen.                                                                           |
+| `src/local-server.ts`      | Unpacks `assets/webroot.zip` and serves it on a **fixed** loopback port.                                                             |
+| `src/injected.ts`          | One of the two injected scripts: reports the page's theme, kills the service worker.                                                 |
+| `src/icloudBridge.ts`      | **Pure.** The injected iCloud provider, and the request/response plumbing. Tested from the root suite.                               |
+| `src/icloudWire.ts`        | **Import-free.** The shapes that cross the bridge — see the note in the file.                                                        |
+| `src/authSessionBridge.ts` | **Pure.** The injected sign-in provider (`window.__ossAuthSession`) and its request/response plumbing. Tested from the root suite.   |
+| `src/authSession.ts`       | Opens one sign-in in an authentication session (`expo-web-browser`) and hands back where it ended.                                   |
+| `src/saveFileBridge.ts`    | **Pure.** The `window.__ossShell` descriptor advertising `save-file`, and the request/response plumbing. Tested from the root suite. |
+| `src/saveFile.ts`          | Writes one saved file to the cache and opens the share sheet (`expo-sharing`).                                                       |
+| `src/statusBar.ts`         | **Import-free.** Light or dark status-bar icons from the page's reported background. Tested from the root suite.                     |
+| `src/scriptText.ts`        | **Import-free.** Splicing text safely into an injected script; shared by both bridges.                                               |
+| `src/icloud.ts`            | Runs one request against the native module. Degrades to "unavailable" when it is absent.                                             |
+| `modules/icloud-store/`    | A local Expo module: list / read / write / remove inside the app's iCloud container. **Apple only.**                                 |
+| `plugins/with-icloud.js`   | Declares the container as a document scope, so it shows up in the Files app.                                                         |
+| `scripts/bundle-web.mjs`   | Builds the web app and packs `dist/` into `assets/webroot.zip`.                                                                      |
 
 `ios/` and `android/` are **prebuild output**: regenerated from `app.config.js`
 and `plugins/` by `expo prebuild --clean`, gitignored, and the source of truth
@@ -192,6 +197,20 @@ There is no iCloud on Android, and the module says so rather than pretending:
 unavailable — which means the web app never lists it. The Android build is the
 same offline-capable calculator with the same Dropbox and on-device backends
 the website has.
+
+## Saving a file
+
+A download in a browser is an anchor clicked at a `blob:` URL; inside the
+WebView that click goes nowhere. The framework's `saveFile`
+(`@niclaslindstedt/oss-framework/files`) is the export call that works in
+both: it downloads, unless `window.__ossShell.capabilities` lists
+`save-file` — which `src/saveFileBridge.ts` injects before the page loads —
+in which case it posts the file's bytes here, and `src/saveFile.ts` writes
+them to the cache and opens the share sheet. The contract is the framework's
+(its `docs/native-shell.md`). Only the latest export is kept on disk, nothing
+is logged, and a `blob:` or `data:` navigation is dropped rather than sent to
+the system browser, which could not open it. Calc exports nothing today; the
+capability is there for the first export that does.
 
 ## Things that will bite you
 
