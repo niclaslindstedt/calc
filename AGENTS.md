@@ -4,7 +4,7 @@ Guidance for AI coding agents working in this repository. `CLAUDE.md`,
 `GEMINI.md`, `.cursorrules`, `.windsurfrules`, and
 `.github/copilot-instructions.md` are symlinks to this file.
 
-Fleet guidelines: APP_GUIDELINES 1.0.1
+Fleet guidelines: APP_GUIDELINES 1.1.0
 
 ## What this is
 
