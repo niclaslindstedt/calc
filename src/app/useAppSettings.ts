@@ -15,6 +15,18 @@ import {
  *  sibling offers, so the two apps feel the same in the hand. */
 export type MenuMode = "button" | "swipe";
 
+/** How the drawer opens on this device. The swipe is only offered where the
+ *  screen edge is free — an installed PWA or the phone app, which is what the
+ *  framework's `useStandaloneMobile()` recognizes — because in a browser tab
+ *  the browser's own back-swipe owns that edge. Anywhere else a stored
+ *  `swipe` reads as `button`, so the floating button can never go missing. */
+export function sidebarOpenMode(
+  menuMode: MenuMode,
+  standaloneMobile: boolean,
+): MenuMode {
+  return standaloneMobile ? menuMode : "button";
+}
+
 /** One text-size step. `m` is what the app has always drawn; the rest step
  *  the text up or down around it. Both Appearance pickers — the keypad's cap
  *  labels and the display's expression/result — run on this scale, so the two

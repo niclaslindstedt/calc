@@ -166,10 +166,12 @@ kept: every calculation from then on is saved as you make it.
   that answered it — the cap dips, its glyph takes the accent, and a soft
   halo fades out — so typing is felt on the pad the way tapping is; a typed
   name this pad has no cap for simply lands on the display.
-- **Opening the sidebar** — on a phone it is one of two, your pick in
-  Settings → General: the draggable floating button (drag it to either edge,
-  at any height), or an inward swipe from the edge the button rests against.
-  A wide screen docks the sidebar and uses neither.
+- **Opening the sidebar** — on a phone it is the draggable floating button
+  (drag it to either edge, at any height). In the installed app, and in the
+  phone app, Settings → General offers an inward swipe from the edge the
+  button rests against instead; a browser tab keeps the button, because the
+  browser's own back-swipe owns that edge. A wide screen docks the sidebar
+  and uses neither.
 - **Hiding the sidebar** — on a docked (wide-screen) sidebar, a chevron grip
   rides its inner edge and folds the whole panel away, handing its width to
   the calculator; it is invisible until the pointer comes to that edge, and

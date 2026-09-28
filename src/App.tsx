@@ -20,7 +20,11 @@ import {
   applyFaviconHref,
   namespaceFaviconHref,
 } from "@niclaslindstedt/oss-framework/namespaces";
-import { UpdateToast, usePwaUpdate } from "@niclaslindstedt/oss-framework/pwa";
+import {
+  UpdateToast,
+  usePwaUpdate,
+  useStandaloneMobile,
+} from "@niclaslindstedt/oss-framework/pwa";
 import {
   Sidebar,
   SidebarCollapseRail,
@@ -42,7 +46,7 @@ import { cacheIdForBase } from "./app/pwa.ts";
 import { SettingsModal, type SettingsTab } from "./app/SettingsModal.tsx";
 import { storageName } from "./app/store.ts";
 import { SideMenuContent } from "./app/SideMenuContent.tsx";
-import { useAppSettings } from "./app/useAppSettings.ts";
+import { sidebarOpenMode, useAppSettings } from "./app/useAppSettings.ts";
 import { useNamespaces } from "./app/useNamespaces.ts";
 import { useSessions } from "./app/useSessions.ts";
 
@@ -124,8 +128,12 @@ export function App() {
   // "Open sidebar with" (Settings → General): on phones the drawer opens
   // either from the floating button or from an inward edge swipe — one or the
   // other, never both, so the gesture and the button can't fight each other.
-  // A docked (pinned) sidebar has neither.
-  const swipeToOpen = !pinned && settings.menuMode === "swipe";
+  // A docked (pinned) sidebar has neither. The choice exists only where the
+  // screen edge is free — the installed PWA and the phone app — so a browser
+  // tab always gets the button (`sidebarOpenMode`).
+  const standaloneMobile = useStandaloneMobile();
+  const swipeToOpen =
+    !pinned && sidebarOpenMode(settings.menuMode, standaloneMobile) === "swipe";
   useEdgeSwipeOpen({
     side: menuPosition.side,
     enabled: swipeToOpen && !drawerOpen,
@@ -379,6 +387,7 @@ export function App() {
         open={settingsOpen}
         onClose={() => setSettingsOpen(false)}
         settings={settings}
+        offerMenuMode={standaloneMobile}
         onCommit={commitSettings}
         appearance={appearance}
         onAppearanceChange={setAppearance}

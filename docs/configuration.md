@@ -24,7 +24,9 @@ preferences, never documents:
 
 - **General** — swipe-down-for-history, key press animation, and how the
   sidebar opens on a phone ("Open sidebar with": the floating button, or an
-  inward edge swipe — one or the other, never both).
+  inward edge swipe — one or the other, never both). The choice is offered
+  only in the installed app and the phone app (the framework's
+  `useStandaloneMobile()`); a browser tab always shows the button.
 - **Layouts** — which modes the top bar offers, per-mode hidden buttons,
   and user-defined custom modes (a named copy of a base layout).
 - **Appearance** — display text size (the result and the expression under

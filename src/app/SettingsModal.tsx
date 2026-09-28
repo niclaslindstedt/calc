@@ -143,6 +143,9 @@ type Props = {
   open: boolean;
   onClose: () => void;
   settings: AppSettings;
+  /** Offer "Open sidebar with": only where an edge swipe is free to take —
+   *  the installed PWA and the phone app (`useStandaloneMobile()`). */
+  offerMenuMode: boolean;
   // Commits the whole settings object at once — Save hands over the draft.
   onCommit: (next: AppSettings) => void;
   appearance: ThemeAppearance;
@@ -166,6 +169,7 @@ export function SettingsModal({
   open,
   onClose,
   settings,
+  offerMenuMode,
   onCommit,
   appearance,
   onAppearanceChange,
@@ -456,7 +460,7 @@ export function SettingsModal({
             </Section>
           ) : null}
 
-          {tab === "general" ? (
+          {tab === "general" && offerMenuMode ? (
             <Section title="Sidebar">
               <div className="flex flex-col gap-1">
                 <span className="text-sm text-fg-bright">
