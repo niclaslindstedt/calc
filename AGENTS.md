@@ -2,14 +2,17 @@
 
 Guidance for AI coding agents working in this repository. `CLAUDE.md`,
 `GEMINI.md`, `.cursorrules`, `.windsurfrules`, and
-`.github/copilot-instructions.md` are symlinks to this file (OSS_SPEC §7.1).
+`.github/copilot-instructions.md` are symlinks to this file.
+
+Fleet guidelines: APP_GUIDELINES 1.0.1
 
 ## What this is
 
 Calc — a local-first calculator PWA built on
 `@niclaslindstedt/oss-framework` (Preact + Vite 8 + Tailwind v4). Sessions
 (calculator tapes with per-entry notes) save as markdown files with YAML
-front matter to a local folder, Dropbox,. localStorage holds
+front matter to a local folder, Dropbox or (in the phone app) iCloud Drive.
+localStorage holds
 settings only, never documents; the unsaved working tape is mirrored into
 IndexedDB (`scratch.ts`) so history survives a reload with no backend.
 
