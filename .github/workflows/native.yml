@@ -94,6 +94,9 @@ jobs:
           # (native/RELEASING.md).
           VITE_DROPBOX_APP_KEY: ${{ secrets.VITE_DROPBOX_APP_KEY }}
           VITE_DROPBOX_APP_FOLDER: ${{ secrets.VITE_DROPBOX_APP_FOLDER }}
+          # The listing's name, which the app calls itself inside — the same
+          # value the EAS build below puts under the icon.
+          APP_DISPLAY_NAME: ${{ secrets.APP_DISPLAY_NAME }}
 
       - name: Set up EAS
         uses: expo/expo-github-action@v9

@@ -27,10 +27,10 @@ repository **secrets** and as EAS environment variables on the project (EAS
 evaluates `app.config.js` again on its builder), under the same names in every
 app:
 
-| Variable           | Becomes                                                    |
-| ------------------ | ---------------------------------------------------------- |
-| `APP_DISPLAY_NAME` | `expo.name` — the listing name and the name under the icon |
-| `APP_BUNDLE_ID`    | `ios.bundleIdentifier` and `android.package`               |
+| Variable           | Becomes                                                                                                                                             |
+| ------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `APP_DISPLAY_NAME` | `expo.name` — the listing name and the name under the icon; the bundle step passes it to the web build too, so the app calls itself the same inside |
+| `APP_BUNDLE_ID`    | `ios.bundleIdentifier` and `android.package`                                                                                                        |
 
 Unset, a checkout builds as the project's own name under a development id; the
 `production` profile refuses to build without them (`identifiers.js`).

@@ -701,9 +701,9 @@ export function SettingsModal({
                   Sessions are kept in this browser&rsquo;s own storage, on this
                   device: naming one saves it here and the sidebar lists it, and
                   the tape you are working on is still there the next time you
-                  open Calc. Nothing is synced or backed up — clearing the
-                  browser&rsquo;s site data takes it with it. Connect a backend
-                  above and everything here is moved into it.
+                  open {__APP_NAME__}. Nothing is synced or backed up — clearing
+                  the browser&rsquo;s site data takes it with it. Connect a
+                  backend above and everything here is moved into it.
                 </p>
               ) : null}
 

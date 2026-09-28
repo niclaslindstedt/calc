@@ -42,3 +42,7 @@ declare const __SHELL_BUILD__: boolean;
 // `__SHELL_BUILD__` it leaves out the About entry, whose links back to the
 // source only the website carries (owner decision D17).
 declare const __NATIVE_BUILD__: boolean;
+
+// The name the app calls itself (`src/app/appName.ts`): the store listing's
+// name (`APP_DISPLAY_NAME`) in the phone build, "Calc" everywhere else.
+declare const __APP_NAME__: string;

@@ -6,13 +6,15 @@
 // on-device, and changes only when a new build ships to the store.
 //
 // The web build is `npm run build` at the repo root — base `/`, which is
-// exactly what a localhost origin wants — with one flag, `VITE_NATIVE_BUILD=on`.
-// It is about the channel rather than the medium: an app from a store carries
-// no link back to the source (owner decision D17), so it compiles out the
-// sidebar's About entry and leaves the web edition's address out of the page
-// (see `vite.config.ts`). Nothing else in `src/` changes for the app. If the
-// wrapper ever needs the web app to behave differently in some other way, that
-// is a sign it has stopped being thin.
+// exactly what a localhost origin wants — in the environment
+// `web-build-env.mjs` composes: `VITE_NATIVE_BUILD=on`, about the channel
+// rather than the medium (an app from a store carries no link back to the
+// source, owner decision D17, so it compiles out the sidebar's About entry and
+// leaves the web edition's address out of the page — see `vite.config.ts`),
+// and `APP_DISPLAY_NAME`, the store listing's name, which the app then calls
+// itself. Nothing else in `src/` changes for the app. If the wrapper ever needs
+// the web app to behave differently in some other way, that is a sign it has
+// stopped being thin.
 //
 // The flag is build-time, so `--skip-build` re-zips whatever the last build
 // left in `dist/` — and a website build there carries those links. The zip is
@@ -45,6 +47,8 @@ import { fileURLToPath } from "node:url";
 
 import { zipSync } from "fflate";
 
+import { webBuildEnv } from "./web-build-env.mjs";
+
 const APP_DIR = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const REPO_DIR = resolve(APP_DIR, "..");
 const DIST_DIR = join(REPO_DIR, "dist");
@@ -60,13 +64,20 @@ const profile =
   "preview";
 
 if (!skipBuild) {
-  console.log(`• building the web app (npm run build) — profile ${profile}…`);
+  const env = webBuildEnv(process.env, profile);
+  console.log(
+    `• building the web app (npm run build) — profile ${profile}, named ` +
+      (env.APP_DISPLAY_NAME
+        ? `"${env.APP_DISPLAY_NAME}"`
+        : "by the project (APP_DISPLAY_NAME unset)") +
+      "…",
+  );
   execFileSync(NPM, ["run", "build"], {
     cwd: REPO_DIR,
     stdio: "inherit",
     // npm on Windows is a batch shim, which Node cannot execute directly.
     shell: WINDOWS,
-    env: { ...process.env, VITE_NATIVE_BUILD: "on" },
+    env,
   });
 }
 

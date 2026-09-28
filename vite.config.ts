@@ -10,6 +10,7 @@ import tailwindcss from "@tailwindcss/vite";
 import { defineConfig, type Plugin } from "vite";
 
 import { appPwa } from "./pwa-plugin.ts";
+import { resolveAppName } from "./src/app/appName.ts";
 
 // The base path is injected by the deploy workflows via VITE_BASE, one per
 // release channel: the released app at `/`, the rolling main build at
@@ -87,6 +88,25 @@ const shellBuild = process.env.VITE_SHELL_BUILD === "on";
 const nativeBuild = process.env.VITE_NATIVE_BUILD === "on";
 const appBuild = shellBuild || nativeBuild;
 
+// The name the app calls itself (`src/app/appName.ts`): the store listing's
+// name in the phone build, which `native/scripts/bundle-web.mjs` passes as
+// `APP_DISPLAY_NAME`; the project's own name everywhere else.
+const appName = resolveAppName({
+  nativeBuild,
+  displayName: process.env.APP_DISPLAY_NAME,
+});
+
+// The document title follows it, so nothing in the phone build's page still
+// calls the app by the project name.
+function titled(name: string): Plugin {
+  return {
+    name: "app-name-title",
+    transformIndexHtml(html) {
+      return html.replace(/<title>[^<]*<\/title>/, `<title>${name}</title>`);
+    },
+  };
+}
+
 // What only the website carries, left out of an app build (D17): the Open
 // Graph and Twitter tags in `index.html` that point at the web edition's
 // address, and the two public files that exist for them and for Pages — the
@@ -121,6 +141,7 @@ export default defineConfig({
   define: {
     __SHELL_BUILD__: JSON.stringify(shellBuild),
     __NATIVE_BUILD__: JSON.stringify(nativeBuild),
+    __APP_NAME__: JSON.stringify(appName),
     __APP_VERSION__: JSON.stringify(appVersion),
     __BUILD_LABEL__: JSON.stringify(buildLabel),
     __BUILD_COMMIT__: JSON.stringify(commit),
@@ -137,5 +158,6 @@ export default defineConfig({
     tailwindcss(),
     appPwa({ base, version, ignorePaths, serviceWorker: !shellBuild }),
     ...(appBuild ? [websiteOnly()] : []),
+    titled(appName),
   ],
 });
