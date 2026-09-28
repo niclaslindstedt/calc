@@ -53,6 +53,10 @@ jobs:
           cache-dependency-path: native/package-lock.json
       - run: npm ci
       - run: npm run typecheck
+      # Expo's check that the tree matches the SDK — the versions it pins, the
+      # config and its plugins, no duplicate native modules — which an EAS
+      # build would otherwise find out after spending a build credit.
+      - run: npx --yes expo-doctor
 
   changeset:
     # Enforces that every PR touching user-visible code drops a
