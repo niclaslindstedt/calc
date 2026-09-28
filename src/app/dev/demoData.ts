@@ -20,7 +20,8 @@
 //
 //   - IT NEVER AGES. Every timestamp is an offset from the `now` it is built
 //     for, so the shelf always reads as this month's work, and two builds on
-//     the same day are the same document.
+//     the same day are the same document. A title that names a month names
+//     it from that offset too, never as a fixed word.
 //
 // Expressions are spelled the way the keypad writes them — `×`, `÷`, `−`, no
 // spaces — so a demo file is byte-for-byte a file the app could have saved.
@@ -42,7 +43,10 @@ type Step = ({ expr: string } | { then: string }) & {
 };
 
 type Tape = {
-  title: string;
+  /** The session's name, or how to name it from the moment its first `=`
+   *  was pressed — for a title that mentions a month, which would otherwise
+   *  date the shelf. */
+  title: string | ((started: Date) => string);
   folder?: string;
   mode?: ModeId;
   /** Whole days before `now`, and the local time the first `=` was pressed. */
@@ -59,6 +63,27 @@ export const DEMO_FOLDERS: Folder[] = [
 
 const folderId = (name: string) =>
   DEMO_FOLDERS.find((f) => f.name === name)?.id;
+
+const MONTHS = [
+  "January",
+  "February",
+  "March",
+  "April",
+  "May",
+  "June",
+  "July",
+  "August",
+  "September",
+  "October",
+  "November",
+  "December",
+];
+
+/** The month before the one `day` falls in, by name: the month an invoice
+ *  written on `day` bills for. */
+export function lastMonthName(day: Date): string {
+  return MONTHS[(day.getMonth() + 11) % 12];
+}
 
 // Newest first, which is also the order the sidebar lists them in. The first
 // is the one a start with no working tape opens (`sessionToResume`), so it is
@@ -84,7 +109,8 @@ const TAPES: Tape[] = [
     ],
   },
   {
-    title: "Invoice — September",
+    // Last month's hours, billed this month — whichever month that is.
+    title: (started) => `Invoice — ${lastMonthName(started)}`,
     folder: "Work",
     daysAgo: 2,
     at: [16, 40],
@@ -197,13 +223,15 @@ function buildTape(tape: Tape, index: number, now: number): Session {
     now - (tape.steps.length - 1) * STEP_GAP - 60_000,
   );
 
+  const title =
+    typeof tape.title === "string" ? tape.title : tape.title(new Date(first));
   const id = demoId(index);
   const entries: Entry[] = [];
   tape.steps.forEach((step, i) => {
     const previous = entries[entries.length - 1];
     const chained = "then" in step;
     if (chained && !previous) {
-      throw new Error(`demo "${tape.title}": a chain needs a step before it`);
+      throw new Error(`demo "${title}": a chain needs a step before it`);
     }
     const expression = chained ? `${previous.result}${step.then}` : step.expr;
     const entry: Entry = {
@@ -220,7 +248,7 @@ function buildTape(tape: Tape, index: number, now: number): Session {
 
   const session: Session = {
     id,
-    title: tape.title,
+    title,
     createdAt: first,
     updatedAt: entries[entries.length - 1].at,
     mode: tape.mode ?? "basic",

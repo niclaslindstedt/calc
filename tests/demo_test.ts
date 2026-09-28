@@ -18,7 +18,11 @@ import {
   sessionToMarkdown,
 } from "../src/app/codec.ts";
 import { demoFiles, memoryFileStore } from "../src/app/dev/demo.ts";
-import { buildDemoSessions, DEMO_FOLDERS } from "../src/app/dev/demoData.ts";
+import {
+  buildDemoSessions,
+  DEMO_FOLDERS,
+  lastMonthName,
+} from "../src/app/dev/demoData.ts";
 import { isBuiltinModeId } from "../src/app/modes.ts";
 import { sessionToResume } from "../src/app/session.ts";
 import { createSessionStore } from "../src/app/store.ts";
@@ -179,10 +183,27 @@ describe("demo shelf, on every day of a year", () => {
     }
   });
 
+  it("names the invoice's month from the day, never a fixed one", () => {
+    const months = new Set<string>();
+    for (const now of moments) {
+      const invoice = buildDemoSessions(now).find((s) =>
+        s.title.startsWith("Invoice — "),
+      );
+      expect(invoice, new Date(now).toString()).toBeDefined();
+      const month = lastMonthName(new Date(invoice!.createdAt));
+      expect(invoice!.title).toBe(`Invoice — ${month}`);
+      months.add(month);
+    }
+    // Across a year it has named every month.
+    expect(months.size).toBe(12);
+  });
+
   it("carries the same tapes whatever the day", () => {
     const strip = (now: number) =>
       buildDemoSessions(now).map((s) => ({
-        title: s.title,
+        // The invoice's month moves with the day (the test above); the rest
+        // of every title is fixed.
+        title: s.title.replace(/^Invoice — \w+$/, "Invoice — <month>"),
         mode: s.mode,
         folderId: s.folderId,
         entries: s.entries.map(({ expression, result, note, starred }) => ({
