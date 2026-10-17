@@ -53,8 +53,8 @@ npm run dev
    kept on this device, so the session lands in the sidebar either way. The
    glyph beside the mode buttons says where the tape stands — not a file yet,
    saving, saved to wherever it is saved — and a press on it opens Settings →
-   Storage, where a local folder (Chromium), Dropbox can be
-   connected. Connecting one moves everything the device is holding into it.
+   Storage, where a local folder (Chromium), Dropbox (not in the phone app)
+   or iCloud Drive (only in it) can be connected. Connecting one moves everything the device is holding into it.
 4. The named session appears in the left sidebar. Organize with the folder
    button, or switch namespaces (separate workspaces) from the switcher on
    top.

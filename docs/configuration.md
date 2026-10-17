@@ -10,7 +10,7 @@ repository secrets of the same name (`secrets.*`) in CI.
 
 | Variable                  | Default | Effect                                                                                                                                                                                                                                                                                  |
 | ------------------------- | ------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `VITE_DROPBOX_APP_KEY`    | unset   | Dropbox app key (PKCE public client). Unset hides the Dropbox backend in Settings → Storage. Register at <https://www.dropbox.com/developers/apps> (scoped access, "App folder").                                                                                                       |
+| `VITE_DROPBOX_APP_KEY`    | unset   | Dropbox app key (PKCE public client), for the website and the desktop app. Unset, Settings → Storage → Dropbox explains what is missing. The phone build ignores it and offers no Dropbox. Register at <https://www.dropbox.com/developers/apps> (scoped access, "App folder").         |
 | `VITE_DROPBOX_APP_FOLDER` | `Calc`  | Dropbox app-folder name (`Apps/<name>/`), fixed by your Dropbox app config.                                                                                                                                                                                                             |
 | `VITE_BASE`               | `/`     | Deploy base path — set by the pages workflow per release channel.                                                                                                                                                                                                                       |
 | `VITE_PWA_IGNORE_PATHS`   | unset   | Sibling deploy channels the root service worker must disown (see `pwa-plugin.ts`).                                                                                                                                                                                                      |
@@ -48,16 +48,17 @@ applies immediately; it is not staged behind the dialog's Save.
 | ------------ | ------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | Device       | none                                 | The default. Both the working tape and named sessions are kept on this device (IndexedDB) — a real backend, just one that never leaves the browser and is not backed up. Connecting another moves what it holds into that one. |
 | Local folder | Chromium (File System Access API)    | The directory handle persists in IndexedDB; the browser re-asks permission after restarts.                                                                                                                                     |
-| Dropbox      | `VITE_DROPBOX_APP_KEY` at build time | PKCE; tokens in localStorage. A redirect on the website, a loopback listener in the desktop app, an in-app authentication session in the phone app.                                                                            |
+| Dropbox      | `VITE_DROPBOX_APP_KEY` at build time | PKCE; tokens in localStorage. A redirect on the website, a loopback listener in the desktop app. Not in the phone app: its build (`VITE_NATIVE_BUILD=on`) folds Dropbox out (`DROPBOX_OFFERED`, `src/app/store.ts`).           |
 | iCloud       | the App Store app (native/)          | The native shell injects an iCloud Drive host after the page loads; the web app files sessions through it. Absent in a browser.                                                                                                |
 
 The deploy workflows read the Dropbox app key from the repository secret of
 the same name, so a fork that wants Dropbox sets `VITE_DROPBOX_APP_KEY` there
 (and registers every redirect URI the app uses in the Dropbox App Console:
-the deployed URL for the website, `http://127.0.0.1:53682/`, `:53683/` and
-`:53684/` for the desktop app, and `se.agilator.calc://oauth` (the bundle id as the scheme) for the phone app — see
-[native/README.md](../native/README.md#signing-in-to-dropbox)). Without it the
-app still runs — that segment just explains that the build carries no key.
+the deployed URL for the website, and `http://127.0.0.1:53682/`, `:53683/` and
+`:53684/` for the desktop app). Without it the app still runs — that segment
+just explains that the build carries no key. The phone app's workflow passes
+no Dropbox secret: the phone build offers no Dropbox — see
+[native/README.md](../native/README.md#signing-in-to-dropbox).
 
 Sessions are markdown files — see [storage-format.md](storage-format.md) for
 the layout a backend ends up holding.

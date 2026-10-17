@@ -11,7 +11,8 @@ Fleet guidelines: APP_GUIDELINES 2.0.0
 Calc — a local-first calculator PWA built on
 `@niclaslindstedt/oss-framework` (Preact + Vite 8 + Tailwind v4). Sessions
 (calculator tapes with per-entry notes) save as markdown files with YAML
-front matter to a local folder, Dropbox or (in the phone app) iCloud Drive.
+front matter to a local folder, Dropbox (not in the phone app) or (only in
+the phone app) iCloud Drive.
 localStorage holds
 settings only, never documents; the unsaved working tape is mirrored into
 IndexedDB (`scratch.ts`) so history survives a reload with no backend.
@@ -151,7 +152,10 @@ Two rules keep it thin:
    iCloud provider on `window`; the framework's `getAuthSessionHost` looks
    for a sign-in provider at `window.__ossAuthSession`), never whether it is
    running natively. A browser has no provider: the iCloud option says so,
-   and Dropbox keeps its redirect sign-in.
+   and Dropbox keeps its redirect sign-in. The one build-time exception is
+   Dropbox itself: the phone build offers none (`DROPBOX_OFFERED`,
+   `src/app/store.ts`, off `VITE_NATIVE_BUILD`), so its bundle folds the
+   segment, the sign-in and every word of Dropbox out.
 2. **The wrapper owns no domain.** It moves opaque files between the page and a
    folder in iCloud Drive. Session paths, the codec and when a save is due stay
    in `src/app/`.
@@ -224,9 +228,8 @@ in `=`. No test-specific dependencies beyond vitest.
   framework's `saveFile` against it. An export in `src/` goes through
   `saveFile`, never `downloadBlob`/`downloadText`: a `blob:` download goes
   nowhere in the WebView. Its redirect URI is `<scheme>://oauth`, and the scheme is the bundle
-  id (`native/app.config.js` takes it from `native/identifiers.js`), so the
-  Dropbox app must list `se.agilator.calc://oauth` — a different
-  `APP_BUNDLE_ID` breaks phone sign-in until the App Console follows.
+  id (`native/app.config.js` takes it from `native/identifiers.js`); the
+  phone build offers no Dropbox, so no provider has to list it today.
 - `src/app/pwa.ts` (`cacheIdForBase`) is imported by both the app and
   `pwa-plugin.ts`; it must stay dependency-free.
 - Every mode feeds the framework's one expression grammar: never add a key

@@ -75,16 +75,13 @@ in to iCloud" on a device that plainly is. Both are configuration, not code.
 
 ### 5. Dropbox
 
-The phone app signs in to Dropbox through an in-app authentication session
-that returns on **`<bundle id>://oauth`** — `se.agilator.calc://oauth` for the
-store build, whose `APP_BUNDLE_ID` is `se.agilator.calc` (see
-[README → Signing in to Dropbox](README.md#signing-in-to-dropbox)). In the
-[Dropbox App Console](https://www.dropbox.com/developers/apps), open the app
-whose key is the `VITE_DROPBOX_APP_KEY` secret and add
-`se.agilator.calc://oauth` under **Settings → OAuth 2 → Redirect URIs**,
-exactly as written. The same secret
-is what the build job passes to the web bundle; without it the app offers no
-Dropbox at all.
+Nothing to set up: the phone build offers no Dropbox. Its sessions stay on
+the device or go to the reader's own iCloud Drive; the build job passes no
+`VITE_DROPBOX_*` secret, and the bundle folds the Dropbox UI out on
+`VITE_NATIVE_BUILD=on` whether or not a key is present. The website and the
+desktop app keep Dropbox. The wrapper's authentication session stays (see
+[README → Signing in to Dropbox](README.md#signing-in-to-dropbox)) — no
+provider uses it in the phone build today.
 
 ## Cutting a build
 
@@ -130,8 +127,7 @@ build without it launches to a blank screen.
       Drive**, connecting files the saved sessions under `calculations/` in
       the **Calc** folder in the Files app, and a session saved on one device
       shows up on another.
-- [ ] Settings → Storage → Dropbox → Connect opens Dropbox in a sheet over
-      the app (not in Safari), and approving closes the sheet and connects.
-      Closing the sheet instead says "cancelled" and leaves nothing connected.
+- [ ] Settings → Storage offers Device, Folder and iCloud — no Dropbox
+      segment, and no word of Dropbox anywhere in the app.
 - [ ] On a device signed OUT of iCloud: the backend explains itself rather than
       failing on the first save.

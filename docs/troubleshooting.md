@@ -29,9 +29,10 @@ again; existing files are re-read as-is.
 
 ## Dropbox buttons are missing
 
-The cloud backends only appear when the build was given
-`VITE_DROPBOX_APP_KEY` — see
-[configuration.md](configuration.md). Local dev: put them in `.env`.
+Dropbox connects only when the build was given `VITE_DROPBOX_APP_KEY` — see
+[configuration.md](configuration.md). Local dev: put it in `.env`. The phone
+app offers no Dropbox at all; its sessions stay on the device or in iCloud
+Drive.
 
 ## Nothing is saved / my session disappeared
 

@@ -39,6 +39,7 @@ import {
   demoActive,
   deviceStore,
   DROPBOX_APP_KEY,
+  DROPBOX_OFFERED,
   dropboxFileStore,
   ensurePermission,
   FOLDER_BACKEND_AVAILABLE,
@@ -147,7 +148,7 @@ export function useSessions(namespaceSlug: string) {
     let cancelled = false;
     void (async () => {
       // Finish a Dropbox PKCE redirect if one is pending.
-      if (DROPBOX_APP_KEY && hasPendingDropboxAuth()) {
+      if (DROPBOX_OFFERED && DROPBOX_APP_KEY && hasPendingDropboxAuth()) {
         try {
           const params = new URLSearchParams(window.location.search);
           const code = params.get("code");
@@ -186,6 +187,9 @@ export function useSessions(namespaceSlug: string) {
         }
         fileStoreRef.current = folderFileStore(handle);
       } else {
+        // Only Dropbox is left, and readBackendPreference names it only in a
+        // build that offers it; the guard says so to the compiler too.
+        if (!DROPBOX_OFFERED) return;
         const tokens = readDropboxTokens();
         if (!tokens || cancelled) return;
         fileStoreRef.current = dropboxFileStore(tokens);
@@ -441,7 +445,7 @@ export function useSessions(namespaceSlug: string) {
   }, [icloudHost]);
 
   const connectDropbox = useCallback(async () => {
-    if (refusedInDemo()) return;
+    if (!DROPBOX_OFFERED || refusedInDemo()) return;
     if (!DROPBOX_APP_KEY) return;
     // Two hosts cannot take the redirect back, and both finish the sign-in in
     // one promise, connecting here, in place, the way the folder does:

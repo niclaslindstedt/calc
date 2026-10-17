@@ -15,8 +15,10 @@ name: native
 #                               native/app.config.js reads it from here.
 #   APP_DISPLAY_NAME (secret)   the listing name, and the name under the icon
 #   APP_BUNDLE_ID    (secret)   iOS bundle identifier / Android package
-#   VITE_DROPBOX_APP_KEY / VITE_DROPBOX_APP_FOLDER (secrets, optional) — the
-#                               website's Dropbox app, baked into the bundle
+# The Dropbox secrets are deliberately NOT passed here: the phone build offers
+# no Dropbox (it keeps sessions on the device or in iCloud Drive), and the
+# bundle folds the Dropbox UI out on VITE_NATIVE_BUILD, key or no key. The
+# website and the desktop app keep it.
 # The same names are set as EAS environment variables, because EAS evaluates
 # app.config.js again on its builder.
 #
@@ -88,12 +90,7 @@ jobs:
         working-directory: native
         run: npm run bundle -- --profile "${{ inputs.profile }}"
         env:
-          # The same Dropbox app as the website's. Unset, the app offers no
-          # Dropbox; set, that app must list <APP_BUNDLE_ID>://oauth
-          # (se.agilator.calc://oauth) as a redirect URI
-          # (native/RELEASING.md).
-          VITE_DROPBOX_APP_KEY: ${{ secrets.VITE_DROPBOX_APP_KEY }}
-          VITE_DROPBOX_APP_FOLDER: ${{ secrets.VITE_DROPBOX_APP_FOLDER }}
+          # No VITE_DROPBOX_* here: the phone build offers no Dropbox.
           # The listing's name, which the app calls itself inside — the same
           # value the EAS build below puts under the icon.
           APP_DISPLAY_NAME: ${{ secrets.APP_DISPLAY_NAME }}

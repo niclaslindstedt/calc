@@ -138,6 +138,14 @@ the only places it belongs are the container and the page that asked for it.
 
 ## Signing in to Dropbox
 
+**The phone build offers no Dropbox.** Its sessions stay on the device or go
+to the reader's own iCloud Drive: `DROPBOX_OFFERED` (`src/app/store.ts`) is
+false when `VITE_NATIVE_BUILD=on`, so the bundle folds the Dropbox segment,
+its sign-in and every word of it out, and `native.yml` passes no
+`VITE_DROPBOX_*` secret. The website and the desktop app keep Dropbox. The
+authentication session below stays in the wrapper — it is a capability, not
+Dropbox's — and this is how Dropbox used it while the phone build offered it.
+
 The page's own Dropbox sign-in is a redirect: consent at dropbox.com, then
 back to the page's origin with a code, which the page trades for tokens using
 the PKCE verifier it kept in `sessionStorage`. That cannot finish in here. The
@@ -194,9 +202,9 @@ Other off-origin links are unchanged: they still leave for the system browser.
 There is no iCloud on Android, and the module says so rather than pretending:
 `modules/icloud-store` declares only the `apple` platform, so
 `requireOptionalNativeModule` returns `null` there and the backend is reported
-unavailable — which means the web app never lists it. The Android build is the
-same offline-capable calculator with the same Dropbox and on-device backends
-the website has.
+unavailable, and the iCloud option says so. The Android build is the same
+offline-capable calculator, its sessions kept on the device (the phone build
+offers no Dropbox).
 
 ## Saving a file
 

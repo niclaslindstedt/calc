@@ -3,7 +3,7 @@
 // Storage: sessions live as markdown files (codec.ts) behind the framework's
 // byte-level `FileStore` seam, so the same session store works over this
 // device (IndexedDB — scratch.ts), a local folder (File System Access API),
-// Dropbox,. localStorage holds *settings and pointers only* —
+// Dropbox (not in the phone build) or iCloud Drive (only in it). localStorage holds *settings and pointers only* —
 // backend choice, tokens, namespace registry — never session documents (the
 // app's storage rule; see docs/architecture.md).
 //
@@ -52,6 +52,16 @@ const DROPBOX_REFRESH_KEY = "calc:dropbox:refresh";
 const RETIRED_GDRIVE_TOKEN_KEY = "calc:gdrive:token";
 
 export const DROPBOX_APP_KEY = import.meta.env.VITE_DROPBOX_APP_KEY ?? "";
+
+// Whether this build offers Dropbox at all. The phone build does not: no
+// segment in the picker, no sign-in, no word of it — the phone keeps its
+// sessions on the device or in the reader's own iCloud Drive. The website and
+// the desktop app offer it exactly as before, key or no key (without one the
+// picker explains what is missing). It reads the phone flag through
+// `import.meta.env` rather than `__NATIVE_BUILD__` — the same variable, but
+// one a test can stub — and Vite inlines it either way, so the phone bundle
+// folds the Dropbox UI out instead of hiding it.
+export const DROPBOX_OFFERED = import.meta.env.VITE_NATIVE_BUILD !== "on";
 export const DROPBOX_APP_FOLDER =
   import.meta.env.VITE_DROPBOX_APP_FOLDER ?? "Calc";
 
@@ -75,7 +85,10 @@ export function readBackendPreference(): BackendId | null {
   // reader's real sessions is theirs, and is left unconnected.
   if (demoDevice) return null;
   const raw = localStorage.getItem(BACKEND_KEY);
-  return raw === "folder" || raw === "dropbox" || raw === "icloud" ? raw : null;
+  // A phone install from before Dropbox left the phone build may still name
+  // it: it opens on this device, the way a backend it cannot reach does.
+  if (raw === "dropbox") return DROPBOX_OFFERED ? raw : null;
+  return raw === "folder" || raw === "icloud" ? raw : null;
 }
 
 export function writeBackendPreference(backend: BackendId | null): void {

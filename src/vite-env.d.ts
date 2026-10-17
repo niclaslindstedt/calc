@@ -19,12 +19,17 @@ declare const __BUILD_NUMBER__: string;
 // Build-time env the app reads through `import.meta.env`. All optional — the
 // app builds and runs with none of them set. See `docs/configuration.md`.
 interface ImportMetaEnv {
-  // Dropbox app key (PKCE public client). Unset hides the Dropbox storage
-  // backend in Settings → Storage. See `src/app/store.ts`.
+  // Dropbox app key (PKCE public client), for the website and the desktop
+  // app — the phone build offers no Dropbox and is built without it. Unset,
+  // Settings → Storage explains what is missing. See `src/app/store.ts`.
   readonly VITE_DROPBOX_APP_KEY?: string;
   // App-folder names for the cloud backends' stored documents. Both default
   // to "Calc". See `src/app/store.ts`.
   readonly VITE_DROPBOX_APP_FOLDER?: string;
+  // "on" in the phone build (`native/scripts/web-build-env.mjs`); vite.config.ts
+  // defines `__NATIVE_BUILD__` from it. Read directly only where a test must
+  // stub it: the phone build offers no Dropbox (`DROPBOX_OFFERED`, store.ts).
+  readonly VITE_NATIVE_BUILD?: string;
   // `demo` boots onto the demo shelf — eight saved sessions held in memory,
   // nothing read from or written to the device (`src/app/dev/demo.ts`). The
   // live demo and the store screenshots are this build. Any other value, or

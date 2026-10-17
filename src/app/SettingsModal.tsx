@@ -73,6 +73,7 @@ import type { BackendId } from "./store.ts";
 import {
   DROPBOX_APP_FOLDER,
   DROPBOX_APP_KEY,
+  DROPBOX_OFFERED,
   FOLDER_BACKEND_AVAILABLE,
 } from "./store.ts";
 
@@ -120,15 +121,17 @@ const BACKEND_NAMES: Record<BackendId, string> = {
 // absence of one. Connecting a backend moves what the device holds into it.
 type StorageChoice = BackendId | "none";
 
-// Every backend is listed, whether or not this browser/build can reach it —
-// a Storage tab that shows one lonely segment reads as "there is no storage",
-// which is exactly the confusion this picker exists to clear up. Picking an
-// unreachable one explains what it needs instead of offering a dead button.
-// Labels stay one word so four segments fit a phone.
+// Every backend this build offers is listed, whether or not this browser can
+// reach it — a Storage tab that shows one lonely segment reads as "there is no
+// storage", which is exactly the confusion this picker exists to clear up.
+// Picking an unreachable one explains what it needs instead of offering a dead
+// button.
+// Labels stay one word so four segments fit a phone. The phone build offers no
+// Dropbox, so its segment is not there at all (`DROPBOX_OFFERED`).
 const BACKEND_OPTIONS: { value: StorageChoice; label: string }[] = [
   { value: "none", label: "Device" },
   { value: "folder", label: "Folder" },
-  { value: "dropbox", label: "Dropbox" },
+  ...(DROPBOX_OFFERED ? [{ value: "dropbox" as const, label: "Dropbox" }] : []),
   { value: "icloud", label: "iCloud" },
 ];
 
@@ -721,8 +724,9 @@ export function SettingsModal({
                   </p>
                   {!FOLDER_BACKEND_AVAILABLE ? (
                     <p className="text-sm text-danger">
-                      This browser has no folder picker — use Dropbox here, or
-                      open the app in a Chromium browser.
+                      {DROPBOX_OFFERED
+                        ? "This browser has no folder picker — use Dropbox here, or open the app in a Chromium browser."
+                        : "This device has no folder picker — keep sessions on the device, or in iCloud Drive."}
                     </p>
                   ) : connected && backend === "folder" ? (
                     <div className="flex flex-wrap items-center gap-2">
@@ -765,8 +769,9 @@ export function SettingsModal({
                   </p>
                   {!icloudAvailable ? (
                     <p className="text-sm text-danger">
-                      iCloud is part of the App Store app. In a browser, use a
-                      folder or Dropbox instead.
+                      {DROPBOX_OFFERED
+                        ? "iCloud is part of the App Store app. In a browser, use a folder or Dropbox instead."
+                        : "iCloud Drive is not available on this device."}
                     </p>
                   ) : connected && backend === "icloud" ? (
                     <div className="flex flex-wrap items-center gap-2">
@@ -787,7 +792,7 @@ export function SettingsModal({
                 </div>
               ) : null}
 
-              {picked === "dropbox" ? (
+              {DROPBOX_OFFERED && picked === "dropbox" ? (
                 <div className="flex flex-col gap-2">
                   <p className="text-xs text-muted">
                     {`Sessions sync to Apps/${DROPBOX_APP_FOLDER}/ in your Dropbox — the app only ever sees its own folder.`}
