@@ -1,8 +1,10 @@
 // SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0
 //
-// The phone build offers no Dropbox; the website and the desktop app offer it
-// as before. `DROPBOX_OFFERED` is read once, when store.ts loads, so each case
-// stubs the phone flag and loads the module fresh.
+// The phone build offers no Dropbox and no local folder — its WebView has no
+// directory picker — and its "Device" segment speaks of the app's storage,
+// not a browser's; the website and the desktop app offer both as before.
+// The build constants are read once, when store.ts loads, so each case stubs
+// the phone flag and loads the module fresh.
 
 import { afterEach, describe, expect, it, vi } from "vitest";
 
@@ -52,5 +54,51 @@ describe("Dropbox on the website and in the desktop app", () => {
     const store = await loadStore("");
     store.writeBackendPreference("dropbox");
     expect(store.readBackendPreference()).toBe("dropbox");
+  });
+});
+
+describe("Settings → Storage in the phone build", () => {
+  it("lists the device and iCloud, and nothing else", async () => {
+    const store = await loadStore("on");
+    expect(store.FOLDER_OFFERED).toBe(false);
+    expect(store.FOLDER_BACKEND_AVAILABLE).toBe(false);
+    expect(store.STORAGE_CHOICES).toEqual([
+      { value: "none", label: "Device" },
+      { value: "icloud", label: "iCloud" },
+    ]);
+  });
+
+  it("speaks of the app's storage, not a browser's", async () => {
+    const store = await loadStore("on");
+    expect(store.DEVICE_STORAGE).toEqual({
+      where: "the app’s own storage",
+      lostWith: "deleting the app",
+    });
+  });
+
+  it("opens an install that chose a folder on this device", async () => {
+    const store = await loadStore("on");
+    store.writeBackendPreference("folder");
+    expect(store.readBackendPreference()).toBeNull();
+  });
+});
+
+describe("Settings → Storage on the website and in the desktop app", () => {
+  it("lists every backend, the folder included", async () => {
+    const store = await loadStore("");
+    expect(store.FOLDER_OFFERED).toBe(true);
+    expect(store.STORAGE_CHOICES.map((c) => c.label)).toEqual([
+      "Device",
+      "Folder",
+      "Dropbox",
+      "iCloud",
+    ]);
+    expect(store.DEVICE_STORAGE.where).toBe("this browser’s own storage");
+  });
+
+  it("reconnects an install that chose a folder", async () => {
+    const store = await loadStore("");
+    store.writeBackendPreference("folder");
+    expect(store.readBackendPreference()).toBe("folder");
   });
 });

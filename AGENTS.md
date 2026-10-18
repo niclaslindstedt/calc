@@ -152,10 +152,13 @@ Two rules keep it thin:
    iCloud provider on `window`; the framework's `getAuthSessionHost` looks
    for a sign-in provider at `window.__ossAuthSession`), never whether it is
    running natively. A browser has no provider: the iCloud option says so,
-   and Dropbox keeps its redirect sign-in. The one build-time exception is
-   Dropbox itself: the phone build offers none (`DROPBOX_OFFERED`,
-   `src/app/store.ts`, off `VITE_NATIVE_BUILD`), so its bundle folds the
-   segment, the sign-in and every word of Dropbox out.
+   and Dropbox keeps its redirect sign-in. The build-time exceptions are
+   Dropbox and the local folder: the phone build offers neither
+   (`DROPBOX_OFFERED`, `FOLDER_OFFERED`, `src/app/store.ts`, off
+   `VITE_NATIVE_BUILD`), so its bundle folds their segments, the sign-in and
+   the folder picker out, and a stored choice of either opens on the device.
+   Its "Device" segment speaks of the app's own storage, never a browser's
+   (`DEVICE_STORAGE`).
 2. **The wrapper owns no domain.** It moves opaque files between the page and a
    folder in iCloud Drive. Session paths, the codec and when a save is due stay
    in `src/app/`.

@@ -43,6 +43,7 @@ import {
   dropboxFileStore,
   ensurePermission,
   FOLDER_BACKEND_AVAILABLE,
+  FOLDER_OFFERED,
   folderFileStore,
   icloudFileStore,
   loadDirectoryHandle,
@@ -358,7 +359,10 @@ export function useSessions(namespaceSlug: string) {
   // sibling runs, so neither leaves a rejected promise behind the button.
   const connectFolder = useCallback(async () => {
     if (refusedInDemo()) return;
-    if (!FOLDER_BACKEND_AVAILABLE || !window.showDirectoryPicker) return;
+    // Spelled with the build constant too, so the phone bundle folds the
+    // picker flow out rather than carrying it to a WebView that has none.
+    if (!FOLDER_OFFERED || !FOLDER_BACKEND_AVAILABLE) return;
+    if (!window.showDirectoryPicker) return;
     status("Opening the directory picker…");
     let handle: FileSystemDirectoryHandle;
     try {

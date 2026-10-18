@@ -71,10 +71,14 @@ import {
 } from "./useAppSettings.ts";
 import type { BackendId } from "./store.ts";
 import {
+  DEVICE_STORAGE,
   DROPBOX_APP_FOLDER,
   DROPBOX_APP_KEY,
   DROPBOX_OFFERED,
   FOLDER_BACKEND_AVAILABLE,
+  FOLDER_OFFERED,
+  STORAGE_CHOICES,
+  type StorageChoice,
 } from "./store.ts";
 
 export type SettingsTab = "general" | "layouts" | "appearance" | "storage";
@@ -115,25 +119,6 @@ const BACKEND_NAMES: Record<BackendId, string> = {
   dropbox: "Dropbox",
   icloud: "iCloud Drive",
 };
-
-// What the Storage tab's picker holds: a backend, or "this device" — which is
-// a place sessions are kept (IndexedDB, see scratch.ts) rather than the
-// absence of one. Connecting a backend moves what the device holds into it.
-type StorageChoice = BackendId | "none";
-
-// Every backend this build offers is listed, whether or not this browser can
-// reach it — a Storage tab that shows one lonely segment reads as "there is no
-// storage", which is exactly the confusion this picker exists to clear up.
-// Picking an unreachable one explains what it needs instead of offering a dead
-// button.
-// Labels stay one word so four segments fit a phone. The phone build offers no
-// Dropbox, so its segment is not there at all (`DROPBOX_OFFERED`).
-const BACKEND_OPTIONS: { value: StorageChoice; label: string }[] = [
-  { value: "none", label: "Device" },
-  { value: "folder", label: "Folder" },
-  ...(DROPBOX_OFFERED ? [{ value: "dropbox" as const, label: "Dropbox" }] : []),
-  { value: "icloud", label: "iCloud" },
-];
 
 // "Open sidebar with" (General) — the floating button or an inward edge
 // swipe, one or the other.
@@ -693,7 +678,7 @@ export function SettingsModal({
               </p>
               <SegmentedControl<StorageChoice>
                 value={picked}
-                options={BACKEND_OPTIONS}
+                options={STORAGE_CHOICES}
                 onChange={(next) => {
                   setPicked(next);
                   // Picking "This device" gives the backend up right away —
@@ -705,16 +690,16 @@ export function SettingsModal({
 
               {picked === "none" ? (
                 <p className="text-xs text-muted">
-                  Sessions are kept in this browser&rsquo;s own storage, on this
-                  device: naming one saves it here and the sidebar lists it, and
-                  the tape you are working on is still there the next time you
-                  open {__APP_NAME__}. Nothing is synced or backed up — clearing
-                  the browser&rsquo;s site data takes it with it. Connect a
-                  backend above and everything here is moved into it.
+                  Sessions are kept in {DEVICE_STORAGE.where}, on this device:
+                  naming one saves it here and the sidebar lists it, and the
+                  tape you are working on is still there the next time you open{" "}
+                  {__APP_NAME__}. Nothing is synced or backed up —{" "}
+                  {DEVICE_STORAGE.lostWith} takes it with it. Connect a backend
+                  above and everything here is moved into it.
                 </p>
               ) : null}
 
-              {picked === "folder" ? (
+              {FOLDER_OFFERED && picked === "folder" ? (
                 <div className="flex flex-col gap-2">
                   <p className="text-xs text-muted">
                     A folder you pick on this device. Sessions land in it as
@@ -724,9 +709,8 @@ export function SettingsModal({
                   </p>
                   {!FOLDER_BACKEND_AVAILABLE ? (
                     <p className="text-sm text-danger">
-                      {DROPBOX_OFFERED
-                        ? "This browser has no folder picker — use Dropbox here, or open the app in a Chromium browser."
-                        : "This device has no folder picker — keep sessions on the device, or in iCloud Drive."}
+                      This browser has no folder picker — use Dropbox here, or
+                      open the app in a Chromium browser.
                     </p>
                   ) : connected && backend === "folder" ? (
                     <div className="flex flex-wrap items-center gap-2">

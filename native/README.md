@@ -142,7 +142,8 @@ the only places it belongs are the container and the page that asked for it.
 to the reader's own iCloud Drive: `DROPBOX_OFFERED` (`src/app/store.ts`) is
 false when `VITE_NATIVE_BUILD=on`, so the bundle folds the Dropbox segment,
 its sign-in and every word of it out, and `native.yml` passes no
-`VITE_DROPBOX_*` secret. The website and the desktop app keep Dropbox. The
+`VITE_DROPBOX_*` secret. Nor a local folder, which no WebView here can pick
+(`FOLDER_OFFERED`): Settings → Storage lists Device and iCloud only. The website and the desktop app keep Dropbox. The
 authentication session below stays in the wrapper — it is a capability, not
 Dropbox's — and this is how Dropbox used it while the phone build offered it.
 

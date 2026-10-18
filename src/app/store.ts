@@ -2,8 +2,8 @@
 //
 // Storage: sessions live as markdown files (codec.ts) behind the framework's
 // byte-level `FileStore` seam, so the same session store works over this
-// device (IndexedDB — scratch.ts), a local folder (File System Access API),
-// Dropbox (not in the phone build) or iCloud Drive (only in it). localStorage holds *settings and pointers only* —
+// device (IndexedDB — scratch.ts), a local folder or Dropbox (neither in the
+// phone build) or iCloud Drive (only in it). localStorage holds *settings and pointers only* —
 // backend choice, tokens, namespace registry — never session documents (the
 // app's storage rule; see docs/architecture.md).
 //
@@ -65,7 +65,16 @@ export const DROPBOX_OFFERED = import.meta.env.VITE_NATIVE_BUILD !== "on";
 export const DROPBOX_APP_FOLDER =
   import.meta.env.VITE_DROPBOX_APP_FOLDER ?? "Calc";
 
-export const FOLDER_BACKEND_AVAILABLE = isFolderBackendAvailable();
+// Whether this build offers a local folder at all. The phone build does not:
+// its WebView has no directory picker, so the segment could only ever explain
+// why it cannot be used — it is left out instead, and a stored folder choice
+// there opens on this device (`readBackendPreference`). The website and the
+// desktop app keep it, explained where the browser has no picker. Read and
+// folded like `DROPBOX_OFFERED`.
+export const FOLDER_OFFERED = import.meta.env.VITE_NATIVE_BUILD !== "on";
+
+export const FOLDER_BACKEND_AVAILABLE =
+  FOLDER_OFFERED && isFolderBackendAvailable();
 
 // What the save glyph calls each place a session can live — woven into
 // "Saved to …", so they read as somewhere rather than as product names where
@@ -80,6 +89,36 @@ export function storageName(backend: BackendId | null): string {
   return backend ? STORAGE_NAMES[backend] : "this device";
 }
 
+// What the Storage tab's picker holds: a backend, or "this device" — which is
+// a place sessions are kept (IndexedDB, see scratch.ts) rather than the
+// absence of one. Connecting a backend moves what the device holds into it.
+export type StorageChoice = BackendId | "none";
+
+// Every backend this build offers is listed, whether or not this browser can
+// reach it — a Storage tab that shows one lonely segment reads as "there is no
+// storage", which is exactly the confusion this picker exists to clear up.
+// Picking an unreachable one explains what it needs instead of offering a dead
+// button. Labels stay one word so four segments fit a phone. The phone build
+// offers neither a local folder nor Dropbox, so their segments are not there
+// at all (`FOLDER_OFFERED`, `DROPBOX_OFFERED`).
+export const STORAGE_CHOICES: { value: StorageChoice; label: string }[] = [
+  { value: "none", label: "Device" },
+  ...(FOLDER_OFFERED ? [{ value: "folder" as const, label: "Folder" }] : []),
+  ...(DROPBOX_OFFERED ? [{ value: "dropbox" as const, label: "Dropbox" }] : []),
+  { value: "icloud", label: "iCloud" },
+];
+
+// Where "Device" keeps the sessions, and what would take them away, as the
+// Storage tab words it: a browser's storage on the website and in the desktop
+// app; the app's own inside the phone app, where no browser is in sight.
+export const DEVICE_STORAGE: { where: string; lostWith: string } =
+  import.meta.env.VITE_NATIVE_BUILD === "on"
+    ? { where: "the app’s own storage", lostWith: "deleting the app" }
+    : {
+        where: "this browser’s own storage",
+        lostWith: "clearing the browser’s site data",
+      };
+
 export function readBackendPreference(): BackendId | null {
   // The demo is pinned to its own shelf: a backend this device chose for the
   // reader's real sessions is theirs, and is left unconnected.
@@ -88,7 +127,10 @@ export function readBackendPreference(): BackendId | null {
   // A phone install from before Dropbox left the phone build may still name
   // it: it opens on this device, the way a backend it cannot reach does.
   if (raw === "dropbox") return DROPBOX_OFFERED ? raw : null;
-  return raw === "folder" || raw === "icloud" ? raw : null;
+  // A phone install never had a folder it could write to — its sessions have
+  // been on the device all along — so it opens there.
+  if (raw === "folder") return FOLDER_OFFERED ? raw : null;
+  return raw === "icloud" ? raw : null;
 }
 
 export function writeBackendPreference(backend: BackendId | null): void {
