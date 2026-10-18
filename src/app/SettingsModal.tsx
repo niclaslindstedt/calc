@@ -746,10 +746,10 @@ export function SettingsModal({
                 <div className="flex flex-col gap-2">
                   <p className="text-xs text-muted">
                     Your own iCloud Drive, through the Apple ID this device is
-                    already signed into — nothing to sign into and no account to
-                    make. Sessions land as the same readable files a folder
-                    holds, under Calc in the Files app, on every device you are
-                    signed into.
+                    already signed into — nothing to sign into and nothing to
+                    sign up for. Sessions land as the same readable files a
+                    folder holds, under Calc in the Files app, on every device
+                    you are signed into.
                   </p>
                   {!icloudAvailable ? (
                     <p className="text-sm text-danger">

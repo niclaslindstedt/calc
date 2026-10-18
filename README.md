@@ -32,7 +32,7 @@ down to the individual button.
   a folder you own — local or cloud — diffable, greppable, future-proof.
 - **Your layout.** Hide the buttons you never press, or build a mode of your
   own from a base layout and name it.
-- **Local-first.** No account, no server. localStorage holds settings only;
+- **Local-first.** Nothing to sign up for, no server. localStorage holds settings only;
   documents live where you point them.
 
 ## Prerequisites
