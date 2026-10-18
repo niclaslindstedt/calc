@@ -12,6 +12,12 @@ hand-edit the released sections.
 
 ## [Unreleased]
 
+## [1.0.0] - 2026-10-18
+
+### Fixed
+
+- **Phone app storage** — In the phone app, Settings → Storage offers only this device and iCloud, and says your sessions on the device are kept in the app's own storage rather than a browser's.
+
 ## [0.2.0] - 2026-10-18
 
 ### Added
