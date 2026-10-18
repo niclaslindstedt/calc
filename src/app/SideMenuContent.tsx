@@ -37,6 +37,7 @@ import {
   type Namespace,
 } from "@niclaslindstedt/oss-framework/namespaces";
 
+import { PRIVACY_POLICY_URL } from "./privacy.ts";
 import { sessionTitle, type Folder, type Session } from "./session.ts";
 
 // The About dropdown opens up-and-to-the-left of its footer trigger; the
@@ -47,11 +48,12 @@ const ABOUT_PLACEMENT: FloatingPlacement = {
   coordinateSpace: "viewport",
 };
 
-// The About entry — "Source code" and "Report an issue" — is the website's
-// alone: an app build carries no link back to the source (by owner decision),
-// and with both rows gone the entry has nothing left to open. The flags are
-// compile-time constants, so in those builds the entry and its URL are folded
-// out of the bundle rather than hidden.
+// The About entry — "Source code", "Report an issue" and "Privacy policy" — is
+// the website's alone: an app build carries no link back to the source (by
+// owner decision), and the one row left, the privacy policy, is under
+// Settings → Privacy in every build already (`PrivacyNote.tsx`), so the entry
+// goes. The flags are compile-time constants, so in those builds the entry and
+// its URL are folded out of the bundle rather than hidden.
 const HAS_ABOUT = !__NATIVE_BUILD__ && !__SHELL_BUILD__;
 const SOURCE_URL = HAS_ABOUT ? "https://github.com/niclaslindstedt/calc" : "";
 
@@ -402,6 +404,12 @@ export function SideMenuContent({
               onNavigate={() => setAboutOpen(false)}
             >
               Report an issue
+            </AboutLink>
+            <AboutLink
+              href={PRIVACY_POLICY_URL}
+              onNavigate={() => setAboutOpen(false)}
+            >
+              Privacy policy
             </AboutLink>
           </div>
         </FloatingPanel>

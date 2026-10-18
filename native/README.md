@@ -14,8 +14,10 @@ Thin is the design, not an aspiration. The wrapper:
   safe-area bands follow the page's own theme; on both, the status bar's clock
   and battery are light over a dark page background and dark over a light one,
   decided from the colour the page reports (`src/statusBar.ts`), never from
-  the phone's light/dark setting; off-origin links go to
-  the system browser, and Android's back button drives the WebView's history;
+  the phone's light/dark setting; off-origin links — the privacy policy
+  under Settings → Privacy among them — go to the system browser
+  (`src/navigation.ts`), and Android's back button drives the WebView's
+  history;
 - answers the page when it asks to read or write a file in the app's iCloud
   container (`src/icloudBridge.ts` → `src/icloud.ts` →
   `modules/icloud-store`);
@@ -56,6 +58,7 @@ picked local folder.
 | `src/saveFileBridge.ts`    | **Pure.** The `window.__ossShell` descriptor advertising `save-file`, and the request/response plumbing. Tested from the root suite. |
 | `src/saveFile.ts`          | Writes one saved file to the cache and opens the share sheet (`expo-sharing`).                                                       |
 | `src/statusBar.ts`         | **Import-free.** Light or dark status-bar icons from the page's reported background. Tested from the root suite.                     |
+| `src/navigation.ts`        | **Import-free.** Which navigations the WebView loads, and which go to the system browser. Tested from the root suite.                |
 | `src/scriptText.ts`        | **Import-free.** Splicing text safely into an injected script; shared by both bridges.                                               |
 | `src/icloud.ts`            | Runs one request against the native module. Degrades to "unavailable" when it is absent.                                             |
 | `modules/icloud-store/`    | A local Expo module: list / read / write / remove inside the app's iCloud container. **Apple only.**                                 |

@@ -65,6 +65,7 @@ import {
 import { answerAuthSession, authRedirectUri } from "./src/authSession";
 import { isSaveFileRequest, SAVE_FILE_DESCRIPTOR } from "./src/saveFileBridge";
 import { answerSaveFile } from "./src/saveFile";
+import { routeNavigation } from "./src/navigation";
 import { barStyleFor, type BarStyle } from "./src/statusBar";
 
 // Hold the native splash until the WebView actually paints. Called at module
@@ -242,25 +243,18 @@ export default function App() {
 
   const origin = server.status === "ready" ? server.origin : null;
 
-  // Keep the WebView on the embedded app. Anything else — a link in a note,
-  // the privacy policy's own links — belongs in the system browser, because
-  // App Review expects external links to open externally. A provider's
-  // sign-in page is not navigated to at all: the page asks for an
-  // authentication session instead (see `src/authSessionBridge.ts`), since a
-  // consent page in Safari redirects back to Safari, not to the app. This
-  // stays the fallback for a page that finds no session provider.
+  // Keep the WebView on the embedded app, and send anything else — a link in
+  // a note, the privacy policy under Settings → Privacy — to the system
+  // browser (`src/navigation.ts` decides which). A provider's sign-in page is
+  // not navigated to at all: the page asks for an authentication session
+  // instead (see `src/authSessionBridge.ts`), since a consent page in Safari
+  // redirects back to Safari, not to the app. This stays the fallback for a
+  // page that finds no session provider.
   const onShouldStartLoadWithRequest = useCallback(
     (request: WebViewNavigation) => {
-      if (!origin) return false;
-      // A `blob:` or `data:` URL only exists inside this WebView, so the
-      // system browser could not open it. Exports reach the share sheet
-      // through `saveFile` instead; anything still navigating there is
-      // dropped.
-      if (/^(blob|data):/i.test(request.url)) return false;
-      if (request.url.startsWith(origin)) return true;
-      if (request.url.startsWith("about:")) return true;
-      void Linking.openURL(request.url);
-      return false;
+      const route = routeNavigation(request.url, origin);
+      if (route === "browser") void Linking.openURL(request.url);
+      return route === "load";
     },
     [origin],
   );

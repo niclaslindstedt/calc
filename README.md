@@ -184,10 +184,12 @@ kept: every calculation from then on is saved as you make it.
   keypad's button labels, where the keys keep their size and only the text
   grows.
 - **Settings** — the sidebar footer opens it: General (gestures, sidebar),
-  Layouts, Appearance (display and button text sizes + theme), and Storage,
-  which is where a backend is connected. Changes are staged and applied with Save;
-  Cancel puts everything back. The footer also carries an About entry with
-  the build identifier.
+  Layouts, Appearance (display and button text sizes + theme), Storage,
+  which is where a backend is connected, and Privacy — a few lines on what
+  stays where, and a link to the full privacy policy. Changes are staged and
+  applied with Save; Cancel puts everything back. On the website the footer
+  also carries an About entry: the source code with the build identifier,
+  issues, and the privacy policy.
 - **Storage** — Settings → Storage picks between _Device_ (sessions are kept
   in this browser’s own storage and nothing leaves it — nothing is synced or
   backed up either), a local _Folder_, _Dropbox_ (not in the phone app), and

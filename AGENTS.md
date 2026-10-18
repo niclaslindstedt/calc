@@ -167,7 +167,10 @@ Three root tests (`tests/native_icloud_test.ts`,
 `tests/native_auth_session_test.ts`, `tests/native_save_file_test.ts`) import
 modules from that tree to pin the two sides of each seam against each other —
 which is why `native/src/icloudBridge.ts` takes its types from the import-free
-`native/src/icloudWire.ts`, and no bridge imports anything from `expo`. See [`native/README.md`](native/README.md).
+`native/src/icloudWire.ts`, and no bridge imports anything from `expo`.
+`tests/native_navigation_test.ts` pins the other way out of the WebView: an
+off-origin link, the privacy policy among them, goes to the system browser
+(`native/src/navigation.ts`). See [`native/README.md`](native/README.md).
 
 ## Where new code goes
 
@@ -184,6 +187,7 @@ which is why `native/src/icloudBridge.ts` takes its types from the import-free
 | Device-local persistence       | `src/app/scratch.ts` (IndexedDB) — never localStorage                                        |
 | New screen / modal             | `src/app/<Name>.tsx`, wired in `App.tsx`                                                     |
 | Settings key                   | `src/app/useAppSettings.ts` + Settings UI                                                    |
+| Privacy summary / policy link  | `src/app/privacy.ts` (shown by `PrivacyNote.tsx` in Settings → Privacy)                      |
 | Build/deploy behavior          | `vite.config.ts` / `pwa-plugin.ts` / `.github/workflows/`                                    |
 | Icon / mark change             | `public/icons/icon.svg` + `scripts/generate-icons.mjs` (keep in lockstep), then `make icons` |
 
@@ -206,6 +210,7 @@ in `=`. No test-specific dependencies beyond vitest.
 | The native wrapper           | `native/README.md`, `native/RELEASING.md`                          |
 | The desktop shell            | `tauri/README.md`, `docs/desktop-app.md`, `tauri/shell/tests/`     |
 | localStorage keys            | `docs/architecture.md` (key inventory)                             |
+| What is stored or sent where | `src/app/privacy.ts` — each build's summary must stay true of it   |
 | The public surface generally | Run the `update-readme` / `update-docs` skills (`.agents/skills/`) |
 
 ## Parity and cross-cutting rules

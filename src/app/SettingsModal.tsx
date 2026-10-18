@@ -9,8 +9,9 @@
 // Sections: General (the calculator's gesture toggles), Layouts (enable /
 // disable modes, customize a mode's buttons by pressing them, create new
 // modes from a base layout), Appearance (display and keypad text sizes plus
-// the framework theme picker) and Storage (the backend connection — the only way into it, so the sidebar
-// footer stays about sessions).
+// the framework theme picker), Storage (the backend connection — the only way into it, so the sidebar
+// footer stays about sessions) and Privacy (what the app keeps and where, and
+// the link to the full policy — `PrivacyNote.tsx`, in every build).
 //
 // Editing model, borrowed wholesale from contacts: appearance edits preview
 // live and revert on Cancel; every settings knob (including the Layouts tab's
@@ -39,6 +40,7 @@ import {
   PaletteIcon,
   Section,
   SegmentedControl,
+  ShieldIcon,
   SlidersIcon,
   SpinnerIcon,
   ToggleRow,
@@ -53,6 +55,7 @@ import {
 
 import { DisplayReadout } from "./DisplayReadout.tsx";
 import { Keypad } from "./Keypad.tsx";
+import { PrivacyNote } from "./PrivacyNote.tsx";
 import { APP_LOOK } from "./look.ts";
 import {
   BUILTIN_MODE_IDS,
@@ -81,7 +84,8 @@ import {
   type StorageChoice,
 } from "./store.ts";
 
-export type SettingsTab = "general" | "layouts" | "appearance" | "storage";
+export type SettingsTab =
+  "general" | "layouts" | "appearance" | "storage" | "privacy";
 
 type TabDef = {
   id: SettingsTab;
@@ -94,6 +98,7 @@ const TABS: TabDef[] = [
   { id: "layouts", label: "Layouts", icon: GripIcon },
   { id: "appearance", label: "Appearance", icon: PaletteIcon },
   { id: "storage", label: "Storage", icon: DatabaseIcon },
+  { id: "privacy", label: "Privacy", icon: ShieldIcon },
 ];
 
 // What the Appearance tab's display preview reads — a calculation that shows
@@ -807,6 +812,12 @@ export function SettingsModal({
                   )}
                 </div>
               ) : null}
+            </Section>
+          ) : null}
+
+          {tab === "privacy" ? (
+            <Section title="Privacy">
+              <PrivacyNote />
             </Section>
           ) : null}
         </div>

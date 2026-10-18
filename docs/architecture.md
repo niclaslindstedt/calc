@@ -36,7 +36,10 @@ main.tsx
     │   └── Keypad.tsx         mode-driven grid; the erase key reads the
     │                          display (⌫ / C, tap and hold); doubles as the
     │                          mode editor
-    └── SettingsModal.tsx      General / Layouts / Appearance / Storage
+    └── SettingsModal.tsx      General / Layouts / Appearance / Storage /
+        │                      Privacy
+        └── PrivacyNote.tsx    the build's own privacy summary
+                               (`privacy.ts`) and the full policy's link
 ```
 
 The runtime is Preact via `preact/compat`: `@preact/preset-vite` aliases
