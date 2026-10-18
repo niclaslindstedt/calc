@@ -1,6 +1,6 @@
 {
   "name": "calc",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "private": true,
   "description": "A local-first calculator PWA built on @niclaslindstedt/oss-framework — named calculation sessions with folders and namespaces, a commentable tape, and markdown storage in a local folder or the cloud.",
   "license": "PolyForm-Noncommercial-1.0.0",
